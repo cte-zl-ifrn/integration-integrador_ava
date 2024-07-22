@@ -1,8 +1,11 @@
-FROM python:3.12.1-slim-bookworm
+FROM python:3.12.4-slim-bookworm
 
 ENV PYTHONUNBUFFERED 1
 
-RUN apt update && apt upgrade -y && apt -y install curl vim
+RUN apt-get update \
+    && apt-get -y install curl vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 ADD requirements.txt /
 
