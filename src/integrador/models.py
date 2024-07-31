@@ -142,7 +142,7 @@ class Curso(Model):
                 return {
                     "login": vc.colaborador.username,
                     "email": vc.colaborador.email,
-                    "nome": vc.colaborador.show_name,
+                    "nome": vc.colaborador.get_full_name(),
                     "status": "Ativo" if vc.active else "Inativo",
                 }
 

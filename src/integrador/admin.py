@@ -357,7 +357,7 @@ class CursoPoloResourceAdmin(BaseModelAdmin):
 
 @register(Solicitacao)
 class SolicitacaoAdmin(BaseModelAdmin):
-    list_display = ("quando", "status_merged", "campus", "codigo_diario", "professores")
+    list_display = ("quando", "status_merged", "campus", "codigo_diario", "professores", "acoes")
     list_filter = ("status", "status_code", "campus__sigla")
     search_fields = ["recebido", "enviado", "respondido", "diario__codigo"]
     autocomplete_fields = ["campus"]
