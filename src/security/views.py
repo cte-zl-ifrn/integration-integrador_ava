@@ -56,10 +56,11 @@ def authenticate(request: HttpRequest) -> HttpResponse:
         def _save_user(userinfo):
             username = userinfo["identificacao"]
             user = User.objects.filter(username=username).first()
+            
             defaults = {
                 "first_name": userinfo.get("primeiro_nome"),
                 "last_name": userinfo.get("ultimo_nome"),
-                "email": userinfo.get("email_preferencial"),
+                "email": userinfo.get("email_preferencial") or userinfo.get("identificacao") + "@ifrn.edu.br",
             }
 
             if user is None:
