@@ -63,9 +63,9 @@ deploy-teste-job:
         - mkdir -p ~/.ssh
         - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
         - chmod 700 ~/.ssh/id_rsa
-        - ssh -o StrictHostKeyChecking=no root@TEST_HOST "/var/dockers/vai deploy app"
+        - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai deploy app"
         - sleep 60
-        - ssh -o StrictHostKeyChecking=no root@TEST_HOST "/var/dockers/vai logs -n 1000"
+        - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai logs -n 1000"
         - echo "Service successfully deployed in test."
 
 deploy-producao-job:
