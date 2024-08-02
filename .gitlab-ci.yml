@@ -36,11 +36,11 @@ unit-test-job:
                 coverage_format: cobertura
                 path: coverage.xml
 
-    lint-test-job:
+lint-test-job:
     stage: test
-        script:
-            - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
-            - cat lint.txt
+    script:
+        - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
+        - cat lint.txt
 
 publish-job:
     stage: publish
