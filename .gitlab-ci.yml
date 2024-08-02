@@ -30,10 +30,9 @@ unit-test-job:
     stage: test
     script:
         - chmod -R 777 .
-        - docker run --rm -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage run manage.py test
-        - docker run --rm -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage xml
-        - docker run --rm -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage report
-        - docker run --rm -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME bash -c 'find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf'
+        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage run manage.py test
+        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage xml
+        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage report
     artifacts:
         # https://docs.gitlab.com/ee/ci/yaml/index.html#artifactsexpire_in
         expire_in: 1 year
