@@ -1,5 +1,6 @@
 stages:
     - build
+    - lint
     - test
     - publish
     - deploy
@@ -19,6 +20,12 @@ build-job:
         - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
         - echo "Build complete."
 
+lint-job:
+    stage: lint
+    script:
+        - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
+        - cat lint.txt
+
 unit-test-job:
     stage: test
     script:
@@ -36,12 +43,6 @@ unit-test-job:
             coverage_report:
                 coverage_format: cobertura
                 path: src/coverage.xml
-
-lint-test-job:
-    stage: test
-    script:
-        - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
-        - cat lint.txt
 
 publish-job:
     stage: publish
