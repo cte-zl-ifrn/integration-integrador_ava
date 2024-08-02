@@ -10,7 +10,13 @@ from django.urls import path, reverse
 from django.db.models import JSONField, Model
 from django.forms import ModelForm
 from django.contrib.auth.models import User
-from django.contrib.admin import register, display, StackedInline, TabularInline, ModelAdmin
+from django.contrib.admin import (
+    register,
+    display,
+    StackedInline,
+    TabularInline,
+    ModelAdmin,
+)
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
@@ -22,7 +28,17 @@ from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, DateTimeWidget
-from integrador.models import Ambiente, Campus, Papel, Curso, Polo, CursoPolo, VinculoCurso, VinculoPolo, Solicitacao
+from integrador.models import (
+    Ambiente,
+    Campus,
+    Papel,
+    Curso,
+    Polo,
+    CursoPolo,
+    VinculoCurso,
+    VinculoPolo,
+    Solicitacao,
+)
 from integrador.brokers import MoodleBroker
 
 
@@ -292,11 +308,25 @@ class PapelAdmin(BaseModelAdmin):
 class VinculoCursoAdmin(BaseModelAdmin):
     class VinculoCursoResource(ModelResource):
         colaborador = Field(
-            attribute="colaborador", column_name="colaborador", widget=ForeignKeyWidget(User, field="username")
+            attribute="colaborador",
+            column_name="colaborador",
+            widget=ForeignKeyWidget(User, field="username"),
         )
-        curso = Field(attribute="curso", column_name="curso", widget=ForeignKeyWidget(Curso, field="codigo"))
-        papel = Field(attribute="papel", column_name="papel", widget=ForeignKeyWidget(Papel, field="papel"))
-        campus = Field(attribute="campus", column_name="campus", widget=ForeignKeyWidget(Campus, field="sigla"))
+        curso = Field(
+            attribute="curso",
+            column_name="curso",
+            widget=ForeignKeyWidget(Curso, field="codigo"),
+        )
+        papel = Field(
+            attribute="papel",
+            column_name="papel",
+            widget=ForeignKeyWidget(Papel, field="papel"),
+        )
+        campus = Field(
+            attribute="campus",
+            column_name="campus",
+            widget=ForeignKeyWidget(Campus, field="sigla"),
+        )
 
         class Meta:
             model = VinculoCurso
@@ -316,10 +346,20 @@ class VinculoCursoAdmin(BaseModelAdmin):
 class VinculoPoloAdmin(BaseModelAdmin):
     class VinculoPoloResource(ModelResource):
         colaborador = Field(
-            attribute="colaborador", column_name="colaborador", widget=ForeignKeyWidget(User, field="username")
+            attribute="colaborador",
+            column_name="colaborador",
+            widget=ForeignKeyWidget(User, field="username"),
         )
-        polo = Field(attribute="polo", column_name="polo", widget=ForeignKeyWidget(Polo, field="suap_id"))
-        papel = Field(attribute="papel", column_name="papel", widget=ForeignKeyWidget(Papel, field="papel"))
+        polo = Field(
+            attribute="polo",
+            column_name="polo",
+            widget=ForeignKeyWidget(Polo, field="suap_id"),
+        )
+        papel = Field(
+            attribute="papel",
+            column_name="papel",
+            widget=ForeignKeyWidget(Papel, field="papel"),
+        )
 
         class Meta:
             model = VinculoPolo
@@ -338,9 +378,21 @@ class VinculoPoloAdmin(BaseModelAdmin):
 @register(CursoPolo)
 class CursoPoloResourceAdmin(BaseModelAdmin):
     class CursoPoloResource(ModelResource):
-        curso = Field(attribute="curso", column_name="curso", widget=ForeignKeyWidget(Curso, field="codigo"))
-        polo = Field(attribute="polo", column_name="polo", widget=ForeignKeyWidget(Polo, field="suap_id"))
-        campus = Field(attribute="campus", column_name="campus", widget=ForeignKeyWidget(Campus, field="sigla"))
+        curso = Field(
+            attribute="curso",
+            column_name="curso",
+            widget=ForeignKeyWidget(Curso, field="codigo"),
+        )
+        polo = Field(
+            attribute="polo",
+            column_name="polo",
+            widget=ForeignKeyWidget(Polo, field="suap_id"),
+        )
+        campus = Field(
+            attribute="campus",
+            column_name="campus",
+            widget=ForeignKeyWidget(Campus, field="sigla"),
+        )
 
         class Meta:
             model = CursoPolo
@@ -357,7 +409,14 @@ class CursoPoloResourceAdmin(BaseModelAdmin):
 
 @register(Solicitacao)
 class SolicitacaoAdmin(BaseModelAdmin):
-    list_display = ("quando", "status_merged", "campus", "codigo_diario", "professores", "acoes")
+    list_display = (
+        "quando",
+        "status_merged",
+        "campus",
+        "codigo_diario",
+        "professores",
+        "acoes",
+    )
     list_filter = ("status", "status_code", "campus__sigla")
     search_fields = ["recebido", "enviado", "respondido", "diario__codigo"]
     autocomplete_fields = ["campus"]
@@ -367,7 +426,11 @@ class SolicitacaoAdmin(BaseModelAdmin):
     class SolicitacaoAdminForm(ModelForm):
         class Meta:
             model = Solicitacao
-            widgets = {"recebido": JSONEditorWidget(), "enviado": JSONEditorWidget(), "respondido": JSONEditorWidget()}
+            widgets = {
+                "recebido": JSONEditorWidget(),
+                "enviado": JSONEditorWidget(),
+                "respondido": JSONEditorWidget(),
+            }
             fields = "__all__"
             readonly_fields = ["timestamp"]
 
@@ -425,7 +488,11 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
         info = self.model._meta.app_label, self.model._meta.model_name
         return [
-            path("<path:object_id>/sync_moodle/", wrap(self.sync_moodle_view), name="%s_%s_sync" % info)
+            path(
+                "<path:object_id>/sync_moodle/",
+                wrap(self.sync_moodle_view),
+                name="%s_%s_sync" % info,
+            )
         ] + super().get_urls()
 
     @transaction.atomic

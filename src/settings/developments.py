@@ -9,9 +9,7 @@ DEBUG_URLPATTERNS = []
 if DEBUG:
     MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
     INSTALLED_APPS += env_as_list("DEV_APPS", ["debug_toolbar"])
-    DEBUG_TOOLBAR_CONFIG = {
-        "SHOW_TOOLBAR_CALLBACK": lambda request: request.get_host() in ["manager"]
-    }
+    DEBUG_TOOLBAR_CONFIG = {"SHOW_TOOLBAR_CALLBACK": lambda request: request.get_host() in ["manager"]}
 
     # https://github.com/unbit/django-uwsgi
     # https://github.com/giginet/django-debug-toolbar-vcs-info

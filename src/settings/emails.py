@@ -14,7 +14,11 @@ EMAIL_USE_SSL = env_as_bool("DJANGO_EMAIL_USE_SSL", False)
 EMAIL_SSL_CERTFILE = env("DJANGO_EMAIL_SUBJECT_PREFIX", None)
 EMAIL_SSL_KEYFILE = env("DJANGO_EMAIL_SSL_KEYFILE", None)
 EMAIL_TIMEOUT = env_as_bool("DJANGO_EMAIL_TIMEOUT¶", None)
-DEFAULT_FROM_EMAIL = env("DJANGO_DEFAULT_FROM_EMAIL", "Atendimento do integrador SUAP-MOODLE <cte.ead@ifrn.edu.br>")
+DEFAULT_FROM_EMAIL = env(
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    "Atendimento do integrador SUAP-MOODLE <cte.ead@ifrn.edu.br>",
+)
 DEFAULT_REPLYTO_EMAIL = env_as_list(
-    "DEFAULT_REPLYTO_EMAIL", ["Atendimento do integrador SUAP-MOODLE <cte.ead@ifrn.edu.br>"]
+    "DEFAULT_REPLYTO_EMAIL",
+    ["Atendimento do integrador SUAP-MOODLE <cte.ead@ifrn.edu.br>"],
 )

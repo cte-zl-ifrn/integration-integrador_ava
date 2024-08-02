@@ -1,6 +1,13 @@
 from django.utils.translation import gettext as _
 from django.utils.safestring import mark_safe
-from django.db.models import CharField, DateTimeField, JSONField, BooleanField, ForeignKey, PROTECT
+from django.db.models import (
+    CharField,
+    DateTimeField,
+    JSONField,
+    BooleanField,
+    ForeignKey,
+    PROTECT,
+)
 from django.db.models import Manager, Model, QuerySet, Q
 from django.contrib.auth.models import User
 from django_better_choices import Choices

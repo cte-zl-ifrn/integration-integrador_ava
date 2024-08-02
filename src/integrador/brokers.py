@@ -87,7 +87,8 @@ class MoodleBroker:
         campus = Campus.objects.filter(**filter).first()
         if campus is None:
             raise SyncError(
-                f"""Não existe um campus com o id '{filter['suap_id']}' e a sigla '{filter['sigla']}'.""", 404
+                f"""Não existe um campus com o id '{filter['suap_id']}' e a sigla '{filter['sigla']}'.""",
+                404,
             )
 
         if not campus.active:
