@@ -14,10 +14,10 @@ build-job:
         - dev
     script:
         - echo "Building the code..."
-        - echo "APP_VERSION = '$CI_PIPELINE_ID.$CI_COMMIT_SHORT_SHA'" >> src/settings/apps.py
-        - find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
-        - cat src/settings/apps.py
-        - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
+#        - echo "APP_VERSION = '$CI_PIPELINE_ID.$CI_COMMIT_SHORT_SHA'" >> src/settings/apps.py
+#        - find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
+#        - cat src/settings/apps.py
+#        - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
         - echo "Build complete."
 
 #unit-test-job:
