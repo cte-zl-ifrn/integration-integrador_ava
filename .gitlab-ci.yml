@@ -11,8 +11,8 @@ build-job:
     services:
         - docker:dind
     only:
-        - main
-        - dev
+        - producao
+        - teste
     script:
         - echo "Building the code..."
         - echo "APP_VERSION = '$CI_PIPELINE_ID.$CI_COMMIT_SHORT_SHA'" >> src/settings/apps.py
@@ -46,8 +46,8 @@ unit-test-job:
 publish-job:
     stage: publish
     only:
-        - main
-        - dev
+        - producao
+        - teste
     script:
         - echo "Deploying image..."
         - docker login -u $DOCKERHUB_REGISTRY_USER -p $DOCKERHUB_REGISTRY_PASSWORD
@@ -57,7 +57,7 @@ publish-job:
 deploy-teste-job:
     stage: deploy
     only:
-        - dev
+        - teste
     script:
         - echo "Deploying service in test..."
         - mkdir -p ~/.ssh
@@ -71,7 +71,7 @@ deploy-teste-job:
 deploy-producao-job:
     stage: deploy
     only:
-        - main
+        - producao
     script:
         - echo "Deploying service in test..."
         - mkdir -p ~/.ssh
