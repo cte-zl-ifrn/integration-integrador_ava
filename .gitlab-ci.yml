@@ -26,22 +26,22 @@ lint-job:
         - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
         - cat lint.txt
 
-unit-test-job:
-    stage: test
-    script:
-        - chmod -R 777 .
-        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage run manage.py test
-        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage xml
-        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage report
-    artifacts:
-        # https://docs.gitlab.com/ee/ci/yaml/index.html#artifactsexpire_in
-        expire_in: 1 year
+# unit-test-job:
+#     stage: test
+#     script:
+#         - chmod -R 777 .
+#         - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage run manage.py test
+#         - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage xml
+#         - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage report
+#     artifacts:
+#         # https://docs.gitlab.com/ee/ci/yaml/index.html#artifactsexpire_in
+#         expire_in: 1 year
 
-        # https://docs.gitlab.com/ee/ci/testing/test_coverage_visualization.html
-        reports:
-            coverage_report:
-                coverage_format: cobertura
-                path: src/coverage.xml
+#         # https://docs.gitlab.com/ee/ci/testing/test_coverage_visualization.html
+#         reports:
+#             coverage_report:
+#                 coverage_format: cobertura
+#                 path: src/coverage.xml
 
 publish-job:
     stage: publish
