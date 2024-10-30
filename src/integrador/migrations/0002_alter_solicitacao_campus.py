@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("middleware", "0001_initial"),
+        ("integrador", "0001_initial"),
     ]
 
     operations = [
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
-                to="middleware.campus",
+                to="integrador.campus",
             ),
         ),
     ]

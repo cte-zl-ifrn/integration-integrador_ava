@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class MiddlewareConfig(AppConfig):
+class IntegradorConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "middleware"
+    name = "integrador"
     icon = "fa fa-home"

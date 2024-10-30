@@ -1,6 +1,13 @@
 from django.utils.translation import gettext as _
 from django.utils.safestring import mark_safe
-from django.db.models import CharField, DateTimeField, JSONField, BooleanField, ForeignKey, PROTECT
+from django.db.models import (
+    CharField,
+    DateTimeField,
+    JSONField,
+    BooleanField,
+    ForeignKey,
+    PROTECT,
+)
 from django.db.models import Manager, Model, QuerySet, Q
 from django.contrib.auth.models import User
 from django_better_choices import Choices
@@ -142,7 +149,7 @@ class Curso(Model):
                 return {
                     "login": vc.colaborador.username,
                     "email": vc.colaborador.email,
-                    "nome": vc.colaborador.show_name,
+                    "nome": vc.colaborador.get_full_name(),
                     "status": "Ativo" if vc.active else "Inativo",
                 }
 

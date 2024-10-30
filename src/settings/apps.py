@@ -5,9 +5,6 @@ APP_VERSION = "1.1.13"
 
 LAST_STARTUP = int(datetime.datetime.timestamp(datetime.datetime.now()) * 1000)
 
-SHOW_USERWAY = env_as_bool("SHOW_USERWAY", True)
-USERWAY_ACCOUNT = env("USERWAY_ACCOUNT", None)
-SHOW_VLIBRAS = env_as_bool("SHOW_VLIBRAS", True)
 SHOW_SUPPORT_FORM = env_as_bool("SHOW_SUPPORT_FORM", True)
 SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 
@@ -16,7 +13,7 @@ SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 MY_APPS = env_as_list(
     "MY_APPS",
     [
-        "middleware",
+        "integrador",
         "security",
         "health",
     ],

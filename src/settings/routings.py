@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from sc4py.env import env, env_as_bool, env_as_list
 
-ALLOWED_HOSTS = env_as_list("DJANGO_ALLOWED_HOSTS", ["middleware"] if env_as_bool("DJANGO_DEBUG", True) else [])
+ALLOWED_HOSTS = env_as_list("DJANGO_ALLOWED_HOSTS", ["integrador"] if env_as_bool("DJANGO_DEBUG", True) else [])
 WSGI_APPLICATION = env("DJANGO_WSGI_APPLICATION", "wsgi.application")
 # USE_X_FORWARDED_HOST = env_as_bool("DJANGO_USE_X_FORWARDED_HOST", True)
 # SECURE_PROXY_SSL_HEADER = env_as_list("DJANGO_SECURE_PROXY_SSL_HEADER", "")

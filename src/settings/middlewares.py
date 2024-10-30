@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from sc4py.env import env_as_bool
 
-# Middleware
+# Integrador
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

@@ -1,11 +1,11 @@
 from django.urls import path
 from django.conf import settings
 from django.views.generic import RedirectView
-from .apps import MiddlewareConfig
+from .apps import IntegradorConfig
 from .views import sync_up_enrolments, sync_down_grades
 
 
-app_name = MiddlewareConfig.name
+app_name = IntegradorConfig.name
 
 
 urlpatterns = [

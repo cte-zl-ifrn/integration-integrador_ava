@@ -5,9 +5,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.http import HttpRequest, JsonResponse
 from django.conf import settings
-from middleware.models import Solicitacao, Campus
+from integrador.models import Campus
 from django.shortcuts import get_object_or_404
-from middleware.brokers import get_json_api, SyncError, MoodleBroker
+from integrador.brokers import get_json_api, SyncError, MoodleBroker
 
 
 def exception_as_json(func):
@@ -80,7 +80,7 @@ def sync_up_enrolments(request: HttpRequest):
         return SyncError(f"Erro ao decodificar o body em utf-8 ({e1}).", 405)
 
     try:
-        with open("middleware/static/diario.schema.json") as f:
+        with open("integrador/static/diario.schema.json") as f:
             message = json.dumps(message_string)
             schema = json.load(f.read())
             jsonschema.validate(instance=message, schema=schema)

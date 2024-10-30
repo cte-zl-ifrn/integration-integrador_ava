@@ -2,7 +2,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
     <head>
-        {% include 'painel/layouts/partials/head.html' %}
         <style>
             main, header {
                 display: block;
@@ -34,8 +33,8 @@
     </head> 
     <body> 
         <header>
-            <img alt="Logo do IFRN" src="{% static 'dashboard/img/logo_ifrn_zl.png' %}" width="132" height="40" />
-            <div class="title">Painel AVA</div>
+            <img alt="Logo do IFRN" src="{% static 'img/logo_ifrn_zl.png' %}" width="132" height="40" />
+            <div class="title">Integrador AVA</div>
         </header>
         <main>
             <h1>Você não autorizou!</h1>
@@ -43,7 +42,7 @@
                 Você não pôde processeguir pois não autorizou o compartilhamento de dados com o SUAP!
             </p>
             <div class="buttons">
-                <a class="btn btn-primary" href='{% url "painel:dashboard" %}'>Tentar novamente</a>
+                <a class="btn btn-primary" href='{% url "admin:index" %}'>Tentar novamente</a>
             </div>
         </main>
     </body>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
-from settings import DATABASES, DEBUG
+from settings import DATABASES
 import psycopg
 import time
 import logging
@@ -29,6 +29,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1] in ["runserver", "runserver_plus"]:
         _wait_db(DATABASES["default"])
+        execute_from_command_line([sys.argv[0], "collectstatic", "--noinput"])
         execute_from_command_line([sys.argv[0], "migrate"])
 
         from sc4py.env import env_as_bool
@@ -38,9 +39,7 @@ if __name__ == "__main__":
                 import debugpy
 
                 debugpy.listen(("0.0.0.0", 5678))
-                # debugpy.wait_for_client()
             except Exception:
                 pass
-            # debugpy.breakpoint()
 
     execute_from_command_line(sys.argv)

@@ -7,7 +7,7 @@ line-length = 120
 #     "F401",
 #     "F403",
 # ]
-target-version = "py311"
+target-version = "py312"
 show-source = true
 show-fixes = true
 fix = true

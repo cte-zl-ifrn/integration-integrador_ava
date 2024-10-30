@@ -59,15 +59,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "suap_id",
-                    models.CharField(
-                        max_length=255, unique=True, verbose_name="ID do campus no SUAP"
-                    ),
+                    models.CharField(max_length=255, unique=True, verbose_name="ID do campus no SUAP"),
                 ),
                 (
                     "sigla",
-                    models.CharField(
-                        max_length=255, unique=True, verbose_name="sigla do campus"
-                    ),
+                    models.CharField(max_length=255, unique=True, verbose_name="sigla do campus"),
                 ),
                 (
                     "descricao",
@@ -78,7 +74,7 @@ class Migration(migrations.Migration):
                     "ambiente",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
-                        to="middleware.ambiente",
+                        to="integrador.ambiente",
                     ),
                 ),
             ],
@@ -102,9 +98,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "timestamp",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="quando ocorreu"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="quando ocorreu"),
                 ),
                 (
                     "status",
@@ -131,27 +125,21 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "recebido",
-                    models.JSONField(
-                        blank=True, null=True, verbose_name="JSON recebido"
-                    ),
+                    models.JSONField(blank=True, null=True, verbose_name="JSON recebido"),
                 ),
                 (
                     "enviado",
-                    models.JSONField(
-                        blank=True, null=True, verbose_name="JSON enviado"
-                    ),
+                    models.JSONField(blank=True, null=True, verbose_name="JSON enviado"),
                 ),
                 (
                     "respondido",
-                    models.JSONField(
-                        blank=True, null=True, verbose_name="JSON respondido"
-                    ),
+                    models.JSONField(blank=True, null=True, verbose_name="JSON respondido"),
                 ),
                 (
                     "campus",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
-                        to="middleware.campus",
+                        to="integrador.campus",
                     ),
                 ),
             ],

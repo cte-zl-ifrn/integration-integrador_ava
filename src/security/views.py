@@ -8,78 +8,90 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 from django.utils.timezone import now
 from django.http import HttpRequest, HttpResponse
+from django.core.exceptions import ValidationError
+
+OAUTH = settings.OAUTH
 
 
 def login(request: HttpRequest) -> HttpResponse:
-    OAUTH = settings.OAUTH
-    # next = f"?next={urllib.parse.quote_plus(request.GET.get('next', '/'), safe='')}"
-    # TODO: tem um erro aqui, quando informo o ?next ocorre um erro de Mismatching redirect URI.
-    next = ""
-    # redirect_uri = urllib.parse.quote_plus(f"{OAUTH["REDIRECT_URI"]}{next}")
-    redirect_uri = f"{OAUTH["REDIRECT_URI"]}{next}"
+    request.session["next"] = request.GET.get("next", "/")
+    redirect_uri = f"{OAUTH["REDIRECT_URI"]}"
     suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri={redirect_uri}"
-    print(suap_url)
     return redirect(suap_url)
 
 
 def authenticate(request: HttpRequest) -> HttpResponse:
-    OAUTH = settings.OAUTH
 
     if request.GET.get("error") == "access_denied":
         return render(request, "security/not_authorized.html")
 
-    if "code" not in request.GET:
-        raise Exception(_("O código de autenticação não foi informado."))
+    try:
 
-    access_token_request_data = {
-        "grant_type": "authorization_code",
-        "code": request.GET.get("code"),
-        "redirect_uri": OAUTH["REDIRECT_URI"],
-        "client_id": OAUTH["CLIENT_ID"],
-        "client_secret": OAUTH["CLIENT_SECRET"],
-    }
+        def _get_tokens(request):
+            if "code" not in request.GET:
+                raise Exception(_("O código de autenticação não foi informado."))
+            token_response = requests.post(
+                f"{OAUTH['TOKEN_URL']}",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": request.GET.get("code"),
+                    "redirect_uri": OAUTH["REDIRECT_URI"],
+                    "client_id": OAUTH["CLIENT_ID"],
+                    "client_secret": OAUTH["CLIENT_SECRET"],
+                },
+            )
+            data = json.loads(token_response.text)
+            if data.get("error_description") == "Mismatching redirect URI.":
+                raise ValueError(
+                    "O administrador do sistema configurou errado o 'Redirect uris' no SUAP-Login ou no OAUTH_REDIRECT_URI."
+                )
+            return data
 
-    token_str = requests.post(f"{OAUTH['BASE_URL']}/o/token/", data=access_token_request_data, verify=OAUTH["VERIFY_SSL"]).text
-    request_data = json.loads(token_str)
-    
-    if request_data.get("error_description") == "Mismatching redirect URI.":
-        return render(request, "security/mismatching_redirect_uri.html", {"error": request_data})
+        def _get_userinfo(request_data):
+            response = requests.get(
+                f"{OAUTH['USERINFO_URL']}?scope={request_data.get('scope')}",
+                headers={
+                    "Authorization": f"Bearer {request_data.get('access_token')}",
+                    "x-api-key": OAUTH["CLIENT_SECRET"],
+                },
+            )
+            return json.loads(response.text)
 
-    headers = {
-        "Authorization": "Bearer {}".format(request_data.get("access_token")),
-        "x-api-key": OAUTH["CLIENT_SECRET"],
-    }
+        def _save_user(userinfo):
+            username = userinfo["identificacao"]
+            user = User.objects.filter(username=username).first()
 
-    response = requests.get(
-        f"{OAUTH['BASE_URL']}/api/v1/userinfo/?scope={request_data.get('scope')}",
-        headers=headers,
-        verify=OAUTH["VERIFY_SSL"],
-    )
-    response_data = json.loads(response.text)
+            defaults = {
+                "first_name": userinfo.get("primeiro_nome"),
+                "last_name": userinfo.get("ultimo_nome"),
+                "email": userinfo.get("email_preferencial") or userinfo.get("identificacao") + "@ifrn.edu.br",
+            }
 
-    username = response_data["identificacao"]
-    user = User.objects.filter(username=username).first()
-    defaults = {
-        "first_name": response_data.get("primeiro_nome"),
-        "last_name": response_data.get("ultimo_nome"),
-        "email": response_data.get("email_preferencial"),
-    }
+            if user is None:
+                is_superuser = User.objects.count() == 0
+                user = User.objects.create(
+                    username=username,
+                    is_superuser=is_superuser,
+                    is_staff=is_superuser,
+                    **defaults,
+                )
+            else:
+                user = User.objects.filter(username=username).first()
+                User.objects.filter(username=username).update(**defaults)
+            return user
 
-    if user is None:
-        is_superuser = User.objects.count() == 0
-        user = User.objects.create(
-            username=username,
-            is_superuser=is_superuser,
-            is_staff=is_superuser,
-            **defaults,
-        )
-    else:
-        user = User.objects.filter(username=username).first()
-        User.objects.filter(username=username).update(**defaults)
-    auth.login(request, user)
-    return redirect("admin:index")
+        request_data = _get_tokens(request)
+        userinfo = _get_userinfo(request_data)
+        user = _save_user(userinfo)
+        auth.login(request, user)
+        return redirect(request.session.pop("next", "/"))
+    except Exception as e:
+        return render(request, "security/authorization_error.html", context={"error_cause": str(e)})
 
 
 def logout(request: HttpRequest) -> HttpResponse:
     auth.logout(request)
-    return redirect("https://suap.ifrn.edu.br/accounts/logout/")
+
+    logout_token = request.session.get("logout_token", "")
+    next = urllib.parse.quote_plus(settings.LOGIN_REDIRECT_URL)
+    return redirect(f"{settings.LOGOUT_REDIRECT_URL}?token={logout_token}&next={next}")

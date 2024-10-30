@@ -1,0 +1,83 @@
+stages:
+    - build
+    - lint
+    - test
+    - publish
+    - deploy
+
+build-job:
+    stage: build
+    image: docker:latest
+    services:
+        - docker:dind
+    only:
+        - producao
+        - teste
+    script:
+        - echo "Building the code..."
+        - echo "APP_VERSION = '$CI_PIPELINE_ID.$CI_COMMIT_SHORT_SHA'" >> src/settings/apps.py
+        - cat src/settings/apps.py
+        - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
+        - echo "Build complete."
+
+lint-job:
+    stage: lint
+    script:
+        - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
+        - cat lint.txt
+
+unit-test-job:
+    stage: test
+    script:
+        - chmod -R 777 .
+        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage run manage.py test
+        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage xml
+        - docker run --rm --user 1001:1001 -e DJANGO_DEBUG=false -v ./src/:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME coverage report
+    artifacts:
+        # https://docs.gitlab.com/ee/ci/yaml/index.html#artifactsexpire_in
+        expire_in: 1 year
+
+        # https://docs.gitlab.com/ee/ci/testing/test_coverage_visualization.html
+        reports:
+            coverage_report:
+                coverage_format: cobertura
+                path: src/coverage.xml
+
+publish-job:
+    stage: publish
+    only:
+        - producao
+        - teste
+    script:
+        - echo "Deploying image..."
+        - docker login -u $DOCKERHUB_REGISTRY_USER -p $DOCKERHUB_REGISTRY_PASSWORD
+        - docker push ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME
+        - echo "Image successfully deployed."
+
+deploy-teste-job:
+    stage: deploy
+    only:
+        - teste
+    script:
+        - echo "Deploying service in test..."
+        - mkdir -p ~/.ssh
+        - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+        - chmod 700 ~/.ssh/id_rsa
+        - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai deploy app"
+        - sleep 60
+        - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai logs -n 1000"
+        - echo "Service successfully deployed in test."
+
+deploy-producao-job:
+    stage: deploy
+    only:
+        - producao
+    script:
+        - echo "Deploying service in test..."
+        - mkdir -p ~/.ssh
+        - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+        - chmod 700 ~/.ssh/id_rsa
+        - ssh -o StrictHostKeyChecking=no root@PROD_HOST "/var/dockers/vai deploy app"
+        - sleep 60
+        - ssh -o StrictHostKeyChecking=no root@PROD_HOST "/var/dockers/vai logs -n 1000"
+        - echo "Service successfully deployed in test."
