@@ -31,7 +31,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
             if "code" not in request.GET:
                 raise Exception(_("O código de autenticação não foi informado."))
             token_response = requests.post(
-                f"{OAUTH['BASE_URL']}/o/token/",
+                f"{OAUTH['TOKEN_URL']}",
                 data={
                     "grant_type": "authorization_code",
                     "code": request.GET.get("code"),
@@ -49,9 +49,9 @@ def authenticate(request: HttpRequest) -> HttpResponse:
 
         def _get_userinfo(request_data):
             response = requests.get(
-                f"{OAUTH['BASE_URL']}/api/v1/userinfo/?scope={request_data.get('scope')}",
+                f"{OAUTH['USERINFO_URL']}?scope={request_data.get('scope')}",
                 headers={
-                    "Authorization": "Bearer {}".format(request_data.get("access_token")),
+                    "Authorization": f"Bearer {request_data.get('access_token')}",
                     "x-api-key": OAUTH["CLIENT_SECRET"],
                 },
             )
@@ -86,14 +86,12 @@ def authenticate(request: HttpRequest) -> HttpResponse:
         auth.login(request, user)
         return redirect(request.session.pop("next", "/"))
     except Exception as e:
-        return render(
-            request,
-            "security/authorization_error.html",
-            context={"error_cause": str(e)},
-        )
+        return render(request, "security/authorization_error.html", context={"error_cause": str(e)})
 
 
 def logout(request: HttpRequest) -> HttpResponse:
-    logout_token = request.session.get("logout_token")
     auth.logout(request)
-    return redirect(f"{OAUTH['BASE_URL']}/logout/?token={logout_token}")
+
+    logout_token = request.session.get("logout_token", "")
+    next = urllib.parse.quote_plus(settings.LOGIN_REDIRECT_URL)
+    return redirect(f"{settings.LOGOUT_REDIRECT_URL}?token={logout_token}&next={next}")
