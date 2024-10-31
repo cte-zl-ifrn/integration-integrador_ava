@@ -8,7 +8,7 @@ stages:
 lint:
     stage: lint
     before_script:
-        - pip install -r requirements-lint.txt
+        - pip3 install -r requirements-lint.txt
     script:
         - black --line-length 120 --check . >> lint.txt
     allow_failure: true
