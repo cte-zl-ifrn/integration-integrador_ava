@@ -7,6 +7,7 @@ stages:
 
 lint:
     stage: lint
+    image: python:3.13-alpine
     before_script:
         - pip3 install -r requirements-lint.txt
     script:
