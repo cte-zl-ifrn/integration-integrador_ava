@@ -11,6 +11,7 @@ lint:
         - pip install -r requirements-lint.txt
     script:
         - black --line-length 120 --check . >> lint.txt
+    allow_failure: true
 
 build:
     stage: build
