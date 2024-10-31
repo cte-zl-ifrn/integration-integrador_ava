@@ -5,14 +5,15 @@ stages:
     - publish
     - deploy
 
-build-job:
+build:
     stage: build
     image: docker:latest
     services:
         - docker:dind
     only:
-        - producao
+        - proximo
         - teste
+        - producao
     script:
         - echo "Building the code..."
         - echo "APP_VERSION = '$CI_PIPELINE_ID.$CI_COMMIT_SHORT_SHA'" >> src/settings/apps.py
@@ -20,7 +21,7 @@ build-job:
         - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
         - echo "Build complete."
 
-lint-job:
+lint:
     stage: lint
     script:
         - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
@@ -43,18 +44,19 @@ lint-job:
 #                 coverage_format: cobertura
 #                 path: src/coverage.xml
 
-publish-job:
+publish:
     stage: publish
     only:
-        - producao
+        - proximo
         - teste
+        - producao
     script:
         - echo "Deploying image..."
         - docker login -u $DOCKERHUB_REGISTRY_USER -p $DOCKERHUB_REGISTRY_PASSWORD
         - docker push ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME
         - echo "Image successfully deployed."
 
-deploy-teste-job:
+deploy-teste:
     stage: deploy
     only:
         - teste
@@ -68,7 +70,7 @@ deploy-teste-job:
         - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai logs -n 1000"
         - echo "Service successfully deployed in test."
 
-deploy-producao-job:
+deploy-producao:
     stage: deploy
     only:
         - producao
