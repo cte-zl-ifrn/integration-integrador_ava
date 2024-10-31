@@ -23,11 +23,13 @@ build:
         - proximo
         - teste
         - producao
-    script:
+    before_script:
         - echo "Building the code..."
         - echo "APP_VERSION = '$CI_PIPELINE_ID.$CI_COMMIT_SHORT_SHA'" >> src/settings/apps.py
         - cat src/settings/apps.py
+    script:
         - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
+    after_script:
         - echo "Build complete."
 
 # unit-test-job:
@@ -54,20 +56,19 @@ publish:
         - teste
         - producao
     script:
-        - echo "Deploying image..."
         - docker login -u $DOCKERHUB_REGISTRY_USER -p $DOCKERHUB_REGISTRY_PASSWORD
         - docker push ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME
-        - echo "Image successfully deployed."
 
 deploy-teste:
     stage: deploy
     only:
         - teste
-    script:
+    before_script:
         - echo "Deploying service in test..."
         - mkdir -p ~/.ssh
         - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
         - chmod 700 ~/.ssh/id_rsa
+    script:
         - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai deploy app"
         - sleep 60
         - ssh -o StrictHostKeyChecking=no root@$TEST_HOST "/var/dockers/vai logs -n 1000"
@@ -77,11 +78,12 @@ deploy-producao:
     stage: deploy
     only:
         - producao
-    script:
+    before_script:
         - echo "Deploying service in test..."
         - mkdir -p ~/.ssh
         - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
         - chmod 700 ~/.ssh/id_rsa
+    script:
         - ssh -o StrictHostKeyChecking=no root@PROD_HOST "/var/dockers/vai deploy app"
         - sleep 60
         - ssh -o StrictHostKeyChecking=no root@PROD_HOST "/var/dockers/vai logs -n 1000"
