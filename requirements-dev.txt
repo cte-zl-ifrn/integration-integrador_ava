@@ -1,21 +1,16 @@
 # -e ../django-adminlte3
 libsass
 types-libsass
-black
 debugpy
 django-debug-toolbar
 django-extensions
 django_coverage_plugin
-djlint
-flake8
 ipdb
 ipython
 lxml
-mypy
 pdoc3
 pytest
 pytest-cov
 pytest-profiling
-ruff
 types-requests
 Werkzeug

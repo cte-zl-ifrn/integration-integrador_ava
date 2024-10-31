@@ -10,7 +10,7 @@ RUN apt-get update \
 ADD requirements*.txt /
 
 RUN pip install --upgrade pip && \
-    pip install -r /requirements.txt -r requirements-dev.txt
+    pip install -r /requirements.txt -r requirements-dev.txt -r requirements-lint.txt
 
 ADD src /apps/app
 WORKDIR /apps/app

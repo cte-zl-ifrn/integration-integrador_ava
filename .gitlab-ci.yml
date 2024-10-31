@@ -1,9 +1,16 @@
 stages:
-    - build
     - lint
+    - build
     - test
     - publish
     - deploy
+
+lint:
+    stage: lint
+    before_script:
+        - pip install -r requirements-lint.txt
+    script:
+        - black --line-length 120 --check . >> lint.txt
 
 build:
     stage: build
@@ -20,12 +27,6 @@ build:
         - cat src/settings/apps.py
         - docker build -t ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME .
         - echo "Build complete."
-
-lint:
-    stage: lint
-    script:
-        - docker run --rm -v ./:/apps/app ctezlifrn/avaintegrador:$CI_COMMIT_REF_NAME black --line-length 120 --check . >> lint.txt
-        - cat lint.txt
 
 # unit-test-job:
 #     stage: test
