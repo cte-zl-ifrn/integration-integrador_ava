@@ -9,6 +9,7 @@ from sc4py.env import env, env_as_bool, env_as_list, env_as_int
 #     return MySite.objects.filter(host=request.headers["origin"]).exists()
 # check_request_enabled.connect(cors_allow_mysites)
 
+SUAP_INTEGRADOR_KEY = env("SUAP_INTEGRADOR_KEY", "changeme")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "changeme")
 LOGIN_URL = env("DJANGO_LOGIN_URL", "/api/login/")
