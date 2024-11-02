@@ -81,22 +81,22 @@ def sync_up_enrolments(request: HttpRequest):
         raise SyncError(f"Erro ao decodificar o body em utf-8 ({e1}).", 405)
 
     try:
-        schema = json.load(open(f"integrador/static/diario.schema.json"))
-    except Exception as e1:
-        raise SyncError(f"Erro ao converter para JSON Schema ({e1}).", 406)
-
-    try:
         message = json.loads(message_string)
     except Exception as e1:
         raise SyncError(f"Erro ao converter para JSON ({e1}).", 409)
 
-    try:
-        jsonschema.validate(instance=message, schema=schema)
-    except Exception as e1:
-        parts = e1.message.split("Failed")
-        if len(parts) > 1:
-            raise SyncError(parts[0], 411)
-        raise SyncError(e1.message, 410)
+    # try:
+    #     schema = json.load(open(f"integrador/static/diario.schema.json"))
+    # except Exception as e1:
+    #     raise SyncError(f"Erro ao converter para JSON Schema ({e1}).", 406)
+
+    # try:
+    #     jsonschema.validate(instance=message, schema=schema)
+    # except Exception as e1:
+    #     parts = e1.message.split("Failed")
+    #     if len(parts) > 1:
+    #         raise SyncError(parts[0], 411)
+    #     raise SyncError(e1.message, 410)
 
     try:
         return JsonResponse(MoodleBroker().sync(message).respondido, safe=False)
