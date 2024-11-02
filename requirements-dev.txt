@@ -1,6 +1,4 @@
 # -e ../django-adminlte3
-libsass
-types-libsass
 debugpy
 django-debug-toolbar
 django-extensions

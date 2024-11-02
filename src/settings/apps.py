@@ -18,14 +18,21 @@ MY_APPS = env_as_list(
         "health",
     ],
 )
+
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
-        "django_extensions",
         "import_export",
         "django_json_widget",
     ],
 )
+
+try:
+    import django_extensions
+    THIRD_APPS.append("django_extensions")
+except ModuleNotFoundError:
+    pass
+
 DJANGO_APPS = env_as_list(
     "DJANGO_APPS",
     [

@@ -1,18 +1,13 @@
-FROM python:3.12.4-slim-bookworm
+FROM python:3.13.0-alpine
 
-ENV PYTHONUNBUFFERED 1
+COPY requirements*.txt /
 
-RUN apt-get update \
-    && apt-get -y install curl vim \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-ADD requirements*.txt /
+ARG EXTRA_REQ="-r requirements-dev.txt -r requirements-lint.txt"
 
 RUN pip install --upgrade pip && \
-    pip install -r /requirements.txt -r requirements-dev.txt -r requirements-lint.txt
+    pip install -r /requirements.txt $EXTRA_REQ
 
-ADD src /apps/app
+COPY src /apps/app
 WORKDIR /apps/app
 RUN mkdir -p /var/static && python manage.py collectstatic --noinput
 
