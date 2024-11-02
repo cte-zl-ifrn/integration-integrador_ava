@@ -208,26 +208,22 @@ class AmbienteAdmin(BaseModelAdmin):
     class AmbienteResource(ModelResource):
         class Meta:
             model = Ambiente
-            export_order = ("nome", "url", "token", "cor_mestra", "active")
+            export_order = ("nome", "url", "token", "active")
             import_id_fields = ("nome",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "cores", "url", "active"]
+    list_display = ["nome", "url", "active"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
     search_fields = ["nome", "url"]
     list_filter = ["active"]
     fieldsets = [
-        (_("Identificação"), {"fields": ["nome", "cor_mestra"]}),
+        (_("Identificação"), {"fields": ["nome"]}),
         (_("Integração"), {"fields": ["active", "url", "token"]}),
     ]
     inlines = [CampusInline]
     resource_classes = [AmbienteResource]
-
-    @display(description="Cor")
-    def cores(self, obj):
-        return mark_safe(f"<span style='background: {obj.cor_mestra};'>&nbsp;&nbsp;&nbsp;</span>")
 
 
 @register(Campus)
@@ -241,16 +237,16 @@ class CampusAdmin(BaseModelAdmin):
 
         class Meta:
             model = Campus
-            export_order = ("sigla", "descricao", "ambiente", "suap_id", "active")
+            export_order = ("sigla", "ambiente", "suap_id", "active")
             import_id_fields = ("sigla",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["sigla", "descricao", "ambiente", "active"]
+    list_display = ["sigla", "ambiente", "active"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
     list_filter = ["active", "ambiente"]
-    search_fields = ["sigla", "descricao", "suap_id"]
+    search_fields = ["sigla", "suap_id"]
     resource_classes = [CampusResource]
 
 
@@ -259,7 +255,7 @@ class CursoAdmin(BaseModelAdmin):
     class CursoResource(ModelResource):
         class Meta:
             model = Curso
-            export_order = ("codigo", "nome", "descricao", "suap_id")
+            export_order = ("codigo", "nome", "suap_id")
             import_id_fields = ("codigo",)
             fields = export_order
             skip_unchanged = True
@@ -267,7 +263,7 @@ class CursoAdmin(BaseModelAdmin):
     list_display = ["codigo", "nome"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
-    search_fields = ["codigo", "nome", "suap_id", "descricao"]
+    search_fields = ["codigo", "nome", "suap_id"]
     resource_classes = [CursoResource]
     inlines = [CursoPoloInline, VinculoCursoInline]
 

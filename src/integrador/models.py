@@ -30,14 +30,6 @@ class Ambiente(Model):
     def _c(color: str):
         return f"""<span style='background: {color}; color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;'>{color}</span>"""
 
-    cor_mestra = CharField(
-        _("cor mestra"),
-        max_length=255,
-        help_text=mark_safe(
-            f"""Escolha uma cor em RGB.
-                Ex.: {_c('#a04ed0')} {_c('#396ba7')} {_c('#559c1a')} {_c('#fabd57')} {_c('#fd7941')} {_c('#f54f3b')} {_c('#2dcfe0')}"""
-        ),
-    )
     nome = CharField(_("nome do ambiente"), max_length=255)
     url = CharField(_("URL"), max_length=255)
     token = CharField(_("token"), max_length=255)
@@ -59,16 +51,10 @@ class Ambiente(Model):
     def base_api_url(self):
         return f"{self.base_url}/local/suap/api"
 
-    def save(self, *args, **kwargs):
-        if not self.cor_mestra.startswith("#"):
-            self.cor_mestra = f"#{self.cor_mestra}"
-        super().save(*args, **kwargs)
-
 
 class Campus(Model):
     suap_id = CharField(_("ID do campus no SUAP"), max_length=255, unique=True)
     sigla = CharField(_("sigla do campus"), max_length=255, unique=True)
-    descricao = CharField(_("descrição"), max_length=255)
     ambiente = ForeignKey(Ambiente, on_delete=PROTECT)
     active = BooleanField(_("ativo?"))
 
