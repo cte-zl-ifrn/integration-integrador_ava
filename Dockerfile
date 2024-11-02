@@ -1,15 +1,14 @@
 FROM python:3.13.0-alpine
 
+ARG EXTRA_REQ="-r /requirements-dev.txt -r /requirements-lint.txt"
+
 COPY requirements*.txt /
-
-ARG EXTRA_REQ="-r requirements-dev.txt -r requirements-lint.txt"
-
-RUN pip install --upgrade pip && \
-    pip install -r /requirements.txt $EXTRA_REQ
-
 COPY src /apps/app
+
 WORKDIR /apps/app
-RUN mkdir -p /var/static && python manage.py collectstatic --noinput
+RUN pip install -r /requirements.txt $EXTRA_REQ \
+    && mkdir -p /var/static \
+    && python manage.py collectstatic --noinput
 
 EXPOSE 80
 # ENTRYPOINT [ "executable" ]
