@@ -1,4 +1,4 @@
-FROM python:3.13.0-alpine
+FROM python:3.13.1-slim-bookworm
 
 ARG EXTRA_REQ="-r /requirements-dev.txt -r /requirements-lint.txt"
 
@@ -13,4 +13,4 @@ RUN pip install -r /requirements.txt $EXTRA_REQ \
 EXPOSE 80
 # ENTRYPOINT [ "executable" ]
 WORKDIR /apps/app
-CMD ["python", "manage.py", "runserver_plus", "0.0.0.0:80"]
+CMD  ["gunicorn"]
