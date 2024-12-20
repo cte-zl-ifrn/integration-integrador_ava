@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 from sc4py.env import env, env_as_bool, env_as_list, env_as_int
 
-# from corsheaders.signals import check_request_enabled
-
-
-# def cors_allow_mysites(sender, request, **kwargs):
-#     return False
-#     return MySite.objects.filter(host=request.headers["origin"]).exists()
-# check_request_enabled.connect(cors_allow_mysites)
 
 SUAP_INTEGRADOR_KEY = env("SUAP_INTEGRADOR_KEY", "changeme")
 
