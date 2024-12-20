@@ -24,6 +24,8 @@ class ActiveMixin:
 class Contexto(Choices):
     CURSO = Choices.Value(_("Curso"), value="c")
     POLO = Choices.Value(_("Pólo"), value="p")
+    PROGRAMA = Choices.Value(_("Programa"), value="P")
+
 
 
 class Ambiente(Model):
@@ -89,6 +91,10 @@ class Papel(ActiveMixin, Model):
         verbose_name_plural = _("papéis")
         ordering = ["nome"]
 
+    @property
+    def codigo(self):
+        return f".{self.sigla}" if self.sigla else ""
+
     def __str__(self):
         sigla = f"{self.sigla}:" if self.sigla else ""
         return f"{sigla}{self.nome} {self.active_icon}"
@@ -110,18 +116,14 @@ class Curso(Model):
     def __str__(self):
         return f"{self.nome} ({self.codigo})"
 
-    def __codigo_papel(self, papel):
-        return f".{papel.sigla}" if papel.sigla else ""
-
     @property
     def coortes(self):
         cohorts = {}
 
         try:
 
-            def dados_coorte(v, campus):
+            def dados_coorte(v, campus, id):
                 campus_curso = f"{campus.sigla}.{self.codigo}"
-                id = f"{campus_curso}{self.__codigo_papel(v.papel)}"
                 return {
                     "idnumber": id,
                     "nome": f"{campus_curso} - {v.papel.nome}",
@@ -141,18 +143,28 @@ class Curso(Model):
 
             for vc in self.vinculocurso_set.all():
                 campus_curso = f"{vc.campus.sigla}.{self.codigo}"
-                id = f"{campus_curso}{self.__codigo_papel(vc.papel)}"
+                id = f"{campus_curso}{vc.papel.codigo}"
                 if id not in cohorts:
-                    cohorts[id] = dados_coorte(vc, vc.campus)
+                    cohorts[id] = dados_coorte(vc, vc.campus, id)
                 cohorts[id]["colaboradores"].append(dados_colaborador(vc))
 
             for cp in self.cursopolo_set.all():
                 campus_curso = f"{cp.campus.sigla}.{self.codigo}"
                 for vp in cp.polo.vinculopolo_set.all():
-                    id = f"{campus_curso}{self.__codigo_papel(vp.papel)}"
+                    id = f"{campus_curso}{vp.papel.codigo}"
                     if id not in cohorts:
-                        cohorts[id] = cohorts[id] = dados_coorte(vp, cp.campus)
+                        cohorts[id] = cohorts[id] = dados_coorte(vp, cp.campus, id)
                     cohorts[id]["colaboradores"].append(dados_colaborador(vc))
+
+            for cp2 in self.cursoprograma_set.all():
+                print("cp2",cp2)
+                campus_curso2 = f"{cp2.campus.sigla}.{self.codigo}"
+                for vp2 in cp2.programa.vinculoprograma_set.all():
+                    print("vp2",cp2.programa)
+                    id2 = f"{campus_curso2}{vp2.papel.codigo}.{cp2.programa.sigla}"
+                    if id2 not in cohorts:
+                        cohorts[id2] = cohorts[id2] = dados_coorte(vp2, cp2.campus, id2)
+                    cohorts[id2]["colaboradores"].append(dados_colaborador(vp2))
         finally:
             return [c for c in cohorts.values()]
 
@@ -187,6 +199,56 @@ class Polo(Model):
 
     def __str__(self):
         return f"{self.nome}"
+
+
+class Programa(Model):
+    suap_id = CharField(_("ID do programa no SUAP"), max_length=255, unique=True)
+    nome = CharField(_("nome do programa"), max_length=255, unique=True)
+    sigla = CharField(_("sigla do programa"), max_length=255, unique=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = _("programa")
+        verbose_name_plural = _("programas")
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.sigla
+
+
+class CursoPrograma(ActiveMixin, Model):
+    curso = ForeignKey(Curso, on_delete=PROTECT)
+    campus = ForeignKey(Campus, on_delete=PROTECT)
+    programa = ForeignKey(Programa, on_delete=PROTECT)
+    active = BooleanField(_("ativo?"))
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = _("programa do curso")
+        verbose_name_plural = _("programas x cursos")
+        ordering = ["curso", "programa"]
+
+    def __str__(self):
+        codigo = f"{self.campus.sigla}.{self.curso.codigo}..{self.programa.sigla}"
+        return f"{codigo} {self.active_icon}"
+
+
+class VinculoPrograma(ActiveMixin, Model):
+    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.PROGRAMA})
+    programa = ForeignKey(Programa, on_delete=PROTECT)
+    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_programas")
+    active = BooleanField(_("ativo?"))
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = _("vínculo no programa")
+        verbose_name_plural = _("programas X colaboradores")
+        ordering = ["papel", "programa", "colaborador"]
+
+    def __str__(self):
+        return f"{self.papel}{self.programa.nome} {self.colaborador} {self.active_icon}"
 
 
 class CursoPolo(ActiveMixin, Model):

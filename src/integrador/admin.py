@@ -37,6 +37,9 @@ from integrador.models import (
     CursoPolo,
     VinculoCurso,
     VinculoPolo,
+    Programa,
+    CursoPrograma,
+    VinculoPrograma,
     Solicitacao,
 )
 from integrador.brokers import MoodleBroker
@@ -194,6 +197,16 @@ class CursoPoloInline(TabularInline):
     extra: int = 0
 
 
+class VinculoProgramaInline(TabularInline):
+    model: Model = VinculoPrograma
+    extra: int = 0
+
+
+class CursoProgramaInline(TabularInline):
+    model: Model = CursoPrograma
+    extra: int = 0
+
+
 ####
 # Admins
 ####
@@ -265,7 +278,7 @@ class CursoAdmin(BaseModelAdmin):
     field_to_highlight = list_display[0]
     search_fields = ["codigo", "nome", "suap_id"]
     resource_classes = [CursoResource]
-    inlines = [CursoPoloInline, VinculoCursoInline]
+    inlines = [CursoPoloInline, VinculoCursoInline, CursoProgramaInline]
 
 
 @register(Polo)
@@ -370,6 +383,78 @@ class VinculoPoloAdmin(BaseModelAdmin):
     autocomplete_fields = ["polo", "colaborador"]
     resource_classes = [VinculoPoloResource]
 
+
+@register(Programa)
+class ProgramaAdmin(BaseModelAdmin):
+    class ProgramaResource(ModelResource):
+        class Meta:
+            model = Programa
+            export_order = ["suap_id", "nome", "sigla"]
+            import_id_fields = ("suap_id",)
+            fields = export_order
+            skip_unchanged = True
+
+    list_display = ["nome", "sigla"]
+    search_fields = ["nome", "suap_id", "sigla"]
+    resource_classes = [ProgramaResource]
+    inlines = [VinculoProgramaInline]
+
+
+@register(VinculoPrograma)
+class VinculoProgramaAdmin(BaseModelAdmin):
+    class VinculoProgramaResource(ModelResource):
+        colaborador = Field(
+            attribute="colaborador",
+            column_name="colaborador",
+            widget=ForeignKeyWidget(User, field="username"),
+        )
+        programa = Field(
+            attribute="programa",
+            column_name="programa",
+            widget=ForeignKeyWidget(Programa, field="suap_id"),
+        )
+        papel = Field(
+            attribute="papel",
+            column_name="papel",
+            widget=ForeignKeyWidget(Papel, field="papel"),
+        )
+
+        class Meta:
+            model = VinculoPrograma
+            export_order = ["papel", "programa", "colaborador", "active"]
+            import_id_fields = ("papel", "programa", "colaborador")
+            fields = export_order
+            skip_unchanged = True
+
+    list_display = ["papel", "programa", "colaborador", "active"]
+    list_filter = ["active", "papel", "papel"] + BaseModelAdmin.list_filter
+    search_fields = ["colaborador__nome_social", "colaborador__nome_civil"]
+    autocomplete_fields = ["programa", "colaborador"]
+    resource_classes = [VinculoProgramaResource]
+
+
+@register(CursoPrograma)
+class CursoProgramaAdmin(BaseModelAdmin):
+    class CursoProgramaResource(ModelResource):
+        curso = Field(
+            attribute="curso",
+            column_name="curso",
+            widget=ForeignKeyWidget(Curso, field="codigo"),
+        )
+        programa = Field(
+            attribute="programa",
+            column_name="programa",
+            widget=ForeignKeyWidget(Polo, field="suap_id"),
+        )
+
+        class Meta:
+            model = CursoPrograma
+            export_order = ["curso", "programa", "active"]
+            import_id_fields = ("curso", "programa")
+            fields = export_order
+            skip_unchanged = True
+    list_display = ["curso", "programa", "active"]
+    autocomplete_fields = ["curso", "programa"]
 
 @register(CursoPolo)
 class CursoPoloResourceAdmin(BaseModelAdmin):
