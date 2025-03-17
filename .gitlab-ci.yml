@@ -3,3 +3,4 @@ include:
     ref: "main"
     file:
       - "templates/autodeploy.yml"
+
