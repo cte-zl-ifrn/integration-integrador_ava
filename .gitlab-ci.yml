@@ -4,3 +4,4 @@ include:
     file:
       - "templates/autodeploy.yml"
 
+# Testando se o deploy automático está ignorado mesmo
