@@ -25,6 +25,7 @@ django-simple-history==3.7.0
 django-safedelete==1.4.0
 
 # UI
+libsass
 django-compressor==4.5.1
 django-sass-processor==1.4.1
 django-json-widget==2.0.1

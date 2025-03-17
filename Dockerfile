@@ -3,13 +3,7 @@ FROM python:3.13.1-slim-bookworm
 ENV PYTHONUNBUFFERED 1
 ARG EXTRA_REQ="-r /requirements-dev.txt -r /requirements-lint.txt"
 
-RUN apt-get update \
-    && apt-get -y install curl vim \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY requirements*.txt /
-COPY docker/django-entrypoint.sh /django-entrypoint.sh
 COPY src /apps/app
 WORKDIR /apps/app
 RUN pip install --upgrade --no-cache-dir --root-user-action ignore pip \
@@ -20,6 +14,6 @@ RUN pip install --upgrade --no-cache-dir --root-user-action ignore pip \
     && python manage.py collectstatic --noinput
 
 EXPOSE 80
-ENTRYPOINT [ "/django-entrypoint.sh" ]
+ENTRYPOINT [ "/apps/app/django-entrypoint.sh" ]
 WORKDIR /apps/app
 CMD  ["gunicorn"]
