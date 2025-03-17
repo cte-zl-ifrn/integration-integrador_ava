@@ -3,7 +3,6 @@ include:
     ref: "main"
     file:
       # - "templates/autodeploy.yml"
-      - "templates/automirror.yml"
-      # - "templates/autotag.yml"
+      - "templates/autotag.yml"
 
 # cicd: Testar apenas o automirror 4
