@@ -5,4 +5,4 @@ include:
       # - "templates/autodeploy.yml"
       - "templates/autotag.yml"
 
-# cicd: Testar apenas o automirror 4
+# add: autotag 2
