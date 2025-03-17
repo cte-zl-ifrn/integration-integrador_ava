@@ -5,4 +5,4 @@ include:
       # - "templates/autodeploy.yml"
       - "templates/autotag.yml"
 
-# add: autotag 2
+# add: autotag 3
