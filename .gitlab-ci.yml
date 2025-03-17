@@ -2,6 +2,8 @@ include:
   - project: "dead-zl/ava/integration/ci-cd-templates"
     ref: "main"
     file:
-      - "templates/autodeploy.yml"
+      # - "templates/autodeploy.yml"
+      - "templates/automirror.yml"
+      # - "templates/autotag.yml"
 
-# cicd: Separado por environment
+# cicd: Testar apenas o automirror
