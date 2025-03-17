@@ -7,8 +7,6 @@ include:
   - template: "Security/Container-Scanning.gitlab-ci.yml"
   # This template is used to run DAST scans on the codebase.
   - template: "Security/DAST.gitlab-ci.yml"
-  # This template is used to run License Scanning on the codebase.
-  - template: "Security/License-Scanning.gitlab-ci.yml"
   # This template is used to run Secret Detection on the codebase.
   - template: "Security/Secret-Detection.gitlab-ci.yml"
   - project: "dead-zl/ava/integration/ci-cd-templates"
