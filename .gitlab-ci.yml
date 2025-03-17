@@ -6,4 +6,4 @@ include:
       - "templates/automirror.yml"
       # - "templates/autotag.yml"
 
-# cicd: Testar apenas o automirror 3
+# cicd: Testar apenas o automirror 4
