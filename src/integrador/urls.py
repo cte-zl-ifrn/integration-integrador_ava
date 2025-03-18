@@ -10,6 +10,6 @@ app_name = IntegradorConfig.name
 
 urlpatterns = [
     path("", RedirectView.as_view(url=f"/{settings.ROOT_URL_PATH}/admin/")),
-    path("moodle_suap/", sync_up_enrolments, name="api_sync_up_enrolments"),
-    path("sync_down_grades/", sync_down_grades, name="api_sync_down_grades"),
+    path("enviar_diarios/", sync_up_enrolments, name="api_sync_up_enrolments"),
+    path("baixar_notas/", sync_down_grades, name="api_sync_down_grades"),
 ]

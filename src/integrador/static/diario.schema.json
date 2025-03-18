@@ -43,7 +43,6 @@
                 "componente",
                 "curso",
                 "diario",
-                "polo",
                 "professores",
                 "turma"
             ],
@@ -72,7 +71,30 @@
                     "type": "string"
                 },
                 "polo": {
-                    "type": "null"
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        },
+                        "descricao": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "id",
+                        "descricao"
+                    ]
+                },
+                "situacao_diario": {
+                    "type": "string",
+                    "enum": [
+                        "Ativo",
+                        "Inativo"
+                    ]
+                },
+                "programa": {
+                    "type": "string"
                 }
             },
             "required": [
