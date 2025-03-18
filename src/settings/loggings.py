@@ -32,7 +32,8 @@ logging.config.dictConfig(
         },
         "handlers": {
             "console": {
-                "class": "rich.logging.RichHandler",
+                # "class": "rich.logging.RichHandler",
+                "class": "logging.StreamHandler",
                 "formatter": "longformat",
             },
         },

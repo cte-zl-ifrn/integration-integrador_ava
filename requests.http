@@ -1,7 +1,8 @@
-### Pressione Ctrl + Alt + R para executar este request para usar no VSCode com o plugin "REST Client"
+### No VSCode, instale o plugin "REST Client" e veja a mágica ocorer :)
+### Pressione Ctrl + Alt + R, ou "Send Request", para executar cada request
 
 ### Apenas os atributos os obrigatórios
-POST http://ava/api/moodle_suap/ HTTP/1.1
+POST http://integrador/api/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 {
@@ -36,11 +37,17 @@ Authentication: Token changeme
         "descricao": "Bancos de Dados",
         "qtd_avaliacoes": 2,
         "descricao_historico": "Bancos de Dados"
-    }
+    },
+    "alunos": [
+
+    ],
+    "professores": [
+
+    ]
 }
 
 ### Matricula alguns alunos
-POST http://ava/api/moodle_suap/ HTTP/1.1
+POST http://integrador/api/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 {
@@ -75,7 +82,7 @@ Authentication: Token changeme
                 "descricao": "Pólo EaD"
             },
             "situacao": "Inativo",
-            "situacao_diario": "inAtivo",
+            "situacao_diario": "Inativo",
             "matricula": "201830000100005",
             "email": "nome.5@academico.ifrn.edu.br",
             "email_secundario": "nome.5@gmail.com"
@@ -94,8 +101,8 @@ Authentication: Token changeme
         }
     ],
     "campus": {
-        "id": 1,
-        "sigla": "EAD",
+        "id": 14,
+        "sigla": "ZL",
         "descricao": "Campus EaD"
     },
     "diario": {
@@ -147,7 +154,7 @@ Authentication: Token changeme
 }
 
 ### Desativa o 6 pois deixou de vir
-POST http://ava/api/moodle_suap/ HTTP/1.1
+POST http://integrador/api/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 {
@@ -170,7 +177,7 @@ Authentication: Token changeme
                 "descricao": "Pólo Assú"
             },
             "situacao": "Ativo",
-            "situacao_diario": "inAtivo",
+            "situacao_diario": "Inativo",
             "matricula": "201830000100004",
             "email": "nome.4@academico.ifrn.edu.br",
             "email_secundario": "nome.4@hotmail.com"
@@ -218,5 +225,5 @@ Authentication: Token changeme
 
 
 ### Apenas os atributos os obrigatórios
-GET http://ava/api/sync_down_grades/?campus_sigla=ZL&diario_id=123 HTTP/1.1
+GET http://integrador/api/baixar_notas/?campus_sigla=ZL&diario_id=123 HTTP/1.1
 Authentication: Token changeme

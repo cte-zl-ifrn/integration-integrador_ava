@@ -1,7 +1,7 @@
 from sc4py.env import env, env_as_list, env_as_bool
 import datetime
 
-APP_VERSION = "1.1.13"
+APP_VERSION = "1.1.017"
 
 LAST_STARTUP = int(datetime.datetime.timestamp(datetime.datetime.now()) * 1000)
 
@@ -18,14 +18,31 @@ MY_APPS = env_as_list(
         "health",
     ],
 )
+
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
-        "django_extensions",
+        # 'markdownx',
         "import_export",
+        "simple_history",
+        "safedelete",
+        "sass_processor",
+        "djrichtextfield",
         "django_json_widget",
+        # "django_admin_json_editor",
+        # "corsheaders",
+        "adminlte3",
+        # "adminlte3/admin",
     ],
 )
+
+try:
+    import django_extensions
+
+    THIRD_APPS.append("django_extensions")
+except ModuleNotFoundError:
+    pass
+
 DJANGO_APPS = env_as_list(
     "DJANGO_APPS",
     [
