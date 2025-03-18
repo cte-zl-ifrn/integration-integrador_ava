@@ -1,3 +1,4 @@
+import os
 import json
 import sentry_sdk
 import jsonschema
@@ -15,8 +16,8 @@ def exception_as_json(func):
         def __response_error(request: HttpRequest, error: Exception):
             event_id = sentry_sdk.capture_exception(error)
             error_json = {
-                "error": getattr(error, "message", None),
                 "code": getattr(error, "code", 500),
+                "error": getattr(error, "message", f"{error}"),
                 "event_id": event_id,
             }
 
@@ -53,7 +54,7 @@ def valid_token(func):
 def check_is_post(func):
     def inner(request: HttpRequest, *args, **kwargs):
         if request.method != "POST":
-            raise SyncError("Não implementado.", 501)
+            raise SyncError("Method HTTP não autorizado.", 501)
         return func(request, *args, **kwargs)
 
     return inner
@@ -77,16 +78,30 @@ def sync_up_enrolments(request: HttpRequest):
     try:
         message_string = request.body.decode("utf-8")
     except Exception as e1:
-        return SyncError(f"Erro ao decodificar o body em utf-8 ({e1}).", 405)
+        raise SyncError(f"Erro ao decodificar o body em utf-8 ({e1}).", 405)
 
     try:
-        with open("integrador/static/diario.schema.json") as f:
-            message = json.dumps(message_string)
-            schema = json.load(f.read())
-            jsonschema.validate(instance=message, schema=schema)
+        message = json.loads(message_string)
+    except Exception as e1:
+        raise SyncError(f"Erro ao converter para JSON ({e1}).", 409)
+
+    # try:
+    #     schema = json.load(open(f"integrador/static/diario.schema.json"))
+    # except Exception as e1:
+    #     raise SyncError(f"Erro ao converter para JSON Schema ({e1}).", 406)
+
+    # try:
+    #     jsonschema.validate(instance=message, schema=schema)
+    # except Exception as e1:
+    #     parts = e1.message.split("Failed")
+    #     if len(parts) > 1:
+    #         raise SyncError(parts[0], 411)
+    #     raise SyncError(e1.message, 410)
+
+    try:
         return JsonResponse(MoodleBroker().sync(message).respondido, safe=False)
     except Exception as e1:
-        return SyncError(f"Erro ao converter para JSON ({e1}).", 407)
+        raise SyncError(f"Erro ao converter para JSON ({e1}).", 412)
 
 
 @csrf_exempt

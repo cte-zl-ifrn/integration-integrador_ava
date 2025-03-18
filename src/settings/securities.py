@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
 from sc4py.env import env, env_as_bool, env_as_list, env_as_int
 
-# from corsheaders.signals import check_request_enabled
 
-
-# def cors_allow_mysites(sender, request, **kwargs):
-#     return False
-#     return MySite.objects.filter(host=request.headers["origin"]).exists()
-# check_request_enabled.connect(cors_allow_mysites)
-
+SUAP_INTEGRADOR_KEY = env("SUAP_INTEGRADOR_KEY", "changeme")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "changeme")
 LOGIN_URL = env("DJANGO_LOGIN_URL", "/api/login/")
 LOGIN_REDIRECT_URL = env("DJANGO_LOGIN_REDIRECT_URL", "/api/admin/")
-LOGOUT_REDIRECT_URL = env("DJANGO_LOGOUT_REDIRECT_URL", "http://login/logout")
+LOGOUT_REDIRECT_URL = env("DJANGO_LOGOUT_REDIRECT_URL", "https://suap.ifrn.edu.br/comum/logout")
 GO_TO_HTTPS = env_as_bool("GO_TO_HTTPS", False)
 AUTHENTICATION_BACKENDS = env_as_list("vAUTHENTICATION_BACKENDS", ["django.contrib.auth.backends.ModelBackend"])
 AUTH_PASSWORD_VALIDATORS = env_as_list("DJANGO_AUTH_PASSWORD_VALIDATORS", [])
@@ -45,13 +39,14 @@ CSRF_FAILURE_VIEW = env("DJANGO_CSRF_FAILURE_VIEW", "django.views.csrf.csrf_fail
 CSRF_HEADER_NAME = env("DJANGO_CSRF_HEADER_NAME", "HTTP_X_CSRFTOKEN")
 CSRF_TRUSTED_ORIGINS = env_as_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
 
-
+oauth_base_url = env("OAUTH_BASE_URL", "https://suap.ifrn.edu.br")
 OAUTH = {
-    "REDIRECT_URI": env("OAUTH_REDIRECT_URI", "http://integrador/api/authenticate/"),
+    "BASE_URL": oauth_base_url,
+    "AUTHORIZE_URL": env("OAUTH_AUTHORIZE_URL", f"{oauth_base_url}/o/authorize/"),
+    "USERINFO_URL": env("OAUTH_USERINFO_URL", f"{oauth_base_url}/api/eu/"),
+    "VERIFY_URL": env("OAUTH_VERIFY_URL", f"{oauth_base_url}/api/v1/verify/"),
     "CLIENT_ID": env("OAUTH_CLIENT_ID", "changeme"),
     "CLIENT_SECRET": env("OAUTH_CLIENT_SECRET", "changeme"),
-    "BASE_URL": env("OAUTH_BASE_URL", "http://login"),
+    "REDIRECT_URI": env("OAUTH_REDIRECT_URI", "http://integrador/api/authenticate/"),
     "VERIFY_SSL": env_as_bool("OAUTH_VERIFY_SSL", False),
-    "TOKEN_URL": env("OAUTH_TOKEN_URL", "http://login/o/token/"),
-    "USERINFO_URL": env("OAUTH_USERINFO_URL", "http://login/api/v1/userinfo/"),
 }
