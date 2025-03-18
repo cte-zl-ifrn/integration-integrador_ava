@@ -3,6 +3,6 @@ include:
     ref: "main"
     file:
       - "templates/autodeploy.yml"
-      # - "templates/autotag.yml"
+      - "templates/autotag.yml"
 
-# cicd: autotag, add ssh key to gitlab 1
+# cicd: autotag, add ssh key to gitlab 2
