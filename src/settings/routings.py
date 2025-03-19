@@ -9,6 +9,6 @@ ROOT_URLCONF = env("DJANGO_ROOT_URLCONF", "urls")
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 ROOT_URL_PATH = env("DJANGO_ROOT_URL_PATH", "api")
 STATIC_URL = env("DJANGO_STATIC_URL", f"{ROOT_URL_PATH}/static/")
-STATIC_ROOT = env("DJANGO_STATIC_ROOT", "/var/static")
+STATIC_ROOT = env("DJANGO_STATIC_ROOT", "/app/static")
 MEDIA_URL = env("DJANGO_MEDIA_URL", f"{ROOT_URL_PATH}/media/")
-MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", "/var/media")
+MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", "/app/media")
