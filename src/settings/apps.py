@@ -22,17 +22,11 @@ MY_APPS = env_as_list(
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
-        # 'markdownx',
         "import_export",
         "simple_history",
-        "safedelete",
         "sass_processor",
-        "djrichtextfield",
+        #"djrichtextfield",
         "django_json_widget",
-        # "django_admin_json_editor",
-        # "corsheaders",
-        "adminlte3",
-        # "adminlte3/admin",
     ],
 )
 
