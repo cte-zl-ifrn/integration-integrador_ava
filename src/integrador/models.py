@@ -9,11 +9,12 @@ from django.db.models import (
     PROTECT,
 )
 from django.db.models import Manager, Model, QuerySet, Q
+from django.db import models
 from django.contrib.auth.models import User
 from django_better_choices import Choices
 from simple_history.models import HistoricalRecords
 from django.utils.html import format_html
-
+from polymorphic.models import PolymorphicModel
 
 class ActiveMixin:
     @property
@@ -25,7 +26,7 @@ class Contexto(Choices):
     CURSO = Choices.Value(_("Curso"), value="c")
     POLO = Choices.Value(_("Pólo"), value="p")
     PROGRAMA = Choices.Value(_("Programa"), value="P")
-
+    COORTE = Choices.Value(_("Coorte"), value="C")
 
 
 class Ambiente(Model):
@@ -100,11 +101,22 @@ class Papel(ActiveMixin, Model):
         return f"{sigla}{self.nome} {self.active_icon}"
 
 
+class Coorte(PolymorphicModel):
+    papel = ForeignKey(Papel, on_delete=PROTECT, related_name='coorte_papel')
+    def __str__(self):
+        return f"{self.id} - {self.papel}"
+    class Meta:
+        verbose_name = _("Coorte")
+        verbose_name_plural = _("Coortes")
+        ordering = ["papel"]
+
+
 class Curso(Model):
     suap_id = CharField(_("ID do curso no SUAP"), max_length=255, unique=True)
     codigo = CharField(_("código do curso"), max_length=255, unique=True)
     nome = CharField(_("nome do curso"), max_length=255)
     descricao = CharField(_("descrição"), max_length=255)
+    campus = ForeignKey(Campus, on_delete=PROTECT, null=True, blank=True)
 
     history = HistoricalRecords()
 
@@ -117,73 +129,9 @@ class Curso(Model):
         return f"{self.nome} ({self.codigo})"
 
     @property
-    def coortes(self):
-        cohorts = {}
-
-        try:
-
-            def dados_coorte(v, campus, id):
-                campus_curso = f"{campus.sigla}.{self.codigo}"
-                return {
-                    "idnumber": id,
-                    "nome": f"{campus_curso} - {v.papel.nome}",
-                    "descricao": f"{v.papel.nome}: {campus_curso} - {self.nome}",
-                    "ativo": v.active,
-                    "colaboradores": [],
-                    "role": v.papel.papel,
-                }
-
-            def dados_colaborador(vc):
-                return {
-                    "login": vc.colaborador.username,
-                    "email": vc.colaborador.email,
-                    "nome": vc.colaborador.get_full_name(),
-                    "status": "Ativo" if vc.active else "Inativo",
-                }
-
-            for vc in self.vinculocurso_set.all():
-                campus_curso = f"{vc.campus.sigla}.{self.codigo}"
-                id = f"{campus_curso}{vc.papel.codigo}"
-                if id not in cohorts:
-                    cohorts[id] = dados_coorte(vc, vc.campus, id)
-                cohorts[id]["colaboradores"].append(dados_colaborador(vc))
-
-            for cp in self.cursopolo_set.all():
-                campus_curso = f"{cp.campus.sigla}.{self.codigo}"
-                for vp in cp.polo.vinculopolo_set.all():
-                    id = f"{campus_curso}{vp.papel.codigo}"
-                    if id not in cohorts:
-                        cohorts[id] = cohorts[id] = dados_coorte(vp, cp.campus, id)
-                    cohorts[id]["colaboradores"].append(dados_colaborador(vc))
-
-            for cp2 in self.cursoprograma_set.all():
-                print("cp2",cp2)
-                campus_curso2 = f"{cp2.campus.sigla}.{self.codigo}"
-                for vp2 in cp2.programa.vinculoprograma_set.all():
-                    print("vp2",cp2.programa)
-                    id2 = f"{campus_curso2}{vp2.papel.codigo}.{cp2.programa.sigla}"
-                    if id2 not in cohorts:
-                        cohorts[id2] = cohorts[id2] = dados_coorte(vp2, cp2.campus, id2)
-                    cohorts[id2]["colaboradores"].append(dados_colaborador(vp2))
-        finally:
-            return [c for c in cohorts.values()]
-
-
-class VinculoCurso(ActiveMixin, Model):
-    campus = ForeignKey(Campus, on_delete=PROTECT)
-    curso = ForeignKey(Curso, on_delete=PROTECT)
-    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.CURSO})
-    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_cursos")
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("vínculo no curso")
-        verbose_name_plural = _("cursos x colaboradores")
-        ordering = ["papel", "curso", "colaborador"]
-
-    def __str__(self):
-        return f"{self.papel}{self.curso} {self.colaborador} {self.active_icon}"
+    def get_coortes(self):
+        coortes = Coorte.objects.filter(coortecurso__curso=self)
+        return coortes 
 
 
 class Polo(Model):
@@ -216,71 +164,6 @@ class Programa(Model):
     def __str__(self):
         return self.sigla
 
-
-class CursoPrograma(ActiveMixin, Model):
-    curso = ForeignKey(Curso, on_delete=PROTECT)
-    campus = ForeignKey(Campus, on_delete=PROTECT)
-    programa = ForeignKey(Programa, on_delete=PROTECT)
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("programa do curso")
-        verbose_name_plural = _("programas x cursos")
-        ordering = ["curso", "programa"]
-
-    def __str__(self):
-        codigo = f"{self.campus.sigla}.{self.curso.codigo}..{self.programa.sigla}"
-        return f"{codigo} {self.active_icon}"
-
-
-class VinculoPrograma(ActiveMixin, Model):
-    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.PROGRAMA})
-    programa = ForeignKey(Programa, on_delete=PROTECT)
-    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_programas")
-    active = BooleanField(_("ativo?"))
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("vínculo no programa")
-        verbose_name_plural = _("programas X colaboradores")
-        ordering = ["papel", "programa", "colaborador"]
-
-    def __str__(self):
-        return f"{self.papel}{self.programa.nome} {self.colaborador} {self.active_icon}"
-
-
-class CursoPolo(ActiveMixin, Model):
-    curso = ForeignKey(Curso, on_delete=PROTECT)
-    campus = ForeignKey(Campus, on_delete=PROTECT)
-    polo = ForeignKey(Polo, on_delete=PROTECT)
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("pólo do curso")
-        verbose_name_plural = _("pólos x cursos")
-        ordering = ["curso", "polo"]
-
-    def __str__(self):
-        return f"{self.curso}:{self.polo} {self.active_icon}"
-
-
-class VinculoPolo(ActiveMixin, Model):
-    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.POLO})
-    polo = ForeignKey(Polo, on_delete=PROTECT)
-    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_polos")
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("vínculo no pólo")
-        verbose_name_plural = _("pólos X colaboradores")
-        ordering = ["papel", "polo", "colaborador"]
-
-    def __str__(self):
-        return f"{self.papel}{self.polo} {self.colaborador} {self.active_icon}"
 
 
 class SolicitacaoManager(Manager):
@@ -318,3 +201,31 @@ class Solicitacao(Model):
     @property
     def status_merged(self):
         return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
+
+
+class Vinculo(PolymorphicModel):
+    colaborador = ForeignKey(User, on_delete=PROTECT)
+    coorte = ForeignKey(Coorte, on_delete=PROTECT, related_name="vinculo_coorte")
+
+class CoorteCurso(Coorte):
+    curso = ForeignKey(Curso, on_delete=PROTECT, related_name="coorte_x_curso")
+    class Meta:
+        verbose_name = _("Coorte x curso")
+        verbose_name_plural = _("Coorte x Curso")
+        ordering = ["curso"]
+
+
+class CoortePrograma(Coorte):
+    programa = ForeignKey(Programa, on_delete=PROTECT, related_name="coorte_programa")
+    class Meta:
+        verbose_name = _("Coorte x Programa")
+        verbose_name_plural = _("Coorte x Programa")
+        ordering = ["programa"]
+
+
+class CoortePolo(Coorte):
+    polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
+    class Meta:
+        verbose_name = _("Coorte x Polo")
+        verbose_name_plural = _("Coorte x Polo")
+        ordering = ["polo"]

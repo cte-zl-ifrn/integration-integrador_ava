@@ -4,9 +4,8 @@ import re
 import json
 import sentry_sdk
 from http.client import HTTPException
-from integrador.models import Ambiente
-from integrador.models import Solicitacao, Campus, Curso
-
+from integrador.models import Ambiente, Solicitacao, Campus, Curso, Programa, Polo, Coorte
+from django.forms.models import model_to_dict
 
 CODIGO_DIARIO_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\.(\\w*\\.\\d*)(#\\d*)?$")
 CODIGO_DIARIO_ANTIGO_ELEMENTS_COUNT = 5
@@ -108,11 +107,30 @@ class MoodleBroker:
             solicitacao = Solicitacao.objects.create(recebido=recebido, status=Solicitacao.Status.PROCESSANDO)
 
             solicitacao.campus = self._validate_campus(recebido)
+
+            coortes = []
             try:
-                coortes = Curso.objects.get(codigo=recebido["curso"]["codigo"]).coortes
+                curso = Curso.objects.get(codigo=recebido["curso"]["codigo"])
+                coortes += Coorte.objects.filter(coortecurso__curso=curso)
             except:
-                coortes = []
-            solicitacao.enviado = dict(**recebido, **{"coortes": coortes})
+               pass
+
+            try:
+                programas_set = set([a.get("programa") for a in recebido.get("alunos", [])])
+                for pr in Programa.objects.filter(nome__in=programas_set):
+                    coortes += Coorte.objects.filter(coorteprograma__programa=pr)
+            except:
+                pass
+
+            try:
+                polos_set = set([a.get("polo", {}).get("descricao") for a in recebido.get("alunos", [])])
+                for p in Polo.objects.filter(nome__in=polos_set):
+                    coortes += Coorte.objects.filter(coortepolo__polo=p)
+            except:
+                pass
+            
+            objects_list = [model_to_dict(o) for o in coortes]
+            solicitacao.enviado = dict(**recebido, **{"coortes": objects_list})
             solicitacao.save()
 
             retorno = requests.post(
