@@ -150,7 +150,7 @@ class Polo(Model):
 
 
 class Programa(Model):
-    suap_id = CharField(_("ID do programa no SUAP"), max_length=255, unique=True)
+    suap_id = CharField(_("ID do programa no SUAP"), max_length=255, unique=False, null=True, blank=True)
     nome = CharField(_("nome do programa"), max_length=255, unique=True)
     sigla = CharField(_("sigla do programa"), max_length=255, unique=True)
 

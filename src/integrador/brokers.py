@@ -117,6 +117,8 @@ class MoodleBroker:
 
             try:
                 programas_set = set([a.get("programa") for a in recebido.get("alunos", [])])
+                for new_pr in programas_set:
+                    Programa.objects.get_or_create(sigla=new_pr, nome=new_pr)
                 for pr in Programa.objects.filter(nome__in=programas_set):
                     coortes += Coorte.objects.filter(coorteprograma__programa=pr)
             except:
