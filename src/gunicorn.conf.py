@@ -1,5 +1,7 @@
 import multiprocessing
 import os
+import boot
+
 
 wsgi_app = "wsgi:application"
 bind_port = os.getenv("VIRTUAL_PORT", "80")
@@ -15,4 +17,8 @@ errorlog = "-"
 accesslog = "-"
 capture_output = False
 syslog = False
-logger_class = 'gunicorn.glogging.Logger'
+logger_class = "gunicorn.glogging.Logger"
+
+
+def when_ready(server):
+    boot.boot()
