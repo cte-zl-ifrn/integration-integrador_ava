@@ -1,14 +1,14 @@
 ########################
 # Production build stage
 ########################################################################
-FROM python:3.13.1-slim-bookworm AS production-build-stage
+FROM python:3.13.2-slim-bookworm AS production-build-stage
 
 ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 COPY requirements*.txt /app/
 RUN    python3 -m venv /app/venv \
-    && /app/venv/bin/pip install --upgrade --no-cache-dir --root-user-action ignore pip \
+    && /app/venv/bin/pip install --upgrade --no-cache-dir --root-user-action ignore pip setuptools \
     && /app/venv/bin/pip install --no-cache-dir -r /app/requirements.txt -r /app/requirements-build.txt \
     && echo '__version__ = "unknown"' > /app/venv/lib/python3.13/site-packages/django_better_choices/version.py
 
@@ -25,7 +25,7 @@ RUN    mkdir -p /app/static \
 #########################
 # Development build stage
 ########################################################################
-FROM python:3.13.1-slim-bookworm AS development-build-stage
+FROM python:3.13.2-slim-bookworm AS development-build-stage
 
 ENV PYTHONUNBUFFERED 1
 
@@ -41,7 +41,7 @@ RUN /app/venv/bin/pip install $EXTRA_REQ \
 ########################
 # Production final stage
 ########################################################################
-FROM python:3.13.1-slim-bookworm AS production
+FROM python:3.13.2-slim-bookworm AS production
 
 RUN useradd -ms /usr/sbin/nologin app
 
@@ -57,7 +57,7 @@ CMD  ["/app/venv/bin/gunicorn" ]
 #########################
 # Development final stage
 ########################################################################
-FROM python:3.13.1-slim-bookworm
+FROM python:3.13.2-slim-bookworm
 
 RUN useradd -ms /bin/bash app
 
