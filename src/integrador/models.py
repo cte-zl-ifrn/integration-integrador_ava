@@ -101,22 +101,11 @@ class Papel(ActiveMixin, Model):
         return f"{sigla}{self.nome} {self.active_icon}"
 
 
-class Coorte(PolymorphicModel):
-    papel = ForeignKey(Papel, on_delete=PROTECT, related_name='coorte_papel')
-    def __str__(self):
-        return f"{self.id} - {self.papel}"
-    class Meta:
-        verbose_name = _("Coorte")
-        verbose_name_plural = _("Coortes")
-        ordering = ["papel"]
-
-
 class Curso(Model):
     suap_id = CharField(_("ID do curso no SUAP"), max_length=255, unique=True)
     codigo = CharField(_("código do curso"), max_length=255, unique=True)
     nome = CharField(_("nome do curso"), max_length=255)
     descricao = CharField(_("descrição"), max_length=255)
-    campus = ForeignKey(Campus, on_delete=PROTECT, null=True, blank=True)
 
     history = HistoricalRecords()
 
@@ -127,11 +116,6 @@ class Curso(Model):
 
     def __str__(self):
         return f"{self.nome} ({self.codigo})"
-
-    @property
-    def get_coortes(self):
-        coortes = Coorte.objects.filter(coortecurso__curso=self)
-        return coortes 
 
 
 class Polo(Model):
@@ -203,20 +187,30 @@ class Solicitacao(Model):
         return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
 
 
-class Vinculo(PolymorphicModel):
-    colaborador = ForeignKey(User, on_delete=PROTECT)
-    coorte = ForeignKey(Coorte, on_delete=PROTECT, related_name="vinculo_coorte")
+class Coorte(PolymorphicModel):
+    papel = ForeignKey(Papel, on_delete=PROTECT, related_name='coorte_papel')
+
+    def __str__(self):
+        return f"{self.id} - {self.papel}"
+    
+    class Meta:
+        verbose_name = _("Coorte")
+        verbose_name_plural = _("Coortes")
+        ordering = ["papel"]
+
 
 class CoorteCurso(Coorte):
-    curso = ForeignKey(Curso, on_delete=PROTECT, related_name="coorte_x_curso")
+    curso = ForeignKey(Curso, on_delete=PROTECT, related_name="coorte_curso")
+    
     class Meta:
-        verbose_name = _("Coorte x curso")
+        verbose_name = _("Coorte x Curso")
         verbose_name_plural = _("Coorte x Curso")
         ordering = ["curso"]
 
 
 class CoortePrograma(Coorte):
     programa = ForeignKey(Programa, on_delete=PROTECT, related_name="coorte_programa")
+
     class Meta:
         verbose_name = _("Coorte x Programa")
         verbose_name_plural = _("Coorte x Programa")
@@ -225,7 +219,13 @@ class CoortePrograma(Coorte):
 
 class CoortePolo(Coorte):
     polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
+    
     class Meta:
         verbose_name = _("Coorte x Polo")
         verbose_name_plural = _("Coorte x Polo")
         ordering = ["polo"]
+
+
+class Vinculo(Model):
+    colaborador = ForeignKey(User, on_delete=PROTECT)
+    coorte = ForeignKey(Coorte, on_delete=PROTECT, related_name="vinculos")

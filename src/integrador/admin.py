@@ -243,27 +243,21 @@ class CampusAdmin(BaseModelAdmin):
     list_filter = ["active", "ambiente"]
     search_fields = ["sigla", "suap_id"]
     resource_classes = [CampusResource]
-    inlines = [CursoInline]
 
 @register(Curso)
 class CursoAdmin(BaseModelAdmin):
     class CursoResource(ModelResource):
-        campus = Field(
-            attribute="campus",
-            column_name="campus",
-            widget=ForeignKeyWidget(Campus, field="campus")
-        )
         class Meta:
             model = Curso
-            export_order = ("codigo", "nome", "suap_id", "campus")
+            export_order = ("codigo", "nome", "suap_id")
             import_id_fields = ("codigo",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["codigo", "nome", "campus"]
+    list_display = ["codigo", "nome"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
-    search_fields = ["codigo", "nome", "suap_id", "campus"]
+    search_fields = ["codigo", "nome", "suap_id"]
     resource_classes = [CursoResource]
 
 
