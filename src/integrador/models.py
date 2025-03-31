@@ -29,6 +29,14 @@ class Contexto(Choices):
     COORTE = Choices.Value(_("Coorte"), value="C")
 
 
+def dados_vinculo(vinculo):
+    return {
+        "login": vinculo.colaborador.username,
+        "email": vinculo.colaborador.email,
+        "nome": vinculo.colaborador.get_full_name(),
+        "status": "Ativo" if vinculo.active else "Inativo",
+    }
+
 class Ambiente(Model):
     def _c(color: str):
         return f"""<span style='background: {color}; color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;'>{color}</span>"""

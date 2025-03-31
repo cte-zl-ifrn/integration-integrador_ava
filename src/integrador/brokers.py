@@ -4,8 +4,7 @@ import re
 import json
 import sentry_sdk
 from http.client import HTTPException
-from integrador.models import Ambiente, Solicitacao, Campus, Curso, Programa, Polo, Coorte
-from django.forms.models import model_to_dict
+from integrador.models import Ambiente, Solicitacao, Campus, Curso, Programa, Polo, Coorte, dados_vinculo
 from django.db import models
 
 CODIGO_DIARIO_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\.(\\w*\\.\\d*)(#\\d*)?$")
@@ -74,22 +73,6 @@ def get_json_api(ava: Ambiente, service: str, **params: dict):
 
 class MoodleBroker:
 
-    def _custom_model_to_dict(instance, another, related_fields=[]):
-        data = model_to_dict(another)
-        
-        for field in related_fields:
-            related_obj = getattr(another, field)
-            print(related_obj)
-            # Trata ForeignKey (objeto único)
-            if isinstance(related_obj, models.Model):
-                data[field] = model_to_dict(related_obj)
-            
-            # Trata ManyToManyField (lista de objetos)
-            elif isinstance(related_obj, models.Manager):
-                data[field] = [model_to_dict(obj) for obj in related_obj.all()]
-        
-        return data
-    
     def _validate_campus(self, pkg: dict):
         try:
             filter = {
@@ -150,7 +133,7 @@ class MoodleBroker:
             except:
                 pass
             
-            objects_list = [{
+            objects_list = list([{
                 "idnumber": coo.papel.sigla,
                 "nome": coo.papel.nome,
                 "ativo": coo.papel.active,
@@ -158,15 +141,11 @@ class MoodleBroker:
                 "descricao": coo.papel.nome,
                 "colaboradores":
                   [
-                    {"status": 'ativo' if vin.colaborador.is_active else 'inativo', 
-                     "login": vin.colaborador.username, 
-                     "email": vin.colaborador.email, 
-                     "nome": vin.colaborador.first_name + " " + vin.colaborador.last_name} for vin in coo.vinculos.all()
+                    dados_vinculo(vinc) for vinc in coo.vinculos.all()
                   ] if hasattr(coo, 'vinculos') else None
-            } for coo in coortes]
+            } for coo in coortes])
 
-            unique_objects = list({(obj["idnumber"], obj["nome"], obj["ativo"]): obj for obj in objects_list}.values())
-            solicitacao.enviado = dict(**recebido, **{"coortes": unique_objects})
+            solicitacao.enviado = dict(**recebido, **{"coortes": objects_list})
             solicitacao.save()
 
             retorno = requests.post(
