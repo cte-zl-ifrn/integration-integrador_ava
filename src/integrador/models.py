@@ -34,7 +34,7 @@ def dados_vinculo(vinculo):
         "login": vinculo.colaborador.username,
         "email": vinculo.colaborador.email,
         "nome": vinculo.colaborador.get_full_name(),
-        "status": "Ativo" if vinculo.active else "Inativo",
+        "status": "Ativo" if vinculo.coorte.papel.active else "Inativo",
     }
 
 class Ambiente(Model):
