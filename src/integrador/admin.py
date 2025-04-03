@@ -1,9 +1,7 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
-from django.utils.safestring import mark_safe
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse
 from django.utils.html import format_html
 from django.db import transaction
 from django.urls import path, reverse
@@ -181,8 +179,12 @@ class CampusInline(StackedInline):
     model: Model = Campus
     extra: int = 0
 
-class CursoInline(StackedInline):
-    model: Model = Curso
+class CoorteCursoInline(StackedInline):
+    model: Model = CoorteCurso
+    extra: int = 0
+
+class VinculoInline(StackedInline):
+    model: Model = Vinculo
     extra: int = 0
 
 class CoorteInline(TabularInline):
@@ -259,6 +261,7 @@ class CursoAdmin(BaseModelAdmin):
     field_to_highlight = list_display[0]
     search_fields = ["codigo", "nome", "suap_id"]
     resource_classes = [CursoResource]
+    inlines = [CoorteCursoInline]
 
 
 @register(Polo)
@@ -281,14 +284,14 @@ class PapelAdmin(BaseModelAdmin):
     class PapelResource(ModelResource):
         class Meta:
             model = Papel
-            export_order = ["papel", "sigla", "nome", "contexto", "active"]
+            export_order = ["papel", "sigla", "nome", "active"]
             import_id_fields = ("papel",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "sigla", "contexto", "active"]
-    list_filter = ["active", "contexto"] + BaseModelAdmin.list_filter
-    search_fields = ["nome", "sigla", "contexto"]
+    list_display = ["nome", "sigla", "active"]
+    list_filter = ["active"] + BaseModelAdmin.list_filter
+    search_fields = ["nome", "sigla"]
     resource_classes = [PapelResource]
 
 
@@ -416,8 +419,8 @@ class CoorteAdmin(BaseModelAdmin):
             widget=ForeignKeyWidget(Papel, field="papel")
         )
     resource_classes = [CoorteResource]
-    list_display = ['papel', 'cursos', 'polos', 'programas'] 
-    readonly_fields =['cursos', 'polos', 'programas'] 
+    list_display = ['papel', 'cursos', 'polos', 'programas']
+    readonly_fields =['cursos', 'polos', 'programas']
 
     def cursos(self, obj):
         coorte_cursos = CoorteCurso.objects.filter(coorte_ptr_id=obj)
@@ -430,21 +433,21 @@ class CoorteAdmin(BaseModelAdmin):
         return  ', '.join([cpr.programa.sigla for cpr in coorte_programas])
     fieldsets = (
             (None, {
-                'fields': ('papel',)  
+                'fields': ('papel',)
             }),
             ('Cursos Associados', {
-                'fields': ('cursos',),  
+                'fields': ('cursos',),
             }),
             ('Polos Associados', {
-                'fields': ('polos',), 
+                'fields': ('polos',),
             }),
             ('Programas Associados', {
-                'fields': ('programas',),  
+                'fields': ('programas',),
             })
         )
-    cursos.short_description = 'Cursos'  
-    polos.short_description = 'Polos'  
-    programas.short_description = 'Programas'  
+    cursos.short_description = 'Cursos'
+    polos.short_description = 'Polos'
+    programas.short_description = 'Programas'
 
 
 @register(Vinculo)
@@ -476,22 +479,22 @@ class VinculoAdmin(BaseModelAdmin):
 
     fieldsets = (
             (None, {
-                'fields': ('coorte', 'colaborador',)  
+                'fields': ('coorte', 'colaborador',)
             }),
             ('Cursos Associados', {
-                'fields': ('cursos',),  
+                'fields': ('cursos',),
             }),
              ('Polos Associados', {
-                'fields': ('polos',), 
+                'fields': ('polos',),
             }),
              ('Programas Associados', {
-                'fields': ('programas',),  
+                'fields': ('programas',),
             }),
         )
 
-    cursos.short_description = 'Cursos'  
-    polos.short_description = 'Polos'  
-    programas.short_description = 'Programas'  
+    cursos.short_description = 'Cursos'
+    polos.short_description = 'Polos'
+    programas.short_description = 'Programas'
 
 
 @register(CoortePolo)
@@ -525,3 +528,4 @@ class CoorteCursoAdmin(BaseModelAdmin):
             widget=ForeignKeyWidget(Curso, field="id"),
         )
     list_display = ["curso"]
+    inlines = [VinculoInline]
