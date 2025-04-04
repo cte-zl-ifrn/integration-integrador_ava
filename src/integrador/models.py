@@ -1,5 +1,4 @@
 from django.utils.translation import gettext as _
-from django.utils.safestring import mark_safe
 from django.db.models import (
     CharField,
     DateTimeField,
@@ -13,7 +12,7 @@ from django.contrib.auth.models import User
 from django_better_choices import Choices
 from simple_history.models import HistoricalRecords
 from django.utils.html import format_html
-
+from polymorphic.models import PolymorphicModel
 
 class ActiveMixin:
     @property
@@ -21,12 +20,13 @@ class ActiveMixin:
         return "✅" if self.active else "⛔"
 
 
-class Contexto(Choices):
-    CURSO = Choices.Value(_("Curso"), value="c")
-    POLO = Choices.Value(_("Pólo"), value="p")
-    PROGRAMA = Choices.Value(_("Programa"), value="P")
-
-
+def dados_vinculo(vinculo):
+    return {
+        "login": vinculo.colaborador.username,
+        "email": vinculo.colaborador.email,
+        "nome": vinculo.colaborador.get_full_name(),
+        "status": "Ativo" if vinculo.coorte.papel.active else "Inativo",
+    }
 
 class Ambiente(Model):
     def _c(color: str):
@@ -77,29 +77,6 @@ class Campus(Model):
         return {"Authentication": f"Token {self.ambiente.token}"}
 
 
-class Papel(ActiveMixin, Model):
-    nome = CharField(_("nome do papel"), max_length=256)
-    sigla = CharField(_("sigla"), max_length=10, blank=True, null=False, unique=True)
-    papel = CharField(_("papel"), max_length=256, unique=True)
-    contexto = CharField(_("contexto"), max_length=1, choices=Contexto)
-    active = BooleanField(_("ativo?"))
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("papel")
-        verbose_name_plural = _("papéis")
-        ordering = ["nome"]
-
-    @property
-    def codigo(self):
-        return f".{self.sigla}" if self.sigla else ""
-
-    def __str__(self):
-        sigla = f"{self.sigla}:" if self.sigla else ""
-        return f"{sigla}{self.nome} {self.active_icon}"
-
-
 class Curso(Model):
     suap_id = CharField(_("ID do curso no SUAP"), max_length=255, unique=True)
     codigo = CharField(_("código do curso"), max_length=255, unique=True)
@@ -115,75 +92,6 @@ class Curso(Model):
 
     def __str__(self):
         return f"{self.nome} ({self.codigo})"
-
-    @property
-    def coortes(self):
-        cohorts = {}
-
-        try:
-
-            def dados_coorte(v, campus, id):
-                campus_curso = f"{campus.sigla}.{self.codigo}"
-                return {
-                    "idnumber": id,
-                    "nome": f"{campus_curso} - {v.papel.nome}",
-                    "descricao": f"{v.papel.nome}: {campus_curso} - {self.nome}",
-                    "ativo": v.active,
-                    "colaboradores": [],
-                    "role": v.papel.papel,
-                }
-
-            def dados_colaborador(vc):
-                return {
-                    "login": vc.colaborador.username,
-                    "email": vc.colaborador.email,
-                    "nome": vc.colaborador.get_full_name(),
-                    "status": "Ativo" if vc.active else "Inativo",
-                }
-
-            for vc in self.vinculocurso_set.all():
-                campus_curso = f"{vc.campus.sigla}.{self.codigo}"
-                id = f"{campus_curso}{vc.papel.codigo}"
-                if id not in cohorts:
-                    cohorts[id] = dados_coorte(vc, vc.campus, id)
-                cohorts[id]["colaboradores"].append(dados_colaborador(vc))
-
-            for cp in self.cursopolo_set.all():
-                campus_curso = f"{cp.campus.sigla}.{self.codigo}"
-                for vp in cp.polo.vinculopolo_set.all():
-                    id = f"{campus_curso}{vp.papel.codigo}"
-                    if id not in cohorts:
-                        cohorts[id] = cohorts[id] = dados_coorte(vp, cp.campus, id)
-                    cohorts[id]["colaboradores"].append(dados_colaborador(vc))
-
-            for cp2 in self.cursoprograma_set.all():
-                print("cp2",cp2)
-                campus_curso2 = f"{cp2.campus.sigla}.{self.codigo}"
-                for vp2 in cp2.programa.vinculoprograma_set.all():
-                    print("vp2",cp2.programa)
-                    id2 = f"{campus_curso2}{vp2.papel.codigo}.{cp2.programa.sigla}"
-                    if id2 not in cohorts:
-                        cohorts[id2] = cohorts[id2] = dados_coorte(vp2, cp2.campus, id2)
-                    cohorts[id2]["colaboradores"].append(dados_colaborador(vp2))
-        finally:
-            return [c for c in cohorts.values()]
-
-
-class VinculoCurso(ActiveMixin, Model):
-    campus = ForeignKey(Campus, on_delete=PROTECT)
-    curso = ForeignKey(Curso, on_delete=PROTECT)
-    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.CURSO})
-    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_cursos")
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("vínculo no curso")
-        verbose_name_plural = _("cursos x colaboradores")
-        ordering = ["papel", "curso", "colaborador"]
-
-    def __str__(self):
-        return f"{self.papel}{self.curso} {self.colaborador} {self.active_icon}"
 
 
 class Polo(Model):
@@ -202,7 +110,7 @@ class Polo(Model):
 
 
 class Programa(Model):
-    suap_id = CharField(_("ID do programa no SUAP"), max_length=255, unique=True)
+    suap_id = CharField(_("ID do programa no SUAP"), max_length=255, unique=False, null=True, blank=True)
     nome = CharField(_("nome do programa"), max_length=255, unique=True)
     sigla = CharField(_("sigla do programa"), max_length=255, unique=True)
 
@@ -217,72 +125,6 @@ class Programa(Model):
         return self.sigla
 
 
-class CursoPrograma(ActiveMixin, Model):
-    curso = ForeignKey(Curso, on_delete=PROTECT)
-    campus = ForeignKey(Campus, on_delete=PROTECT)
-    programa = ForeignKey(Programa, on_delete=PROTECT)
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("programa do curso")
-        verbose_name_plural = _("programas x cursos")
-        ordering = ["curso", "programa"]
-
-    def __str__(self):
-        codigo = f"{self.campus.sigla}.{self.curso.codigo}..{self.programa.sigla}"
-        return f"{codigo} {self.active_icon}"
-
-
-class VinculoPrograma(ActiveMixin, Model):
-    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.PROGRAMA})
-    programa = ForeignKey(Programa, on_delete=PROTECT)
-    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_programas")
-    active = BooleanField(_("ativo?"))
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("vínculo no programa")
-        verbose_name_plural = _("programas X colaboradores")
-        ordering = ["papel", "programa", "colaborador"]
-
-    def __str__(self):
-        return f"{self.papel}{self.programa.nome} {self.colaborador} {self.active_icon}"
-
-
-class CursoPolo(ActiveMixin, Model):
-    curso = ForeignKey(Curso, on_delete=PROTECT)
-    campus = ForeignKey(Campus, on_delete=PROTECT)
-    polo = ForeignKey(Polo, on_delete=PROTECT)
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("pólo do curso")
-        verbose_name_plural = _("pólos x cursos")
-        ordering = ["curso", "polo"]
-
-    def __str__(self):
-        return f"{self.curso}:{self.polo} {self.active_icon}"
-
-
-class VinculoPolo(ActiveMixin, Model):
-    papel = ForeignKey(Papel, on_delete=PROTECT, limit_choices_to={"contexto": Contexto.POLO})
-    polo = ForeignKey(Polo, on_delete=PROTECT)
-    colaborador = ForeignKey(User, on_delete=PROTECT, related_name="vinculos_polos")
-    active = BooleanField(_("ativo?"))
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("vínculo no pólo")
-        verbose_name_plural = _("pólos X colaboradores")
-        ordering = ["papel", "polo", "colaborador"]
-
-    def __str__(self):
-        return f"{self.papel}{self.polo} {self.colaborador} {self.active_icon}"
-
-
 class SolicitacaoManager(Manager):
     def by_diario_id(self, diario_id: int) -> QuerySet:
         return Solicitacao.objects.filter(Q(recebido__diario__id=int(diario_id))).order_by("-id")
@@ -293,13 +135,14 @@ class SolicitacaoManager(Manager):
 
 class Solicitacao(Model):
     class Status(Choices):
+        NAO_DEFINIDO = Choices.Value(_("Não Definido"), value=None)
         SUCESSO = Choices.Value(_("Sucesso"), value="S")
         FALHA = Choices.Value(_("Falha"), value="F")
         PROCESSANDO = Choices.Value(_("Processando"), value="P")
 
     timestamp = DateTimeField(_("quando ocorreu"), auto_now_add=True)
     campus = ForeignKey(Campus, on_delete=PROTECT, null=True, blank=True)
-    status = CharField(_("status"), max_length=256, choices=Status, null=True, blank=True)
+    status = CharField(_("status"), max_length=256, choices=Status, null=True, blank=False)
     status_code = CharField(_("status code"), max_length=256, null=True, blank=True)
     recebido = JSONField(_("JSON recebido"), null=True, blank=True)
     enviado = JSONField(_("JSON enviado"), null=True, blank=True)
@@ -318,3 +161,82 @@ class Solicitacao(Model):
     @property
     def status_merged(self):
         return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
+
+
+class Papel(ActiveMixin, Model):
+    nome = CharField(_("nome da coorte"), max_length=256, help_text="Este atributo será cohort.name")
+    sigla = CharField(
+        _("sufixo do corteid coorte"),
+        max_length=10,
+        blank=True,
+        null=False,
+        unique=True,
+        help_text=_("Este atributo será o sufixo da cohort.idnumber,"
+                  " ({campus.sigla}.{curso.instanceia.codigo}.{este_sufixo})")
+    )
+    papel = CharField(
+        _("nome curso do papel"),
+        max_length=256,
+        unique=True,
+        help_text=_("Este atributo deve ser conforme role.shortname")
+    )
+    active = BooleanField(_("ativo?"), help_text=_("Indica se esta coorte deverá ser sincronizada"))
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = _("papel")
+        verbose_name_plural = _("papéis")
+        ordering = ["nome"]
+
+    @property
+    def codigo(self):
+        return f".{self.sigla}" if self.sigla else ""
+
+    def __str__(self):
+        sigla = f"{self.sigla}" if self.sigla else ""
+        return f"{self.nome} (CAMPUS.INSTANCIA.{sigla}) {self.active_icon}"
+
+
+class Coorte(PolymorphicModel):
+    papel = ForeignKey(Papel, on_delete=PROTECT, related_name='coorte_papel')
+
+    def __str__(self):
+        return f"{self.id} - {self.papel}"
+
+    class Meta:
+        verbose_name = _("Coorte")
+        verbose_name_plural = _("Coortes")
+        ordering = ["papel"]
+
+
+class CoorteCurso(Coorte):
+    curso = ForeignKey(Curso, on_delete=PROTECT, related_name="coorte_curso")
+
+    class Meta:
+        verbose_name = _("Coorte x Curso")
+        verbose_name_plural = _("Coorte x Curso")
+        ordering = ["curso"]
+
+
+class CoortePrograma(Coorte):
+    programa = ForeignKey(Programa, on_delete=PROTECT, related_name="coorte_programa")
+
+    class Meta:
+        verbose_name = _("Coorte x Programa")
+        verbose_name_plural = _("Coorte x Programa")
+        ordering = ["programa"]
+
+
+class CoortePolo(Coorte):
+    polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
+
+    class Meta:
+        verbose_name = _("Coorte x Polo")
+        verbose_name_plural = _("Coorte x Polo")
+        ordering = ["polo"]
+
+
+class Vinculo(Model):
+    colaborador = ForeignKey(User, on_delete=PROTECT)
+    coorte = ForeignKey(Coorte, on_delete=PROTECT, related_name="vinculos")
