@@ -133,19 +133,21 @@ class MoodleBroker:
             except:
                 pass
             
-            objects_list = list([{
+            objects_list = [{
                 "idnumber": coo.papel.sigla,
                 "nome": coo.papel.nome,
                 "ativo": coo.papel.active,
-                "role": coo.papel.sigla,
+                "role": coo.papel.papel,
                 "descricao": coo.papel.nome,
                 "colaboradores":
                   [
                     dados_vinculo(vinc) for vinc in coo.vinculos.all()
                   ] if hasattr(coo, 'vinculos') else None
-            } for coo in coortes])
+            } for coo in coortes]
 
-            solicitacao.enviado = dict(**recebido, **{"coortes": objects_list})
+            object_unique = list(objects_list)
+
+            solicitacao.enviado = dict(**recebido, **{"coortes": object_unique})
             solicitacao.save()
 
             retorno = requests.post(
