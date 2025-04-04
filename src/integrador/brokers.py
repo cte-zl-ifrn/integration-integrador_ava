@@ -110,8 +110,14 @@ class MoodleBroker:
 
             coortes = []
             try:
-                curso = Curso.objects.get(codigo=recebido["curso"]["codigo"])
-                coortes += Coorte.objects.filter(coortecurso__curso=curso)
+                curso, created = Curso.objects.get_or_create(suap_id=recebido["curso"]["id"], 
+                                                             codigo=recebido["curso"]["codigo"], 
+                                                             nome=recebido["curso"]["nome"], 
+                                                             descricao=recebido["curso"]["descricao"])
+                if (created):
+                        print(f"O curso foi criado {curso.nome}")
+                else:
+                    coortes += Coorte.objects.filter(coortecurso__curso=curso)
             except:
                pass
 

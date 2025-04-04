@@ -135,13 +135,14 @@ class SolicitacaoManager(Manager):
 
 class Solicitacao(Model):
     class Status(Choices):
+        NAO_DEFINIDO = Choices.Value(_("Não Definido"), value=None)
         SUCESSO = Choices.Value(_("Sucesso"), value="S")
         FALHA = Choices.Value(_("Falha"), value="F")
         PROCESSANDO = Choices.Value(_("Processando"), value="P")
 
     timestamp = DateTimeField(_("quando ocorreu"), auto_now_add=True)
     campus = ForeignKey(Campus, on_delete=PROTECT, null=True, blank=True)
-    status = CharField(_("status"), max_length=256, choices=Status, null=True, blank=True)
+    status = CharField(_("status"), max_length=256, choices=Status, null=True, blank=False)
     status_code = CharField(_("status code"), max_length=256, null=True, blank=True)
     recebido = JSONField(_("JSON recebido"), null=True, blank=True)
     enviado = JSONField(_("JSON enviado"), null=True, blank=True)
