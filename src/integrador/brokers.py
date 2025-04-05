@@ -4,8 +4,9 @@ import re
 import json
 import sentry_sdk
 from http.client import HTTPException
-from integrador.models import Ambiente, Solicitacao, Campus, Curso, Programa, Polo, Coorte, dados_vinculo
-from django.db import models
+from edu.models import Curso, Polo, Programa
+from coorte.models import Coorte, dados_vinculo
+from integrador.models import Ambiente, Solicitacao, Campus
 
 CODIGO_DIARIO_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\.(\\w*\\.\\d*)(#\\d*)?$")
 CODIGO_DIARIO_ANTIGO_ELEMENTS_COUNT = 5
@@ -110,9 +111,9 @@ class MoodleBroker:
 
             coortes = []
             try:
-                curso, created = Curso.objects.get_or_create(suap_id=recebido["curso"]["id"], 
-                                                             codigo=recebido["curso"]["codigo"], 
-                                                             nome=recebido["curso"]["nome"], 
+                curso, created = Curso.objects.get_or_create(suap_id=recebido["curso"]["id"],
+                                                             codigo=recebido["curso"]["codigo"],
+                                                             nome=recebido["curso"]["nome"],
                                                              descricao=recebido["curso"]["descricao"])
                 if (created):
                         print(f"O curso foi criado {curso.nome}")
@@ -138,7 +139,7 @@ class MoodleBroker:
                     coortes += Coorte.objects.filter(coortepolo__polo=p)
             except:
                 pass
-            
+
             objects_list = [{
                 "idnumber": coo.papel.sigla,
                 "nome": coo.papel.nome,

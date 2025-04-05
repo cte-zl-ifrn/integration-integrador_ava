@@ -1,32 +1,11 @@
 from django.utils.translation import gettext as _
-from django.db.models import (
-    CharField,
-    DateTimeField,
-    JSONField,
-    BooleanField,
-    ForeignKey,
-    PROTECT,
-)
+from django.db.models import CharField, DateTimeField, JSONField, BooleanField, ForeignKey, PROTECT
 from django.db.models import Manager, Model, QuerySet, Q
-from django.contrib.auth.models import User
 from django_better_choices import Choices
 from simple_history.models import HistoricalRecords
 from django.utils.html import format_html
-from polymorphic.models import PolymorphicModel
+from base.models import ActiveMixin
 
-class ActiveMixin:
-    @property
-    def active_icon(self):
-        return "✅" if self.active else "⛔"
-
-
-def dados_vinculo(vinculo):
-    return {
-        "login": vinculo.colaborador.username,
-        "email": vinculo.colaborador.email,
-        "nome": vinculo.colaborador.get_full_name(),
-        "status": "Ativo" if vinculo.coorte.papel.active else "Inativo",
-    }
 
 class Ambiente(Model):
     def _c(color: str):
@@ -77,68 +56,19 @@ class Campus(Model):
         return {"Authentication": f"Token {self.ambiente.token}"}
 
 
-class Curso(Model):
-    suap_id = CharField(_("ID do curso no SUAP"), max_length=255, unique=True)
-    codigo = CharField(_("código do curso"), max_length=255, unique=True)
-    nome = CharField(_("nome do curso"), max_length=255)
-    descricao = CharField(_("descrição"), max_length=255)
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("curso")
-        verbose_name_plural = _("cursos")
-        ordering = ["nome"]
-
-    def __str__(self):
-        return f"{self.nome} ({self.codigo})"
-
-
-class Polo(Model):
-    suap_id = CharField(_("ID do pólo no SUAP"), max_length=255, unique=True)
-    nome = CharField(_("nome do pólo"), max_length=255, unique=True)
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("pólo")
-        verbose_name_plural = _("pólos")
-        ordering = ["nome"]
-
-    def __str__(self):
-        return f"{self.nome}"
-
-
-class Programa(Model):
-    suap_id = CharField(_("ID do programa no SUAP"), max_length=255, unique=False, null=True, blank=True)
-    nome = CharField(_("nome do programa"), max_length=255, unique=True)
-    sigla = CharField(_("sigla do programa"), max_length=255, unique=True)
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("programa")
-        verbose_name_plural = _("programas")
-        ordering = ["nome"]
-
-    def __str__(self):
-        return self.sigla
-
-
-class SolicitacaoManager(Manager):
-    def by_diario_id(self, diario_id: int) -> QuerySet:
-        return Solicitacao.objects.filter(Q(recebido__diario__id=int(diario_id))).order_by("-id")
-
-    def ultima_do_diario(self, diario_id: int) -> Model:
-        return self.by_diario_id(diario_id).first()
-
-
 class Solicitacao(Model):
     class Status(Choices):
         NAO_DEFINIDO = Choices.Value(_("Não Definido"), value=None)
         SUCESSO = Choices.Value(_("Sucesso"), value="S")
         FALHA = Choices.Value(_("Falha"), value="F")
         PROCESSANDO = Choices.Value(_("Processando"), value="P")
+
+    class SolicitacaoManager(Manager):
+        def by_diario_id(self, diario_id: int) -> QuerySet:
+            return Solicitacao.objects.filter(Q(recebido__diario__id=int(diario_id))).order_by("-id")
+
+        def ultima_do_diario(self, diario_id: int) -> Model:
+            return self.by_diario_id(diario_id).first()
 
     timestamp = DateTimeField(_("quando ocorreu"), auto_now_add=True)
     campus = ForeignKey(Campus, on_delete=PROTECT, null=True, blank=True)
@@ -161,82 +91,3 @@ class Solicitacao(Model):
     @property
     def status_merged(self):
         return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
-
-
-class Papel(ActiveMixin, Model):
-    nome = CharField(_("nome da coorte"), max_length=256, help_text="Este atributo será cohort.name")
-    sigla = CharField(
-        _("sufixo do corteid coorte"),
-        max_length=10,
-        blank=True,
-        null=False,
-        unique=True,
-        help_text=_("Este atributo será o sufixo da cohort.idnumber,"
-                  " ({campus.sigla}.{curso.instanceia.codigo}.{este_sufixo})")
-    )
-    papel = CharField(
-        _("nome curso do papel"),
-        max_length=256,
-        unique=True,
-        help_text=_("Este atributo deve ser conforme role.shortname")
-    )
-    active = BooleanField(_("ativo?"), help_text=_("Indica se esta coorte deverá ser sincronizada"))
-
-    history = HistoricalRecords()
-
-    class Meta:
-        verbose_name = _("papel")
-        verbose_name_plural = _("papéis")
-        ordering = ["nome"]
-
-    @property
-    def codigo(self):
-        return f".{self.sigla}" if self.sigla else ""
-
-    def __str__(self):
-        sigla = f"{self.sigla}" if self.sigla else ""
-        return f"{self.nome} (CAMPUS.INSTANCIA.{sigla}) {self.active_icon}"
-
-
-class Coorte(PolymorphicModel):
-    papel = ForeignKey(Papel, on_delete=PROTECT, related_name='coorte_papel')
-
-    def __str__(self):
-        return f"{self.id} - {self.papel}"
-
-    class Meta:
-        verbose_name = _("Coorte")
-        verbose_name_plural = _("Coortes")
-        ordering = ["papel"]
-
-
-class CoorteCurso(Coorte):
-    curso = ForeignKey(Curso, on_delete=PROTECT, related_name="coorte_curso")
-
-    class Meta:
-        verbose_name = _("Coorte x Curso")
-        verbose_name_plural = _("Coorte x Curso")
-        ordering = ["curso"]
-
-
-class CoortePrograma(Coorte):
-    programa = ForeignKey(Programa, on_delete=PROTECT, related_name="coorte_programa")
-
-    class Meta:
-        verbose_name = _("Coorte x Programa")
-        verbose_name_plural = _("Coorte x Programa")
-        ordering = ["programa"]
-
-
-class CoortePolo(Coorte):
-    polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
-
-    class Meta:
-        verbose_name = _("Coorte x Polo")
-        verbose_name_plural = _("Coorte x Polo")
-        ordering = ["polo"]
-
-
-class Vinculo(Model):
-    colaborador = ForeignKey(User, on_delete=PROTECT)
-    coorte = ForeignKey(Coorte, on_delete=PROTECT, related_name="vinculos")

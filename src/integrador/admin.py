@@ -7,14 +7,7 @@ from django.db import transaction
 from django.urls import path, reverse
 from django.db.models import JSONField, Model
 from django.forms import ModelForm
-from django.contrib.auth.models import User
-from django.contrib.admin import (
-    register,
-    display,
-    StackedInline,
-    TabularInline,
-    ModelAdmin,
-)
+from django.contrib.admin import register, display, StackedInline, ModelAdmin
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
@@ -26,20 +19,8 @@ from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, DateTimeWidget
-from integrador.models import (
-    Ambiente,
-    Campus,
-    Papel,
-    Curso,
-    Polo,
-    Programa,
-    Solicitacao,
-    Coorte,
-    Vinculo,
-    CoorteCurso,
-    CoortePolo,
-    CoortePrograma
-)
+from integrador.models import Ambiente, Solicitacao
+from integrador.models import Campus
 from integrador.brokers import MoodleBroker
 
 
@@ -179,23 +160,10 @@ class CampusInline(StackedInline):
     model: Model = Campus
     extra: int = 0
 
-class CoorteCursoInline(StackedInline):
-    model: Model = CoorteCurso
-    extra: int = 0
-
-class VinculoInline(StackedInline):
-    model: Model = Vinculo
-    extra: int = 0
-
-class CoorteInline(TabularInline):
-    model: Model = Coorte
-    extra: int = 0
 
 ####
 # Admins
 ####
-
-
 @register(Ambiente)
 class AmbienteAdmin(BaseModelAdmin):
     class CampusInline(StackedInline):
@@ -245,69 +213,6 @@ class CampusAdmin(BaseModelAdmin):
     list_filter = ["active", "ambiente"]
     search_fields = ["sigla", "suap_id"]
     resource_classes = [CampusResource]
-
-@register(Curso)
-class CursoAdmin(BaseModelAdmin):
-    class CursoResource(ModelResource):
-        class Meta:
-            model = Curso
-            export_order = ("codigo", "nome", "suap_id")
-            import_id_fields = ("codigo",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["codigo", "nome"]
-    history_list_display = list_display
-    field_to_highlight = list_display[0]
-    search_fields = ["codigo", "nome", "suap_id"]
-    resource_classes = [CursoResource]
-    inlines = [CoorteCursoInline]
-
-
-@register(Polo)
-class PoloAdmin(BaseModelAdmin):
-    class PoloResource(ModelResource):
-        class Meta:
-            model = Polo
-            export_order = ["suap_id", "nome"]
-            import_id_fields = ("suap_id",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["nome"]
-    search_fields = ["nome", "suap_id"]
-    resource_classes = [PoloResource]
-
-
-@register(Papel)
-class PapelAdmin(BaseModelAdmin):
-    class PapelResource(ModelResource):
-        class Meta:
-            model = Papel
-            export_order = ["papel", "sigla", "nome", "active"]
-            import_id_fields = ("papel",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["nome", "sigla", "active"]
-    list_filter = ["active"] + BaseModelAdmin.list_filter
-    search_fields = ["nome", "sigla"]
-    resource_classes = [PapelResource]
-
-
-@register(Programa)
-class ProgramaAdmin(BaseModelAdmin):
-    class ProgramaResource(ModelResource):
-        class Meta:
-            model = Programa
-            export_order = ["suap_id", "nome", "sigla"]
-            import_id_fields = ("suap_id",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["nome", "sigla"]
-    search_fields = ["nome", "suap_id", "sigla"]
-    resource_classes = [ProgramaResource]
 
 
 @register(Solicitacao)
@@ -409,123 +314,3 @@ class SolicitacaoAdmin(BaseModelAdmin):
         except Exception as e:
             return HttpResponse(f"{e}")
 
-
-@register(Coorte)
-class CoorteAdmin(BaseModelAdmin):
-    class CoorteResource(ModelResource):
-        papel = Field(
-            attribute="papel",
-            column_name="papel",
-            widget=ForeignKeyWidget(Papel, field="papel")
-        )
-    resource_classes = [CoorteResource]
-    list_display = ['papel', 'cursos', 'polos', 'programas']
-    readonly_fields =['cursos', 'polos', 'programas']
-
-    def cursos(self, obj):
-        coorte_cursos = CoorteCurso.objects.filter(coorte_ptr_id=obj)
-        return  ', '.join([cc.curso.nome for cc in coorte_cursos])
-    def polos(self, obj):
-        coorte_polos = CoortePolo.objects.filter(coorte_ptr_id=obj)
-        return  ', '.join([cpo.polo.nome for cpo in coorte_polos])
-    def programas(self, obj):
-        coorte_programas = CoortePrograma.objects.filter(coorte_ptr_id=obj)
-        return  ', '.join([cpr.programa.sigla for cpr in coorte_programas])
-    fieldsets = (
-            (None, {
-                'fields': ('papel',)
-            }),
-            ('Cursos Associados', {
-                'fields': ('cursos',),
-            }),
-            ('Polos Associados', {
-                'fields': ('polos',),
-            }),
-            ('Programas Associados', {
-                'fields': ('programas',),
-            })
-        )
-    cursos.short_description = 'Cursos'
-    polos.short_description = 'Polos'
-    programas.short_description = 'Programas'
-
-
-@register(Vinculo)
-class VinculoAdmin(BaseModelAdmin):
-    class VinculoResource(ModelResource):
-        colaborador = Field(
-            attribute="colaborador",
-            column_name="colaborador",
-            widget=ForeignKeyWidget(User, field="username"),
-        )
-        coorte = Field(
-            attribute="coorte",
-            column_name="coorte",
-            widget=ForeignKeyWidget(Coorte, field="id")
-        )
-    resource_classes = [VinculoResource]
-    list_display = ["colaborador", "coorte", "cursos", "polos", "programas"]
-    readonly_fields = ["cursos", "programas", "polos"]
-
-    def cursos(self, obj):
-        coorte_cursos = CoorteCurso.objects.filter(coorte_ptr_id=obj.coorte_id)
-        return  ', '.join([cc.curso.nome for cc in coorte_cursos])
-    def polos(self, obj):
-        coorte_polos = CoortePolo.objects.filter(coorte_ptr_id=obj.coorte_id)
-        return  ', '.join([cp.polo.nome for cp in coorte_polos])
-    def programas(self, obj):
-        coorte_programas = CoortePrograma.objects.filter(coorte_ptr_id=obj.coorte_id)
-        return  ', '.join([cpr.programa.nome for cpr in coorte_programas])
-
-    fieldsets = (
-            (None, {
-                'fields': ('coorte', 'colaborador',)
-            }),
-            ('Cursos Associados', {
-                'fields': ('cursos',),
-            }),
-             ('Polos Associados', {
-                'fields': ('polos',),
-            }),
-             ('Programas Associados', {
-                'fields': ('programas',),
-            }),
-        )
-
-    cursos.short_description = 'Cursos'
-    polos.short_description = 'Polos'
-    programas.short_description = 'Programas'
-
-
-@register(CoortePolo)
-class CoortePoloResourceAdmin(BaseModelAdmin):
-    class CoortePoloResource(ModelResource):
-        polo = Field(
-            attribute="polo",
-            column_name="polo",
-            widget=ForeignKeyWidget(Polo, field="id"),
-        )
-    list_display = ["polo"]
-
-
-@register(CoortePrograma)
-class CoorteProgramaAdmin(BaseModelAdmin):
-    class CoorteProgramaResource(ModelResource):
-         programa = Field(
-            attribute="programa",
-            column_name="programa",
-            widget=ForeignKeyWidget(Programa, field="id"),
-        )
-    list_display = ["programa"]
-
-
-@register(CoorteCurso)
-class CoorteCursoAdmin(BaseModelAdmin):
-    class CoorteCursoResource(ModelResource):
-         curso = Field(
-            attribute="curso",
-            column_name="curso",
-            widget=ForeignKeyWidget(Curso, field="id"),
-        )
-    list_display = ["curso"]
-    inlines = [VinculoInline]

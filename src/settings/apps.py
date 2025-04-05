@@ -13,6 +13,8 @@ SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 MY_APPS = env_as_list(
     "MY_APPS",
     [
+        "coorte",
+        "edu",
         "integrador",
         "security",
         "health",
