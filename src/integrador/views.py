@@ -1,7 +1,5 @@
-import os
 import json
 import sentry_sdk
-import jsonschema
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.http import HttpRequest, JsonResponse

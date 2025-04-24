@@ -1,22 +1,13 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
-from django.utils.safestring import mark_safe
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse
 from django.utils.html import format_html
 from django.db import transaction
 from django.urls import path, reverse
 from django.db.models import JSONField, Model
 from django.forms import ModelForm
-from django.contrib.auth.models import User
-from django.contrib.admin import (
-    register,
-    display,
-    StackedInline,
-    TabularInline,
-    ModelAdmin,
-)
+from django.contrib.admin import register, display, StackedInline, ModelAdmin
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
@@ -28,20 +19,8 @@ from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, DateTimeWidget
-from integrador.models import (
-    Ambiente,
-    Campus,
-    Papel,
-    Curso,
-    Polo,
-    CursoPolo,
-    VinculoCurso,
-    VinculoPolo,
-    Programa,
-    CursoPrograma,
-    VinculoPrograma,
-    Solicitacao,
-)
+from integrador.models import Ambiente, Solicitacao
+from integrador.models import Campus
 from integrador.brokers import MoodleBroker
 
 
@@ -182,36 +161,9 @@ class CampusInline(StackedInline):
     extra: int = 0
 
 
-class VinculoCursoInline(TabularInline):
-    model: Model = VinculoCurso
-    extra: int = 0
-
-
-class VinculoPoloInline(TabularInline):
-    model: Model = VinculoPolo
-    extra: int = 0
-
-
-class CursoPoloInline(TabularInline):
-    model: Model = CursoPolo
-    extra: int = 0
-
-
-class VinculoProgramaInline(TabularInline):
-    model: Model = VinculoPrograma
-    extra: int = 0
-
-
-class CursoProgramaInline(TabularInline):
-    model: Model = CursoPrograma
-    extra: int = 0
-
-
 ####
 # Admins
 ####
-
-
 @register(Ambiente)
 class AmbienteAdmin(BaseModelAdmin):
     class CampusInline(StackedInline):
@@ -261,231 +213,6 @@ class CampusAdmin(BaseModelAdmin):
     list_filter = ["active", "ambiente"]
     search_fields = ["sigla", "suap_id"]
     resource_classes = [CampusResource]
-
-
-@register(Curso)
-class CursoAdmin(BaseModelAdmin):
-    class CursoResource(ModelResource):
-        class Meta:
-            model = Curso
-            export_order = ("codigo", "nome", "suap_id")
-            import_id_fields = ("codigo",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["codigo", "nome"]
-    history_list_display = list_display
-    field_to_highlight = list_display[0]
-    search_fields = ["codigo", "nome", "suap_id"]
-    resource_classes = [CursoResource]
-    inlines = [CursoPoloInline, VinculoCursoInline, CursoProgramaInline]
-
-
-@register(Polo)
-class PoloAdmin(BaseModelAdmin):
-    class PoloResource(ModelResource):
-        class Meta:
-            model = Polo
-            export_order = ["suap_id", "nome"]
-            import_id_fields = ("suap_id",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["nome"]
-    search_fields = ["nome", "suap_id"]
-    resource_classes = [PoloResource]
-    inlines = [VinculoPoloInline]
-
-
-@register(Papel)
-class PapelAdmin(BaseModelAdmin):
-    class PapelResource(ModelResource):
-        class Meta:
-            model = Papel
-            export_order = ["papel", "sigla", "nome", "contexto", "active"]
-            import_id_fields = ("papel",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["nome", "sigla", "contexto", "active"]
-    list_filter = ["active", "contexto"] + BaseModelAdmin.list_filter
-    search_fields = ["nome", "sigla", "contexto"]
-    resource_classes = [PapelResource]
-
-
-@register(VinculoCurso)
-class VinculoCursoAdmin(BaseModelAdmin):
-    class VinculoCursoResource(ModelResource):
-        colaborador = Field(
-            attribute="colaborador",
-            column_name="colaborador",
-            widget=ForeignKeyWidget(User, field="username"),
-        )
-        curso = Field(
-            attribute="curso",
-            column_name="curso",
-            widget=ForeignKeyWidget(Curso, field="codigo"),
-        )
-        papel = Field(
-            attribute="papel",
-            column_name="papel",
-            widget=ForeignKeyWidget(Papel, field="papel"),
-        )
-        campus = Field(
-            attribute="campus",
-            column_name="campus",
-            widget=ForeignKeyWidget(Campus, field="sigla"),
-        )
-
-        class Meta:
-            model = VinculoCurso
-            export_order = ["colaborador", "curso", "papel", "campus", "active"]
-            import_id_fields = ("colaborador", "curso", "papel", "campus")
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["papel", "curso", "colaborador", "active"]
-    list_filter = ["active", "papel"] + BaseModelAdmin.list_filter
-    search_fields = ["colaborador__nome_social", "colaborador__nome_civil"]
-    autocomplete_fields = ["curso", "colaborador"]
-    resource_classes = [VinculoCursoResource]
-
-
-@register(VinculoPolo)
-class VinculoPoloAdmin(BaseModelAdmin):
-    class VinculoPoloResource(ModelResource):
-        colaborador = Field(
-            attribute="colaborador",
-            column_name="colaborador",
-            widget=ForeignKeyWidget(User, field="username"),
-        )
-        polo = Field(
-            attribute="polo",
-            column_name="polo",
-            widget=ForeignKeyWidget(Polo, field="suap_id"),
-        )
-        papel = Field(
-            attribute="papel",
-            column_name="papel",
-            widget=ForeignKeyWidget(Papel, field="papel"),
-        )
-
-        class Meta:
-            model = VinculoPolo
-            export_order = ["papel", "polo", "colaborador", "active"]
-            import_id_fields = ("papel", "polo", "colaborador")
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["papel", "polo", "colaborador", "active"]
-    list_filter = ["active", "papel", "papel"] + BaseModelAdmin.list_filter
-    search_fields = ["colaborador__nome_social", "colaborador__nome_civil"]
-    autocomplete_fields = ["polo", "colaborador"]
-    resource_classes = [VinculoPoloResource]
-
-
-@register(Programa)
-class ProgramaAdmin(BaseModelAdmin):
-    class ProgramaResource(ModelResource):
-        class Meta:
-            model = Programa
-            export_order = ["suap_id", "nome", "sigla"]
-            import_id_fields = ("suap_id",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["nome", "sigla"]
-    search_fields = ["nome", "suap_id", "sigla"]
-    resource_classes = [ProgramaResource]
-    inlines = [VinculoProgramaInline]
-
-
-@register(VinculoPrograma)
-class VinculoProgramaAdmin(BaseModelAdmin):
-    class VinculoProgramaResource(ModelResource):
-        colaborador = Field(
-            attribute="colaborador",
-            column_name="colaborador",
-            widget=ForeignKeyWidget(User, field="username"),
-        )
-        programa = Field(
-            attribute="programa",
-            column_name="programa",
-            widget=ForeignKeyWidget(Programa, field="suap_id"),
-        )
-        papel = Field(
-            attribute="papel",
-            column_name="papel",
-            widget=ForeignKeyWidget(Papel, field="papel"),
-        )
-
-        class Meta:
-            model = VinculoPrograma
-            export_order = ["papel", "programa", "colaborador", "active"]
-            import_id_fields = ("papel", "programa", "colaborador")
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["papel", "programa", "colaborador", "active"]
-    list_filter = ["active", "papel", "papel"] + BaseModelAdmin.list_filter
-    search_fields = ["colaborador__nome_social", "colaborador__nome_civil"]
-    autocomplete_fields = ["programa", "colaborador"]
-    resource_classes = [VinculoProgramaResource]
-
-
-@register(CursoPrograma)
-class CursoProgramaAdmin(BaseModelAdmin):
-    class CursoProgramaResource(ModelResource):
-        curso = Field(
-            attribute="curso",
-            column_name="curso",
-            widget=ForeignKeyWidget(Curso, field="codigo"),
-        )
-        programa = Field(
-            attribute="programa",
-            column_name="programa",
-            widget=ForeignKeyWidget(Polo, field="suap_id"),
-        )
-
-        class Meta:
-            model = CursoPrograma
-            export_order = ["curso", "programa", "active"]
-            import_id_fields = ("curso", "programa")
-            fields = export_order
-            skip_unchanged = True
-    list_display = ["curso", "programa", "active"]
-    autocomplete_fields = ["curso", "programa"]
-
-@register(CursoPolo)
-class CursoPoloResourceAdmin(BaseModelAdmin):
-    class CursoPoloResource(ModelResource):
-        curso = Field(
-            attribute="curso",
-            column_name="curso",
-            widget=ForeignKeyWidget(Curso, field="codigo"),
-        )
-        polo = Field(
-            attribute="polo",
-            column_name="polo",
-            widget=ForeignKeyWidget(Polo, field="suap_id"),
-        )
-        campus = Field(
-            attribute="campus",
-            column_name="campus",
-            widget=ForeignKeyWidget(Campus, field="sigla"),
-        )
-
-        class Meta:
-            model = CursoPolo
-            export_order = ["curso", "polo", "active"]
-            import_id_fields = ("curso", "polo")
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["curso", "polo", "active"]
-    list_filter = ["active"] + BaseModelAdmin.list_filter
-    autocomplete_fields = ["curso", "polo"]
-    resource_classes = [CursoPoloResource]
 
 
 @register(Solicitacao)
@@ -586,3 +313,4 @@ class SolicitacaoAdmin(BaseModelAdmin):
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))
         except Exception as e:
             return HttpResponse(f"{e}")
+

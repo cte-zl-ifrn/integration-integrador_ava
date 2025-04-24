@@ -4,9 +4,9 @@ import re
 import json
 import sentry_sdk
 from http.client import HTTPException
-from integrador.models import Ambiente
-from integrador.models import Solicitacao, Campus, Curso
-
+from edu.models import Curso, Polo, Programa
+from coorte.models import Coorte, dados_vinculo
+from integrador.models import Ambiente, Solicitacao, Campus
 
 CODIGO_DIARIO_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\.(\\w*\\.\\d*)(#\\d*)?$")
 CODIGO_DIARIO_ANTIGO_ELEMENTS_COUNT = 5
@@ -108,11 +108,57 @@ class MoodleBroker:
             solicitacao = Solicitacao.objects.create(recebido=recebido, status=Solicitacao.Status.PROCESSANDO)
 
             solicitacao.campus = self._validate_campus(recebido)
+
+            coortes = []
             try:
-                coortes = Curso.objects.get(codigo=recebido["curso"]["codigo"]).coortes
+                curso, created = Curso.objects.get_or_create(
+                    suap_id=recebido["curso"]["id"],
+                    codigo=recebido["curso"]["codigo"],
+                    nome=recebido["curso"]["nome"],
+                    descricao=recebido["curso"]["descricao"],
+                )
+                if created:
+                    print(f"O curso foi criado {curso.nome}")
+                else:
+                    coortes += Coorte.objects.filter(coortecurso__curso=curso)
             except:
-                coortes = []
-            solicitacao.enviado = dict(**recebido, **{"coortes": coortes})
+                pass
+
+            try:
+                programas_set = set([a.get("programa") for a in recebido.get("alunos", [])])
+                for p in programas_set:
+                    programa, created = Programa.objects.get_or_create(sigla=p, nome=p)
+                    if created:
+                        print(f"O programa foi criado {programa.sigla}")
+                    else:
+                        coortes += Coorte.objects.filter(coorteprograma__programa=programa)
+            except:
+                pass
+
+            try:
+                polos_set = set([a.get("polo", {}).get("descricao") for a in recebido.get("alunos", [])])
+                for p in Polo.objects.filter(nome__in=polos_set):
+                    coortes += Coorte.objects.filter(coortepolo__polo=p)
+            except:
+                pass
+
+            objects_list = [
+                {
+                    "idnumber": coo.papel.sigla,
+                    "nome": coo.papel.nome,
+                    "ativo": coo.papel.active,
+                    "role": coo.papel.papel,
+                    "descricao": coo.papel.nome,
+                    "colaboradores": (
+                        [dados_vinculo(vinc) for vinc in coo.vinculos.all()] if hasattr(coo, "vinculos") else None
+                    ),
+                }
+                for coo in coortes
+            ]
+
+            object_unique = list(objects_list)
+
+            solicitacao.enviado = dict(**recebido, **{"coortes": object_unique})
             solicitacao.save()
 
             retorno = requests.post(

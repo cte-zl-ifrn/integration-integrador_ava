@@ -13,6 +13,8 @@ SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 MY_APPS = env_as_list(
     "MY_APPS",
     [
+        "coorte",
+        "edu",
         "integrador",
         "security",
         "health",
@@ -22,17 +24,11 @@ MY_APPS = env_as_list(
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
-        # 'markdownx',
         "import_export",
         "simple_history",
-        "safedelete",
         "sass_processor",
-        "djrichtextfield",
+        #"djrichtextfield",
         "django_json_widget",
-        # "django_admin_json_editor",
-        # "corsheaders",
-        "adminlte3",
-        # "adminlte3/admin",
     ],
 )
 
