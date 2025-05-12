@@ -1,0 +1,76 @@
+{
+    "polo": null,
+    "curso": {
+        "id": 12,
+        "nome": "Tecnologia em Gestão Ambiental",
+        "codigo": "12345",
+        "descricao": "Tecnologia em Gestão Ambiental EaD [2012] - Campus EaD (UAB)"
+    },
+    "turma": {
+        "id": 1234,
+        "codigo": "2025.3.18.1234"
+    },
+    "alunos": [
+        {
+            "id": 13,
+            "nome": "João Da Silva",
+            "polo": {
+                "id": 1,
+                "descricao": "Polo Central"
+            },
+            "email": "joaosilva@academico.ifrn.edu.br",
+            "programa": "UAB",
+            "situacao": "ativo",
+            "matricula": "2023123",
+            "situacao_diario": "ativo",
+            "email_secundario": "joaosilva@gmail.com"
+        },
+        {
+            "id": 351443,
+            "nome": "Maria da Silva",
+            "polo": {
+                "id": 31,
+                "descricao": "Parelhas"
+            },
+            "email": "",
+            "programa": "UAB",
+            "situacao": "ativo",
+            "matricula": "2023124",
+            "situacao_diario": "ativo",
+            "email_secundario": "mariasilva@hotmail.com"
+        }
+    ],
+    "campus": {
+        "id": 14,
+        "sigla": "ZL",
+        "descricao": "CAMPUS AVANÇADO NATAL-ZONA LESTE"
+    },
+    "diario": {
+        "id": 123,
+        "sigla": "MIC.AMB",
+        "situacao": "Aberto",
+        "descricao": "Microbiologia Ambiental(60H)",
+        "descricao_historico": "Microbiologia Ambiental"
+    },
+    "componente": {
+        "id": 15,
+        "tipo": 1,
+        "sigla": "MIC.AMB",
+        "periodo": 3,
+        "optativo": false,
+        "descricao": "Microbiologia Ambiental(60H)",
+        "qtd_avaliacoes": 2,
+        "descricao_historico": "Microbiologia Ambiental"
+    },
+    "professores": [
+        {
+            "id": 157706,
+            "nome": "João Maria",
+            "tipo": "Principal",
+            "email": "joaomaria@ifrn.edu.br",
+            "login": "123456",
+            "status": "ativo",
+            "email_secundario": ""
+        }
+    ]
+}

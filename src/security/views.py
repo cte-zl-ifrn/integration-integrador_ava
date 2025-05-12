@@ -30,8 +30,8 @@ def authenticate(request: HttpRequest) -> HttpResponse:
         def _get_tokens(request):
             if "code" not in request.GET:
                 raise Exception(_("O código de autenticação não foi informado."))
-            token_response = requests.post(
-                f"{OAUTH['TOKEN_URL']}",
+            response = requests.post(
+                OAUTH.get('TOKEN_URL', ""),
                 data={
                     "grant_type": "authorization_code",
                     "code": request.GET.get("code"),
@@ -40,7 +40,8 @@ def authenticate(request: HttpRequest) -> HttpResponse:
                     "client_secret": OAUTH["CLIENT_SECRET"],
                 },
             )
-            data = json.loads(token_response.text)
+            print("_get_tokens", response.text)
+            data = json.loads(response.text)
             if data.get("error_description") == "Mismatching redirect URI.":
                 raise ValueError(
                     "O administrador do sistema configurou errado o 'Redirect uris' no SUAP-Login ou no OAUTH_REDIRECT_URI."
@@ -55,6 +56,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
                     "x-api-key": OAUTH["CLIENT_SECRET"],
                 },
             )
+            print("_get_userinfo", response.text)
             return json.loads(response.text)
 
         def _save_user(userinfo):
