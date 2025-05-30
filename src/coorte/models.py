@@ -72,7 +72,7 @@ class Papel(ActiveMixin, Model):
     class Meta:
         verbose_name = _("papel")
         verbose_name_plural = _("papéis")
-        ordering = ["nome"]
+        ordering = ["contexto", "nome"]
 
     @property
     def exemplo(self):
