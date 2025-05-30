@@ -80,19 +80,23 @@ class Papel(ActiveMixin, Model):
 
     def __str__(self):
         sigla = f"{self.sigla}" if self.sigla else ""
-        return f"{self.nome} ({self.exemplo}) {self.active_icon}"
+        return f"{self.nome} {self.active_icon}"
 
 
 class Coorte(PolymorphicModel):
     papel = ForeignKey(Papel, on_delete=PROTECT, related_name="coorte_papel")
 
-    def __str__(self):
-        return f"{self.id} - {self.papel}"
-
     class Meta:
         verbose_name = _("Coorte")
         verbose_name_plural = _("Coortes")
         ordering = ["papel"]
+
+    def __str__(self):
+        return f"SG.{self.papel.sigla}.{self.codigo}"
+
+    @property
+    def codigo(self):
+        return f"---"
 
 
 class CoorteCurso(Coorte):
@@ -103,6 +107,10 @@ class CoorteCurso(Coorte):
         verbose_name_plural = _("Coorte x Curso")
         ordering = ["curso"]
 
+    @property
+    def codigo(self):
+        return self.curso.codigo_integracao
+
 
 class CoortePolo(Coorte):
     polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
@@ -111,6 +119,10 @@ class CoortePolo(Coorte):
         verbose_name = _("Coorte x Polo")
         verbose_name_plural = _("Coorte x Polo")
         ordering = ["polo"]
+
+    @property
+    def codigo(self):
+        return self.polo.codigo_integracao
 
 
 class CoortePrograma(Coorte):
@@ -121,7 +133,19 @@ class CoortePrograma(Coorte):
         verbose_name_plural = _("Coorte x Programa")
         ordering = ["programa"]
 
+    @property
+    def codigo(self):
+        return self.programa.codigo_integracao
+
 
 class Vinculo(Model):
     colaborador = ForeignKey(User, on_delete=PROTECT)
     coorte = ForeignKey(Coorte, on_delete=PROTECT, related_name="vinculos")
+
+    class Meta:
+        verbose_name = _("vínculo")
+        verbose_name_plural = _("vínculos")
+        ordering = ["coorte", "colaborador"]
+
+    def __str__(self):
+        return f"{self.colaborador.username} ({self.colaborador.get_full_name()}) em {self.coorte}"

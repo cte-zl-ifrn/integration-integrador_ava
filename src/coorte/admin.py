@@ -70,7 +70,7 @@ class CoorteCursoAdmin(BaseModelAdmin):
             widget=ForeignKeyWidget(Curso, field="id"),
         )
 
-    list_display = ["curso"]
+    list_display = ["curso", "papel"]
     inlines = [VinculoInline]
 
 
@@ -83,7 +83,7 @@ class CoortePoloResourceAdmin(BaseModelAdmin):
             widget=ForeignKeyWidget(Polo, field="id"),
         )
 
-    list_display = ["polo"]
+    list_display = ["polo", "papel"]
     inlines = [VinculoInline]
 
 
@@ -96,7 +96,7 @@ class CoorteProgramaAdmin(BaseModelAdmin):
             widget=ForeignKeyWidget(Programa, field="id"),
         )
 
-    list_display = ["programa"]
+    list_display = ["programa", "papel"]
     inlines = [VinculoInline]
 
 
