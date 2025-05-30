@@ -27,7 +27,7 @@ THIRD_APPS = env_as_list(
         "import_export",
         "simple_history",
         "sass_processor",
-        #"djrichtextfield",
+        # "djrichtextfield",
         "django_json_widget",
     ],
 )
@@ -48,6 +48,7 @@ DJANGO_APPS = env_as_list(
         "django.contrib.sessions",
         "django.contrib.messages",
         "django.contrib.staticfiles",
+        "django.contrib.humanize",
     ],
 )
 HACK_APPS = env_as_list("HACK_APPS", [])
