@@ -96,7 +96,7 @@ class Coorte(PolymorphicModel):
 
     @property
     def codigo(self):
-        return f"---"
+        return self.get_real_instance().codigo
 
 
 class CoorteCurso(Coorte):
@@ -108,8 +108,12 @@ class CoorteCurso(Coorte):
         ordering = ["curso"]
 
     @property
+    def instancia(self):
+        return self.curso
+
+    @property
     def codigo(self):
-        return self.curso.codigo_integracao
+        return self.instancia.codigo_integracao
 
 
 class CoortePolo(Coorte):
@@ -121,8 +125,12 @@ class CoortePolo(Coorte):
         ordering = ["polo"]
 
     @property
+    def instancia(self):
+        return self.polo
+
+    @property
     def codigo(self):
-        return self.polo.codigo_integracao
+        return self.instancia.codigo_integracao
 
 
 class CoortePrograma(Coorte):
@@ -134,8 +142,12 @@ class CoortePrograma(Coorte):
         ordering = ["programa"]
 
     @property
+    def instancia(self):
+        return self.programa
+
+    @property
     def codigo(self):
-        return self.programa.codigo_integracao
+        return self.instancia.codigo_integracao
 
 
 class Vinculo(Model):

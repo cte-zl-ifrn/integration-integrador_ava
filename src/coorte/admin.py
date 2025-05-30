@@ -111,7 +111,7 @@ class VinculoAdmin(BaseModelAdmin):
         coorte = Field(attribute="coorte", column_name="coorte", widget=ForeignKeyWidget(Coorte, field="id"))
 
     resource_classes = [VinculoResource]
-    list_display = ["colaborador", "coorte", "cursos", "polos", "programas"]
+    list_display = ["colaborador", "coorte", "coorte__papel", "instancia"]
     readonly_fields = ["cursos", "programas", "polos"]
 
     def cursos(self, obj):
@@ -159,3 +159,9 @@ class VinculoAdmin(BaseModelAdmin):
     cursos.short_description = "Cursos"
     polos.short_description = "Polos"
     programas.short_description = "Programas"
+
+    def instancia(self, obj):
+        coorte = obj.coorte.get_real_instance()
+        if coorte is None:
+            return "---"
+        return coorte.instancia.nome
