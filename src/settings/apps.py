@@ -51,5 +51,5 @@ DJANGO_APPS = env_as_list(
         "django.contrib.humanize",
     ],
 )
-HACK_APPS = env_as_list("HACK_APPS", [])
+HACK_APPS = env_as_list("HACK_APPS", ["hacks"])
 INSTALLED_APPS = MY_APPS + THIRD_APPS + DJANGO_APPS + HACK_APPS
