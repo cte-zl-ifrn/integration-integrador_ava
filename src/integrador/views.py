@@ -99,7 +99,7 @@ def sync_up_enrolments(request: HttpRequest):
     try:
         return JsonResponse(MoodleBroker().sync(message).respondido, safe=False)
     except Exception as e1:
-        raise SyncError(f"Erro ao converter para JSON ({e1}).", 412)
+        raise SyncError(f"Erro ao converter do JSON ({e1}).", 412)
 
 
 @csrf_exempt
