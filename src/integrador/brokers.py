@@ -28,6 +28,10 @@ CODIGO_PRATICA_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\
 CODIGO_PRATICA_ELEMENTS_COUNT = 5
 CODIGO_PRATICA_SUFIXO_INDEX = 4
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SyncError(Exception):
     def __init__(self, message, code, campus=None, retorno=None, params=None):
@@ -36,6 +40,7 @@ class SyncError(Exception):
         self.code = code
         self.campus = campus
         self.retorno = retorno
+        logger.debug(f"{code}: {message} - {retorno}")
 
 
 def requests_get(url, headers={}, encoding="utf-8", decode=True, **kwargs):
