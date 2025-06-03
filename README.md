@@ -155,7 +155,7 @@ Após salvar, localize a solicitação na lista e clique em **Reenviar** no cant
 Se tudo estiver configurado corretamente, os diários serão criados automaticamente no seu Moodle local.
 
 ### 4. Enviar via locust
-locust -f integrador/example/data.json --host=http://integrador --users 300 --spawn-rate 50
+locust -f integrador/example/carga.json --host=http://integrador --users 300 --spawn-rate 50
 
 ```css
 /* add ao css do admin */

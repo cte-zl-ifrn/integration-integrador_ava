@@ -8,7 +8,7 @@ class EnviarDiariosTaskSet(TaskSet):
     @task
     def enviar_diarios(self):
         global incrementador
-        with open("integrador/example/data.json", "r") as file:
+        with open("integrador/example/carga.json", "r") as file:
             incrementador += 1
             solicitaca = json.load(file)
             solicitaca["turma"]["codigo"] = f"20251.1.15312.555.{incrementador}E"
