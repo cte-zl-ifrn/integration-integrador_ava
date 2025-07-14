@@ -30,7 +30,7 @@ THIRD_APPS = env_as_list(
         # "django_tenants", # tenants
         "import_export",
         "simple_history",
-        "sass_processor",
+        # "sass_processor",
         # "djrichtextfield",
         "django_json_widget",
     ],

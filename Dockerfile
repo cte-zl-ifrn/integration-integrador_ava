@@ -15,13 +15,12 @@ RUN echo '__version__ = "unknown"' > /app/venv/lib/python3.13/site-packages/djan
 
 COPY src /app/src
 WORKDIR /app/src
-RUN mkdir -p /app/static
-RUN /app/venv/bin/python3 manage.py compilescss
-RUN /app/venv/bin/python3 manage.py collectstatic --noinput
-RUN ls -l /app/static
-RUN find /app -type d -name "__pycache__" -exec rm -rf {} +
-RUN find /app -type f -name "*.py[co]" -exec rm -f {} +
-RUN /app/venv/bin/pip uninstall -y -r /app/requirements-build.txt
+RUN mkdir -p /app/static \
+    && /app/venv/bin/python3 manage.py collectstatic --noinput \
+    && ls -l /app/static \
+    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
+    && find /app -type f -name "*.py[co]" -exec rm -f {} + \
+    && /app/venv/bin/pip uninstall -y -r /app/requirements-build.txt
 
 #########################
 # Development build stage
@@ -33,9 +32,9 @@ ENV PYTHONUNBUFFERED 1
 RUN useradd -ms /usr/sbin/nologin app
 COPY --chown=app:app --from=production-build-stage /app /app
 
-RUN /app/venv/bin/pip install -r /app/requirements-dev.txt -r /app/requirements-lint.txt -r /app/requirements-build.txt
-RUN find /app -type d -name "__pycache__" -exec rm -rf {} +
-RUN find /app -type f -name "*.py[co]" -exec rm -f {} +
+RUN /app/venv/bin/pip install -r /app/requirements-dev.txt -r /app/requirements-lint.txt -r /app/requirements-build.txt \
+    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
+    && find /app -type f -name "*.py[co]" -exec rm -f {} +
 
 
 ########################
