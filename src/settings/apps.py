@@ -27,7 +27,7 @@ MY_APPS = env_as_list(
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
-        "django_tenants",
+        # "django_tenants", # tenants
         "import_export",
         "simple_history",
         "sass_processor",

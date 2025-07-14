@@ -21,7 +21,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, DateTimeWidget
 from integrador.models import Ambiente, Solicitacao
 from integrador.brokers import MoodleBroker
-from django_tenants.admin import TenantAdminMixin
+# from django_tenants.admin import TenantAdminMixin # tenants
 
 
 DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
@@ -43,7 +43,8 @@ class BaseChangeList(ChangeList):
         )
 
 
-class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, ModelAdmin):
+# class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, ModelAdmin): # tenants
+class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
     list_filter = []
 
     def get_changelist(self, request, **kwargs):

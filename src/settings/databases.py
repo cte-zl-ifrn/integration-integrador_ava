@@ -15,13 +15,13 @@ DATABASES = {
 }
 
 
-# https://django-tenants.readthedocs.io/en/latest/install.html#basic-settings
-DATABASE_ROUTERS = (
-    'django_tenants.routers.TenantSyncRouter',
-)
-
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-TENANT_MODEL = "base.Client" # app.Model
-TENANT_DOMAIN_MODEL = "base.Domain"  # app.Model
+# TENANT_MODEL = "base.Client" # tenants
+# TENANT_DOMAIN_MODEL = "base.Domain" # tenants
+# # https://django-tenants.readthedocs.io/en/latest/install.html#basic-settings
+# DATABASE_ROUTERS = (
+#     # tenants
+#     'django_tenants.routers.TenantSyncRouter',
+# )
