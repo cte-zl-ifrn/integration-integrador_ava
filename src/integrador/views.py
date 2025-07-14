@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.http import HttpRequest, JsonResponse
 from django.conf import settings
-from integrador.models import Campus
+from integrador.models import Ambiente
 from django.shortcuts import get_object_or_404
 from integrador.brokers import get_json_api, SyncError, MoodleBroker
 
@@ -107,7 +107,11 @@ def sync_up_enrolments(request: HttpRequest):
 @check_is_get
 @valid_token
 def sync_down_grades(request: HttpRequest):
-    campus = get_object_or_404(Campus, sigla=request.GET.get("campus_sigla"))
+    campus_sigla = request.GET.get("campus_sigla")
     diario_id = int(request.GET.get("diario_id"))
-    notas = get_json_api(campus.ambiente, "sync_down_grades", diario_id=diario_id)
+    filter_dict = { "campus": {"sigla": campus_sigla}, "diario": {"id": diario_id} }
+    ambiente = Ambiente.objects.seleciona_ambiente(filter_dict)
+    if (ambiente is None):
+        raise SyncError(f"Não encontramos um Ambiente ativo para o campus {campus_sigla} com diário {diario_id}", 404)
+    notas = get_json_api(ambiente, "sync_down_grades", diario_id=diario_id)
     return JsonResponse(notas, safe=False)

@@ -64,11 +64,9 @@ Acesse **Ambientes > Adicionar**.
 - **Ativo?:** Marque este campo  
 - **URL:** `http://moodle`  
 - **Token:** `changeme`
+- **Expressão regular:** `{campus}='ZL'`
+- **Order:** `0´ 
 
-**CAMPI**
-- **ID do campus no SUAP:** Escolha um número (apenas identificador interno)  
-- **Sigla do campus:** Defina uma sigla para identificação  
-- **Ativo?:** Marque este campo  
 
 ---
 

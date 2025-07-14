@@ -1,7 +1,9 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
+from django.utils.html import format_html
 from django.urls import path, reverse
-from django.contrib.admin import ModelAdmin
+from django.db.models import Model
+from django.contrib.admin import ModelAdmin, register, display, TabularInline
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
@@ -10,6 +12,7 @@ from django.contrib.admin.exceptions import DisallowedModelAdminToField
 from django.core.exceptions import PermissionDenied
 from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.widgets import DateTimeWidget
+from base.models import Client, Domain
 
 
 DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
@@ -131,3 +134,28 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             )
             inline_admin_formsets.append(inline_admin_formset)
         return inline_admin_formsets
+
+
+
+class DomainInline(TabularInline):
+    model: Model = Domain
+    extra: int = 0
+    verbose_name = "Domínio"
+    verbose_name_plural = "Domínios"
+
+
+@register(Client)
+class ClientAdmin(BaseModelAdmin):
+    list_display = ("name", "dominios", "created_on")
+    search_fields = ("name", "domains__domain")
+    readonly_fields = ("created_on",)
+    inlines = [DomainInline]
+
+    @display(description="Domínios", ordering="domain")
+    def dominios(self, obj):
+        try:
+            return format_html(
+                "<ul>" + "".join([f"<li>{x.domain}</li>" for x in obj.domains.all()]) + "</ul>"
+            )
+        except Exception as e:
+            return f"{e}"

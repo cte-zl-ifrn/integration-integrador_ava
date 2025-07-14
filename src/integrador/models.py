@@ -1,25 +1,38 @@
 from django.utils.translation import gettext as _
-from django.db.models import CharField, DateTimeField, JSONField, BooleanField, ForeignKey, PROTECT
+from django.db.models import CharField, DateTimeField, JSONField, BooleanField, IntegerField, TextField, ForeignKey, PROTECT
 from django.db.models import Manager, Model, QuerySet, Q
+from django.utils.html import format_html
 from django_better_choices import Choices
 from simple_history.models import HistoricalRecords
-from django.utils.html import format_html
+from rule_engine import Rule
 from base.models import ActiveMixin
 
 
 class Ambiente(Model):
+    class AmbienteManager(Manager):
+        def seleciona_ambiente(self, sync_json: dict) -> Model:
+            ambientes = Ambiente.objects.filter(active=True)
+            for a in ambientes:
+                if Rule(a.expressao_seletora).matches(sync_json):
+                    return a
+            return None
+
     def _c(color: str):
         return f"""<span style='background: {color}; color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;'>{color}</span>"""
 
     nome = CharField(_("nome do ambiente"), max_length=255)
     url = CharField(_("URL"), max_length=255)
     token = CharField(_("token"), max_length=255)
+    expressao_seletora = TextField(_("expressão seletora"), max_length=2550)
+    ordem = IntegerField(_("ordem"), default=0)
     active = BooleanField(_("ativo?"), default=True)
+
+    objects = AmbienteManager()
 
     class Meta:
         verbose_name = _("ambiente")
         verbose_name_plural = _("ambientes")
-        ordering = ["nome"]
+        ordering = ["ordem", "id"]
 
     def __str__(self):
         return f"{self.nome}"
@@ -32,28 +45,13 @@ class Ambiente(Model):
     def moodle_base_api_url(self):
         return f"{self.base_url}/local/suap/api"
 
-
-class Campus(Model):
-    suap_id = CharField(_("ID do campus no SUAP"), max_length=255, unique=True)
-    sigla = CharField(_("sigla do campus"), max_length=255, unique=True)
-    ambiente = ForeignKey(Ambiente, on_delete=PROTECT)
-    active = BooleanField(_("ativo?"))
-
-    class Meta:
-        verbose_name = _("campus")
-        verbose_name_plural = _("campi")
-        ordering = ["sigla"]
-
-    def __str__(self):
-        return self.sigla
-
     @property
     def sync_up_enrolments_url(self):
-        return f"{self.ambiente.url}/local/suap/api/?sync_up_enrolments"
+        return f"{self.moodle_base_api_url}/?sync_up_enrolments"
 
     @property
     def credentials(self):
-        return {"Authentication": f"Token {self.ambiente.token}"}
+        return {"Authentication": f"Token {self.token}"}
 
 
 class Solicitacao(Model):
@@ -70,8 +68,11 @@ class Solicitacao(Model):
         def ultima_do_diario(self, diario_id: int) -> Model:
             return self.by_diario_id(diario_id).first()
 
+    ambiente = ForeignKey(Ambiente, verbose_name=_("ambiente"), on_delete=PROTECT, null=True, blank=False)
     timestamp = DateTimeField(_("quando ocorreu"), auto_now_add=True)
-    campus = ForeignKey(Campus, on_delete=PROTECT, null=True, blank=True)
+    campus_sigla = CharField(_("sigla do campus"), max_length=256, null=True, blank=True)
+    diario_codigo = CharField(_("código do diário"), max_length=256, null=True, blank=True)
+    diario_id = CharField(_("ID do diário"), max_length=256, null=True, blank=True)
     status = CharField(_("status"), max_length=256, choices=Status, null=True, blank=False)
     status_code = CharField(_("status code"), max_length=256, null=True, blank=True)
     recebido = JSONField(_("JSON recebido"), null=True, blank=True)

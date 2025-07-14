@@ -9,13 +9,16 @@ SHOW_SUPPORT_FORM = env_as_bool("SHOW_SUPPORT_FORM", True)
 SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 
 
-# Apps
+TENANT_APPS = [
+    'coorte',
+    'edu',
+    'integrador',
+]
+
 MY_APPS = env_as_list(
     "MY_APPS",
     [
-        "coorte",
-        "edu",
-        "integrador",
+        "base",
         "security",
         "health",
     ],
@@ -24,6 +27,7 @@ MY_APPS = env_as_list(
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
+        "django_tenants",
         "import_export",
         "simple_history",
         "sass_processor",
@@ -39,6 +43,7 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 DJANGO_APPS = env_as_list(
     "DJANGO_APPS",
     [
@@ -52,4 +57,6 @@ DJANGO_APPS = env_as_list(
     ],
 )
 HACK_APPS = env_as_list("HACK_APPS", ["hacks"])
-INSTALLED_APPS = MY_APPS + THIRD_APPS + DJANGO_APPS + HACK_APPS
+
+SHARED_APPS = MY_APPS + THIRD_APPS + DJANGO_APPS + HACK_APPS
+INSTALLED_APPS = TENANT_APPS + SHARED_APPS

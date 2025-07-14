@@ -6,27 +6,7 @@ import sentry_sdk
 from http.client import HTTPException
 from edu.models import Curso, Polo, Programa
 from coorte.models import Coorte, dados_vinculo
-from integrador.models import Ambiente, Solicitacao, Campus
-
-CODIGO_DIARIO_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\.(\\w*\\.\\d*)(#\\d*)?$")
-CODIGO_DIARIO_ANTIGO_ELEMENTS_COUNT = 5
-CODIGO_DIARIO_NOVO_ELEMENTS_COUNT = 6
-CODIGO_DIARIO_SEMESTRE_INDEX = 0
-CODIGO_DIARIO_PERIODO_INDEX = 1
-CODIGO_DIARIO_CURSO_INDEX = 2
-CODIGO_DIARIO_TURMA_INDEX = 3
-CODIGO_DIARIO_DISCIPLINA_INDEX = 4
-CODIGO_DIARIO_ID_DIARIO_INDEX = 5
-
-CODIGO_COORDENACAO_REGEX = re.compile("^(\\w*)\\.(\\d*)(.*)*$")
-CODIGO_COORDENACAO_ELEMENTS_COUNT = 3
-CODIGO_COORDENACAO_CAMPUS_INDEX = 0
-CODIGO_COORDENACAO_CURSO_INDEX = 1
-CODIGO_COORDENACAO_SUFIXO_INDEX = 2
-
-CODIGO_PRATICA_REGEX = re.compile("^(\\d\\d\\d\\d\\d)\\.(\\d*)\\.(\\d*)\\.(.*)\\.(\\d{11,14}\\d*)$")
-CODIGO_PRATICA_ELEMENTS_COUNT = 5
-CODIGO_PRATICA_SUFIXO_INDEX = 4
+from integrador.models import Ambiente, Solicitacao
 
 import logging
 
@@ -34,11 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class SyncError(Exception):
-    def __init__(self, message, code, campus=None, retorno=None, params=None):
+    def __init__(self, message, code, retorno=None, params=None):
         super().__init__(message, code, params)
         self.message = message
         self.code = code
-        self.campus = campus
         self.retorno = retorno
         logger.debug(f"{code}: {message} - {retorno}")
 
@@ -79,40 +58,35 @@ def get_json_api(ava: Ambiente, service: str, **params: dict):
 
 class MoodleBroker:
 
-    def _validate_campus(self, pkg: dict):
-        try:
-            filter = {
-                "suap_id": pkg["campus"]["id"],
-                "sigla": pkg["campus"]["sigla"],
-                "active": True,
-            }
-        except Exception:
-            raise SyncError("O JSON não tinha a estrutura definida.", 406)
-
-        campus = Campus.objects.filter(**filter).first()
-        if campus is None:
-            raise SyncError(
-                f"""Não existe um campus com o id '{filter['suap_id']}' e a sigla '{filter['sigla']}'.""",
-                404,
-            )
-
-        if not campus.active:
-            raise SyncError(f"O campus '{filter['sigla']}' existe, mas está inativo.", 412)
-
-        if not campus.ambiente.active:
-            raise SyncError(
-                f"""O campus '{filter['sigla']}' existe e está ativo, mas o ambiente {campus.ambiente.nome} está inativo.""",  # noqa
-                417,
-            )
-        return campus
-
     def sync(self, recebido: dict):
         retorno = None
         solicitacao = None
         try:
-            solicitacao = Solicitacao.objects.create(recebido=recebido, status=Solicitacao.Status.PROCESSANDO)
+            ambiente = Ambiente.objects.seleciona_ambiente(recebido)
 
-            solicitacao.campus = self._validate_campus(recebido)
+            if ambiente is None:
+                raise SyncError(
+                    "Ambiente não encontrado ou não ativo.",
+                    404,
+                    retorno=None,
+                    params={"recebido": recebido}
+                )
+
+
+            print(ambiente.sync_up_enrolments_url)
+
+            solicitacao = Solicitacao.objects.create(
+                ambiente=ambiente,
+                campus_sigla=recebido.get("campus", {}).get("sigla", "-"),
+                diario_codigo=(
+                    recebido.get("turma", {}).get("codigo", "-") + '.' +
+                    recebido.get("componente", {}).get("sigla", ".") + '#' +
+                    str(recebido.get("diario", {}).get("id", "#-"))
+                ),
+                diario_id=recebido.get("diario", {}).get("id"),
+                recebido=recebido, 
+                status=Solicitacao.Status.PROCESSANDO
+            )
 
             coortes = []
             try:
@@ -166,11 +140,7 @@ class MoodleBroker:
             solicitacao.enviado = dict(**recebido, **{"coortes": object_unique})
             solicitacao.save()
 
-            retorno = requests.post(
-                solicitacao.campus.sync_up_enrolments_url,
-                json=solicitacao.enviado,
-                headers=solicitacao.campus.credentials,
-            )
+            retorno = requests.post(ambiente.sync_up_enrolments_url, json=solicitacao.enviado, headers=ambiente.credentials)
 
             solicitacao.respondido = json.loads(retorno.text)
             solicitacao.status = Solicitacao.Status.SUCESSO

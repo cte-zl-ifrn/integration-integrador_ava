@@ -20,8 +20,8 @@ from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, DateTimeWidget
 from integrador.models import Ambiente, Solicitacao
-from integrador.models import Campus
 from integrador.brokers import MoodleBroker
+from django_tenants.admin import TenantAdminMixin
 
 
 DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
@@ -43,7 +43,7 @@ class BaseChangeList(ChangeList):
         )
 
 
-class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
+class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, ModelAdmin):
     list_filter = []
 
     def get_changelist(self, request, **kwargs):
@@ -152,24 +152,10 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
 
 
 ####
-# Inlines
-####
-
-
-class CampusInline(StackedInline):
-    model: Model = Campus
-    extra: int = 0
-
-
-####
 # Admins
 ####
 @register(Ambiente)
 class AmbienteAdmin(BaseModelAdmin):
-    class CampusInline(StackedInline):
-        model = Campus
-        extra = 0
-
     class AmbienteResource(ModelResource):
         class Meta:
             model = Ambiente
@@ -178,41 +164,16 @@ class AmbienteAdmin(BaseModelAdmin):
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "url", "active"]
+    list_display = ["nome", "url", "expressao_seletora", "active"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
     search_fields = ["nome", "url"]
     list_filter = ["active"]
     fieldsets = [
         (_("Identificação"), {"fields": ["nome"]}),
-        (_("Integração"), {"fields": ["active", "url", "token"]}),
+        (_("Integração"), {"fields": ["active", "url", "token", "expressao_seletora", "ordem"]}),
     ]
-    inlines = [CampusInline]
     resource_classes = [AmbienteResource]
-
-
-@register(Campus)
-class CampusAdmin(BaseModelAdmin):
-    class CampusResource(ModelResource):
-        ambiente = Field(
-            attribute="ambiente",
-            column_name="nome_ambiente",
-            widget=ForeignKeyWidget(Ambiente, field="nome"),
-        )
-
-        class Meta:
-            model = Campus
-            export_order = ("sigla", "ambiente", "suap_id", "active")
-            import_id_fields = ("sigla",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["sigla", "ambiente", "active"]
-    history_list_display = list_display
-    field_to_highlight = list_display[0]
-    list_filter = ["active", "ambiente"]
-    search_fields = ["sigla", "suap_id"]
-    resource_classes = [CampusResource]
 
 
 @register(Solicitacao)
@@ -220,14 +181,14 @@ class SolicitacaoAdmin(BaseModelAdmin):
     list_display = (
         "quando",
         "status_merged",
-        "campus",
-        "codigo_diario",
+        "ambiente",
+        "campus_sigla",
+        "diario_codigo",
         "professores",
         "acoes",
     )
-    list_filter = ("status", "status_code", "campus__sigla")
-    search_fields = ["recebido", "enviado", "respondido", "diario__codigo"]
-    autocomplete_fields = ["campus"]
+    list_filter = ("status", "status_code", "campus_sigla")
+    search_fields = ["recebido", "enviado", "respondido", "diario_codigo", "diario_id"]
     date_hierarchy = "timestamp"
     ordering = ("-timestamp",)
 
@@ -314,3 +275,44 @@ class SolicitacaoAdmin(BaseModelAdmin):
         except Exception as e:
             return HttpResponse(f"{e}")
 
+
+exemplo1 = {
+    "curso": {
+        "id": 1,
+        "nome": "Tecnologia em Redes de Computadores",
+        "codigo": "00001",
+        "descricao": "Tecnologia em Redes de Computadores - Nome Completo do Campus"
+    },
+    "turma": {
+        "id": 2,
+        "codigo": "20221.6.00001.3E"
+    },
+    "campus": {
+        "id": 1,
+        "sigla": "ZL",
+        "descricao": "Campus EaD"
+    },
+    "diario": {
+        "id": 2,
+        "sigla": "TEC.0001",
+        "situacao": "Aberto",
+        "descricao": "Bancos de Dados",
+        "descricao_historico": "Bancos de Dados"
+    },
+    "componente": {
+        "id": 1,
+        "tipo": 1,
+        "sigla": "TEC.0001",
+        "periodo": None,
+        "optativo": False,
+        "descricao": "Bancos de Dados",
+        "qtd_avaliacoes": 2,
+        "descricao_historico": "Bancos de Dados"
+    },
+    "alunos": [
+
+    ],
+    "professores": [
+
+    ]
+}
