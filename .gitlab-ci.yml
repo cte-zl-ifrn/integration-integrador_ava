@@ -1,8 +1,22 @@
-include:
-  - project: "dead-zl/ava/integration/ci-cd-templates"
-    ref: "main"
-    file:
-      - "templates/autodeploy.yml"
-      - "templates/autotag.yml"
+#include:
+#  - project: "dead-zl/ava/integration/ci-cd-templates"
+#    ref: "main"
+#    file:
+#      - "templates/autodeploy.yml"
+#      - "templates/autotag.yml"
 
-# cicd: autotag, add ssh key to gitlab 12
+stages:
+  - teste
+
+testeme:
+  stage: teste
+  image: docker:latest
+  script:
+    - echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
+    - echo CI_COMMIT_TAG=$CI_COMMIT_TAG
+ 
+#  rules:
+#    - if: $CI_COMMIT_REF_PROTECTED == "true"
+#    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /t$/'
+#      when: always
+#    - when: never
