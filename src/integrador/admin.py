@@ -181,6 +181,8 @@ class AmbienteAdmin(BaseModelAdmin):
 class SolicitacaoAdmin(BaseModelAdmin):
     list_display = (
         "quando",
+        "operacao",
+        "tipo",
         "status_merged",
         "ambiente",
         "campus_sigla",
@@ -188,7 +190,8 @@ class SolicitacaoAdmin(BaseModelAdmin):
         "professores",
         "acoes",
     )
-    list_filter = ("status", "status_code", "campus_sigla")
+    list_filter = ("operacao", "tipo", "ambiente", "status", "status_code", "campus_sigla")
+
     search_fields = ["recebido", "enviado", "respondido", "diario_codigo", "diario_id"]
     date_hierarchy = "timestamp"
     ordering = ("-timestamp",)

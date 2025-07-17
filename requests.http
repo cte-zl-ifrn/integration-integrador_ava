@@ -225,5 +225,5 @@ Authentication: Token changeme
 
 
 ### Apenas os atributos os obrigatórios
-GET http://integrador/api/baixar_notas/?campus_sigla=ZL&diario_id=123 HTTP/1.1
+GET http://integrador/api/baixar_notas/?campus_sigla=EAD&diario_id=2 HTTP/1.1
 Authentication: Token changeme

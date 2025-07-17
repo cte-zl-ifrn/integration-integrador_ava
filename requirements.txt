@@ -8,6 +8,7 @@ django-polymorphic==4.1.0
 django-tenants==3.8.0
 
 # Rule engine
+jsonschema==4.24.0
 rule-engine==4.5.3
 
 # REST
