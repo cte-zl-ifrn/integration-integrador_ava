@@ -12,7 +12,9 @@ from django.contrib.admin.exceptions import DisallowedModelAdminToField
 from django.core.exceptions import PermissionDenied
 from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.widgets import DateTimeWidget
-# from base.models import Client, Domain # tenants
+from django_tenants.admin import TenantAdminMixin  # tenants
+from base.models import Client, Domain # tenants
+
 
 
 DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
@@ -29,7 +31,7 @@ class BaseChangeList(ChangeList):
         )
 
 
-class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
+class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, ModelAdmin):
     list_filter = []
 
     def get_changelist(self, request, **kwargs):
@@ -138,24 +140,24 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
 
 
 
-# @register(Client)  # tenants
-# class ClientAdmin(BaseModelAdmin):
-#     class DomainInline(TabularInline):
-#         model: Model = Domain
-#         extra: int = 0
-#         verbose_name = "Domínio"
-#         verbose_name_plural = "Domínios"
+@register(Client)  # tenants
+class ClientAdmin(BaseModelAdmin):
+    class DomainInline(TabularInline):
+        model: Model = Domain
+        extra: int = 0
+        verbose_name = "Domínio"
+        verbose_name_plural = "Domínios"
 
-#     list_display = ("name", "dominios", "created_on")
-#     search_fields = ("name", "domains__domain")
-#     readonly_fields = ("created_on",)
-#     inlines = [DomainInline]
+    list_display = ("name", "dominios", "created_on")
+    search_fields = ("name", "domains__domain")
+    readonly_fields = ("created_on",)
+    inlines = [DomainInline]
 
-#     @display(description="Domínios", ordering="domain")
-#     def dominios(self, obj):
-#         try:
-#             return format_html(
-#                 "<ul>" + "".join([f"<li>{x.domain}</li>" for x in obj.domains.all()]) + "</ul>"
-#             )
-#         except Exception as e:
-#             return f"{e}"
+    @display(description="Domínios", ordering="domain")
+    def dominios(self, obj):
+        try:
+            return format_html(
+                "<ul>" + "".join([f"<li>{x.domain}</li>" for x in obj.domains.all()]) + "</ul>"
+            )
+        except Exception as e:
+            return f"{e}"

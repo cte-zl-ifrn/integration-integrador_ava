@@ -9,25 +9,22 @@ SHOW_SUPPORT_FORM = env_as_bool("SHOW_SUPPORT_FORM", True)
 SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 
 
-TENANT_APPS = [
-    'coorte',
-    'edu',
-    'integrador',
-]
-
 MY_APPS = env_as_list(
     "MY_APPS",
     [
-        "base",
-        "security",
+        'base',
+        'coorte',
+        'edu',
         "health",
+        'integrador',
+        "security",
     ],
 )
 
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
     [
-        # "django_tenants", # tenants
+        "django_tenants", # tenants
         "import_export",
         "simple_history",
         "sass_processor",
@@ -59,4 +56,9 @@ DJANGO_APPS = env_as_list(
 HACK_APPS = env_as_list("HACK_APPS", ["hacks"])
 
 SHARED_APPS = MY_APPS + THIRD_APPS + DJANGO_APPS + HACK_APPS
-INSTALLED_APPS = TENANT_APPS + SHARED_APPS
+TENANT_APPS = [
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+]
+INSTALLED_APPS = SHARED_APPS + [a for a in TENANT_APPS if a not in SHARED_APPS]

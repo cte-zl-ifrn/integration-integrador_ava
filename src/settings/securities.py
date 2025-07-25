@@ -48,6 +48,6 @@ OAUTH = {
     "VERIFY_URL": env("OAUTH_VERIFY_URL", f"{oauth_base_url}/api/v1/verify/"),
     "CLIENT_ID": env("OAUTH_CLIENT_ID", "changeme"),
     "CLIENT_SECRET": env("OAUTH_CLIENT_SECRET", "changeme"),
-    "REDIRECT_URI": env("OAUTH_REDIRECT_URI", "http://integrador/api/authenticate/"),
+    # "REDIRECT_URI": env("OAUTH_REDIRECT_URI", "http://integrador/api/authenticate/"),
     "VERIFY_SSL": env_as_bool("OAUTH_VERIFY_SSL", False),
 }
