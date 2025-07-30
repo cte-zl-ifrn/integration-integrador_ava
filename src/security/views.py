@@ -2,6 +2,7 @@ from django.utils.translation import gettext as _
 import json
 import urllib
 import requests
+import logging
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
@@ -10,13 +11,17 @@ from django.utils.timezone import now
 from django.http import HttpRequest, HttpResponse
 from django.core.exceptions import ValidationError
 
+
+logger = logging.getLogger(__name__)
+
+
 OAUTH = settings.OAUTH
 
 
 def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
-    redirect_uri = f"{OAUTH["REDIRECT_URI"]}"
-    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri={redirect_uri}"
+
+    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri=http://{request.get_host()}/api/authenticate/"
     return redirect(suap_url)
 
 
@@ -35,7 +40,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
                 data={
                     "grant_type": "authorization_code",
                     "code": request.GET.get("code"),
-                    "redirect_uri": OAUTH["REDIRECT_URI"],
+                    "redirect_uri": f"http://{request.get_host()}/api/authenticate/",
                     "client_id": OAUTH["CLIENT_ID"],
                     "client_secret": OAUTH["CLIENT_SECRET"],
                 },

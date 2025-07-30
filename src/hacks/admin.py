@@ -57,6 +57,13 @@ class UserAdmin(BaseModelAdmin):
                 "description": _("Eventos relevantes relativos a este usuário"),
             },
         ),
+        (
+            _("Permissions"),
+            {
+                "fields": [("groups")],
+                "description": _("Permissões e grupos aos quais o usuário pertence."),
+            },
+        ),
     ]
     readonly_fields = ["date_joined", "last_login"]
     # autocomplete_fields: Sequence[str] = ['groups']

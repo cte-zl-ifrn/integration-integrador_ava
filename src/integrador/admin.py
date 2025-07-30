@@ -5,9 +5,9 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.html import format_html
 from django.db import transaction
 from django.urls import path, reverse
-from django.db.models import JSONField, Model
+from django.db.models import JSONField
 from django.forms import ModelForm
-from django.contrib.admin import register, display, StackedInline, ModelAdmin
+from django.contrib.admin import register, display, ModelAdmin
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
@@ -17,11 +17,9 @@ from django.core.exceptions import PermissionDenied
 from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.resources import ModelResource
-from import_export.fields import Field
-from import_export.widgets import ForeignKeyWidget, DateTimeWidget
+from import_export.widgets import DateTimeWidget
 from integrador.models import Ambiente, Solicitacao
 from integrador.brokers import MoodleBroker
-# from django_tenants.admin import TenantAdminMixin # tenants
 
 
 DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
