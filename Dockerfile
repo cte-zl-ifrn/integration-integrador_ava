@@ -17,7 +17,6 @@ COPY src /app/src
 WORKDIR /app/src
 RUN mkdir -p /app/static \
     && /app/venv/bin/python3 manage.py collectstatic --noinput \
-    && ls -l /app/static \
     && find /app -type d -name "__pycache__" -exec rm -rf {} + \
     && find /app -type f -name "*.py[co]" -exec rm -f {} + \
     && /app/venv/bin/pip uninstall -y -r /app/requirements-build.txt

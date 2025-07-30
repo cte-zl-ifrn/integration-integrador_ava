@@ -1,17 +1,9 @@
 from django.utils.translation import gettext as _
-from django.db.models import (
-    CharField,
-    DateTimeField,
-    JSONField,
-    BooleanField,
-    ForeignKey,
-    PROTECT,
-)
-from django.db.models import Manager, Model, QuerySet, Q
+from django.db.models import CharField, BooleanField, ForeignKey, PROTECT
+from django.db.models import Model
 from django.contrib.auth.models import User
 from django_better_choices import Choices
 from simple_history.models import HistoricalRecords
-from django.utils.html import format_html
 from polymorphic.models import PolymorphicModel
 from base.models import ActiveMixin
 from edu.models import Curso, Polo, Programa

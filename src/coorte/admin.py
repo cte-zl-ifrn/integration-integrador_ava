@@ -5,7 +5,7 @@ from django.contrib.admin import register, StackedInline
 from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
-from base.admin import BaseModelAdmin
+from base.admin import TenantBaseModelAdmin, BaseModelAdmin
 from edu.models import Curso, Polo, Programa
 from coorte.models import Papel, Coorte, Vinculo, CoorteCurso, CoortePolo, CoortePrograma
 
@@ -26,7 +26,7 @@ class VinculoInline(StackedInline):
 
 
 @register(Papel)
-class PapelAdmin(BaseModelAdmin):
+class PapelAdmin(TenantBaseModelAdmin):
     class PapelResource(ModelResource):
         class Meta:
             model = Papel
@@ -42,7 +42,7 @@ class PapelAdmin(BaseModelAdmin):
 
 
 @register(Coorte)
-class CoorteAdmin(BaseModelAdmin):
+class CoorteAdmin(TenantBaseModelAdmin):
     class CoorteResource(ModelResource):
         papel = Field(attribute="papel", column_name="papel", widget=ForeignKeyWidget(Papel, field="papel"))
 
@@ -62,7 +62,7 @@ class CoorteAdmin(BaseModelAdmin):
 
 
 @register(CoorteCurso)
-class CoorteCursoAdmin(BaseModelAdmin):
+class CoorteCursoAdmin(TenantBaseModelAdmin):
     class CoorteCursoResource(ModelResource):
         curso = Field(
             attribute="curso",
@@ -75,7 +75,7 @@ class CoorteCursoAdmin(BaseModelAdmin):
 
 
 @register(CoortePolo)
-class CoortePoloResourceAdmin(BaseModelAdmin):
+class CoortePoloResourceAdmin(TenantBaseModelAdmin):
     class CoortePoloResource(ModelResource):
         polo = Field(
             attribute="polo",
@@ -88,7 +88,7 @@ class CoortePoloResourceAdmin(BaseModelAdmin):
 
 
 @register(CoortePrograma)
-class CoorteProgramaAdmin(BaseModelAdmin):
+class CoorteProgramaAdmin(TenantBaseModelAdmin):
     class CoorteProgramaResource(ModelResource):
         programa = Field(
             attribute="programa",
@@ -101,7 +101,7 @@ class CoorteProgramaAdmin(BaseModelAdmin):
 
 
 @register(Vinculo)
-class VinculoAdmin(BaseModelAdmin):
+class VinculoAdmin(TenantBaseModelAdmin):
     class VinculoResource(ModelResource):
         colaborador = Field(
             attribute="colaborador",

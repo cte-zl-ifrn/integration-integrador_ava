@@ -13,7 +13,6 @@ from django.core.exceptions import PermissionDenied
 from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.widgets import DateTimeWidget
 from django_tenants.admin import TenantAdminMixin  # tenants
-from base.models import Client, Domain # tenants
 
 
 
@@ -31,7 +30,7 @@ class BaseChangeList(ChangeList):
         )
 
 
-class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, ModelAdmin):
+class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
     list_filter = []
 
     def get_changelist(self, request, **kwargs):
@@ -139,25 +138,5 @@ class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, Mod
         return inline_admin_formsets
 
 
-
-@register(Client)  # tenants
-class ClientAdmin(BaseModelAdmin):
-    class DomainInline(TabularInline):
-        model: Model = Domain
-        extra: int = 0
-        verbose_name = "Domínio"
-        verbose_name_plural = "Domínios"
-
-    list_display = ("name", "dominios", "created_on")
-    search_fields = ("name", "domains__domain")
-    readonly_fields = ("created_on",)
-    inlines = [DomainInline]
-
-    @display(description="Domínios", ordering="domain")
-    def dominios(self, obj):
-        try:
-            return format_html(
-                "<ul>" + "".join([f"<li>{x.domain}</li>" for x in obj.domains.all()]) + "</ul>"
-            )
-        except Exception as e:
-            return f"{e}"
+class TenantBaseModelAdmin(TenantAdminMixin, BaseModelAdmin):
+    pass

@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 
-class BaseConfig(AppConfig):
+class GestaoConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "base"
+    name = "gestao"
     icon = "fa fa-home"
-    verbose_name = "Base"
+    verbose_name = "Gestão"
