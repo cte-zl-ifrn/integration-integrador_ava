@@ -8,25 +8,12 @@ LAST_STARTUP = int(datetime.datetime.timestamp(datetime.datetime.now()) * 1000)
 SHOW_SUPPORT_FORM = env_as_bool("SHOW_SUPPORT_FORM", True)
 SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 
-THIRD_APPS = env_as_list(
-    "THIRD_APPS",
-    [
-        "django_tenants", # tenants
-        "import_export",
-        "simple_history",
-        "sass_processor",
-        # "djrichtextfield",
-        "django_json_widget",
-    ],
-)
-
+THIRD_APPS = env_as_list("THIRD_APPS", ["django_tenants", "import_export", "simple_history", "sass_processor", "django_json_widget"])
 try:
     import django_extensions
-
     THIRD_APPS.append("django_extensions")
 except ModuleNotFoundError:
     pass
-
 
 DJANGO_APPS = env_as_list(
     "DJANGO_APPS",
@@ -41,31 +28,7 @@ DJANGO_APPS = env_as_list(
     ],
 )
 HACK_APPS = env_as_list("HACK_APPS", ["hacks"])
-
-
-MY_APPS = env_as_list(
-    "MY_APPS",
-    [
-        'gestao', # tenants
-        'base',
-        'coorte',
-        'edu',
-        "health",
-        'integrador',
-        "security",
-    ],
-)
-
-SHARED_APPS = THIRD_APPS + DJANGO_APPS + HACK_APPS
-TENANT_APPS = [
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    'base',
-    'coorte',
-    'edu',
-    "health",
-    'integrador',
-    "security",
-]
-INSTALLED_APPS = MY_APPS + SHARED_APPS
+MY_APPS = env_as_list("MY_APPS", ['base', 'coorte', 'edu', "health", 'integrador', "security"])
+INSTALLED_APPS = ['gestao'] + MY_APPS + THIRD_APPS + DJANGO_APPS + HACK_APPS
+TENANT_APPS = INSTALLED_APPS
+SHARED_APPS = [x for x in INSTALLED_APPS if x not in MY_APPS]
