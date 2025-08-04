@@ -1,3 +1,6 @@
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  
 include:
   - project: "dead-zl/ava/integration/ci-cd-templates"
     ref: "main"
