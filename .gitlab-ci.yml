@@ -8,5 +8,4 @@ include:
       - "templates/autodeploy.yml"
       - "templates/autotag.yml"
 
-
 # cicd: autotag, add ssh key to gitlab 12
