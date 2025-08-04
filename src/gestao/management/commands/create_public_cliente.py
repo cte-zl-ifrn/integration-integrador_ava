@@ -10,7 +10,14 @@ class Command(BaseCommand):
     help = 'Create a tenant'
 
     def handle(self, *args, **options):
-        cliente = Cliente(schema_name='public', name='Public Client')
-        cliente.save()
-        dominio = Dominio(tenant=cliente, domain='integrador', is_primary=True)
-        dominio.save()
+        try:
+            cliente = Cliente(schema_name='public', name='Public Client')
+            cliente.save()
+
+            try:
+                dominio = Dominio(tenant=cliente, domain='integrador', is_primary=True)
+                dominio.save()
+            except IntegrityError as e:
+                print(f"Error creating tenant: {force_str(e)}")
+        except IntegrityError as e:
+            print(f"Error creating tenant: {force_str(e)}")
