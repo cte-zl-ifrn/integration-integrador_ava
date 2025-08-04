@@ -10,6 +10,7 @@ from django.shortcuts import redirect, render
 from django.utils.timezone import now
 from django.http import HttpRequest, HttpResponse
 from django.core.exceptions import ValidationError
+from sentry_sdk import capture_exception
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
 
         def _get_tokens(request):
             if "code" not in request.GET:
-                raise Exception(_("O código de autenticação não foi informado."))
+                raise Exception(_("O SUAP não informou o código de autenticação."))
             response = requests.post(
                 OAUTH.get('TOKEN_URL', ""),
                 data={
@@ -93,6 +94,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
         auth.login(request, user)
         return redirect(request.session.pop("next", "/"))
     except Exception as e:
+        capture_exception(e)
         return render(request, "security/authorization_error.html", context={"error_cause": str(e)})
 
 
