@@ -13,7 +13,6 @@ class Command(BaseCommand):
         try:
             cliente = Cliente(schema_name='public', name='Public Client')
             cliente.save()
-
             try:
                 dominio = Dominio(tenant=cliente, domain='integrador', is_primary=True)
                 dominio.save()
