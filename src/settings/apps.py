@@ -1,7 +1,7 @@
 from sc4py.env import env, env_as_list, env_as_bool
 import datetime
 
-APP_VERSION = "1.1.023"
+APP_VERSION = "1.1.024"
 
 LAST_STARTUP = int(datetime.datetime.timestamp(datetime.datetime.now()) * 1000)
 
