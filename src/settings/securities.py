@@ -44,7 +44,7 @@ OAUTH = {
     "BASE_URL": oauth_base_url,
     "AUTHORIZE_URL": env("OAUTH_AUTHORIZE_URL", f"{oauth_base_url}/o/authorize/"),
     "TOKEN_URL": env("OAUTH_TOKEN_URL", f"{oauth_base_url}/o/token/"),
-    "USERINFO_URL": env("OAUTH_USERINFO_URL", f"{oauth_base_url}/api/eu/"),
+    "USERINFO_URL": env("OAUTH_USERINFO_URL", f"{oauth_base_url}/api/rh/eu/"),
     "VERIFY_URL": env("OAUTH_VERIFY_URL", f"{oauth_base_url}/api/v1/verify/"),
     "CLIENT_ID": env("OAUTH_CLIENT_ID", "changeme"),
     "CLIENT_SECRET": env("OAUTH_CLIENT_SECRET", "changeme"),
