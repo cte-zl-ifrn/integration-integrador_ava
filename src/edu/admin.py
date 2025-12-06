@@ -18,7 +18,7 @@ class CoorteBaseInline(StackedInline):
 
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
         field = super().formfield_for_foreignkey(db_field, request, **kwargs)
-        if db_field.name == 'papel':
+        if db_field.name == "papel":
             field.queryset = field.queryset.filter(contexto=self.contexto)
         return field
 
@@ -83,8 +83,8 @@ class PoloAdmin(BaseModelAdmin):
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["codigo", "nome"]
-    search_fields = ["codigo", "nome", "suap_id"]
+    list_display = ["nome", "suap_id"]
+    search_fields = ["nome", "suap_id"]
     resource_classes = [PoloResource]
     inlines = [CoortePoloInline]
 
@@ -94,12 +94,12 @@ class ProgramaAdmin(BaseModelAdmin):
     class ProgramaResource(ModelResource):
         class Meta:
             model = Programa
-            export_order = ["suap_id", "nome", "sigla"]
-            import_id_fields = ("suap_id",)
+            export_order = ["nome", "sigla"]
+            import_id_fields = ("nome",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["sigla", "nome"]
-    search_fields = ["nome", "suap_id", "sigla"]
+    list_display = ["nome", "sigla"]
+    search_fields = ["nome", "sigla"]
     resource_classes = [ProgramaResource]
     inlines = [CoorteProgramaInline]
