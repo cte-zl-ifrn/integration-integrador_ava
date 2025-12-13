@@ -31,7 +31,7 @@ DJANGO_APPS = env_as_list(
     ],
 )
 HACK_APPS = env_as_list("HACK_APPS", ["hacks"])
-MY_APPS = env_as_list("MY_APPS", ["base", "coorte", "edu", "health", "integrador", "security"])
+MY_APPS = env_as_list("MY_APPS", ["base", "coorte", "edu", "health", "integrador", "security", "dsgovbr"])
 def _dedupe_apps(apps_list):
     seen = set()
     out = []
