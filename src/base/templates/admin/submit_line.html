@@ -43,8 +43,12 @@
                 {% url opts|admin_urlname:'changelist' as changelist_url %}
                 <a href="{% add_preserved_filters changelist_url %}" class="closelink">{% translate 'Close' %}</a>
             {% endif %}
-            {% url opts|admin_urlname:'view' original.pk|admin_urlquote as view_url %}
-            <a href="{% add_preserved_filters view_url %}" class="changelink">{% translate "View" %}</a>
+            
+            {% if not request.in_view_mode %}
+                {% url opts|admin_urlname:'view' original.pk|admin_urlquote as view_url %}
+                <a href="{% add_preserved_filters view_url %}" class="closelink">{% translate "View" %}</a>
+            {% endif %}
+
             {% if show_delete_link and original %}
                 {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
                 <a href="{% add_preserved_filters delete_url %}" class="deletelink">{% translate "Delete" %}</a>
