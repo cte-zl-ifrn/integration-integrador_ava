@@ -103,9 +103,16 @@ class CoorteCursoAdmin(BaseModelAdmin):
     list_display = ["curso", "papel"]
     list_filter = [PapelCursoFilter]
     search_fields = ["curso__nome", "curso__codigo"]
-    autocomplete_fields = ["papel", "curso"]
+    autocomplete_fields = ["curso"]
     inlines = [VinculoInline]
     resource_classes = [CoorteCursoResource]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        print(db_field.name)
+        if db_field.name == "papel":
+            kwargs["queryset"] = Papel.objects.filter(contexto=Papel.Contexto.CURSO)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 @register(CoortePolo)
 class CoortePoloResourceAdmin(BaseModelAdmin):
@@ -125,9 +132,15 @@ class CoortePoloResourceAdmin(BaseModelAdmin):
     list_display = ["polo", "papel"]
     list_filter = [PapelPoloFilter]
     search_fields = ["polo__nome"]
-    autocomplete_fields = ["papel", "polo"]
+    autocomplete_fields = ["polo"]
     inlines = [VinculoInline]
     resource_classes = [CoortePoloResource]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        print(db_field.name)
+        if db_field.name == "papel":
+            kwargs["queryset"] = Papel.objects.filter(contexto=Papel.Contexto.POLO)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @register(CoortePrograma)
@@ -148,6 +161,12 @@ class CoorteProgramaAdmin(BaseModelAdmin):
     list_display = ["programa", "papel"]
     list_filter = [PapelProgramaFilter]
     search_fields = ["programa__sigla", "programa__nome"]
-    autocomplete_fields = ["papel", "programa"]
+    autocomplete_fields = ["programa"]
     inlines = [VinculoInline]
     resource_classes = [CoorteProgramaResource]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        print(db_field.name)
+        if db_field.name == "papel":
+            kwargs["queryset"] = Papel.objects.filter(contexto=Papel.Contexto.PROGRAMA)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)

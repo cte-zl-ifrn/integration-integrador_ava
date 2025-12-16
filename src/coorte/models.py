@@ -85,7 +85,7 @@ class Coorte(PolymorphicModel):
         ordering = ["papel"]
 
     def __str__(self):
-        return f"SG.{self.papel.sigla}.{self.codigo}"
+        return f"CAMPUS.{self.papel.sigla}.{self.codigo}"
 
     @property
     def codigo(self):
@@ -122,7 +122,7 @@ class CoorteCurso(Coorte):
     def __str__(self):
         if not self.pk:
             return f"CoorteCurso (sem pk)"
-        return f"SG.{self.papel.sigla}.{self.codigo}"
+        return f"CAMPUS.{self.papel.sigla}.{self.codigo}"
 
 
 class CoortePolo(Coorte):
