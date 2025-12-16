@@ -1,7 +1,7 @@
 from django.utils.translation import gettext as _
 from django.db.models import Model
 from django.contrib.auth.models import User
-from django.contrib.admin import register, StackedInline
+from django.contrib.admin import register, StackedInline, SimpleListFilter
 from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, ManyToManyWidget
@@ -14,7 +14,6 @@ from coorte.models import Papel, Vinculo, CoorteCurso, CoortePolo, CoorteProgram
 # Inlines
 ####
 
-
 class VinculoInline(StackedInline):
     model: Model = Vinculo
     extra: int = 0
@@ -25,42 +24,50 @@ class VinculoInline(StackedInline):
 # Resources
 ####
 
-
 class CoorteResource(ModelResource):
     papel = Field("papel", "papel", ForeignKeyWidget(Papel, field="sigla"))
     vinculos = Field(column_name="vinculos")
 
     def dehydrate_vinculos(self, obj):
-        # exporta no mesmo formato do seu arquivo: username1|username2
-        users = User.objects.filter(vinculo__coorte=obj).distinct()
-        return "|".join(u.username for u in users)
+        return "|".join(u.username for u in User.objects.filter(vinculo__coorte=obj).distinct())
 
     def after_save_instance(self, instance, row, **kwargs):
-        print(kwargs)
-
-        row = self._current_row  # ver abaixo como preencher isso
         raw_vinculos = row.get("vinculos")
         if raw_vinculos is None:
             return
 
         usernames = [v.strip() for v in raw_vinculos.split("|") if v.strip()]
-
-        for username in usernames:
-            user = User.objects.filter(username=username).first()
-            if not user:
-                continue
+        for user in User.objects.filter(username__in=usernames):
             Vinculo.objects.get_or_create(coorte=instance, colaborador=user)
 
     def import_row(self, row, instance_loader, **kwargs):
-        # guarda a row atual para uso em after_save_instance
-        self._current_row = row
         return super().import_row(row, instance_loader, **kwargs)
+
+
+
+####
+# Filters
+####
+
+class PapelFilter(SimpleListFilter):
+    title = _("papel")
+    parameter_name = "papel"
+    contexto = None
+
+    def lookups(self, request, model_admin):
+        qs = Papel.objects.filter(contexto=self.contexto)
+        return [(p.id, str(p)) for p in qs]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(papel_id=self.value())
+        return queryset
+
 
 
 ####
 # Admins
 ####
-
 
 @register(Papel)
 class PapelAdmin(BaseModelAdmin):
@@ -90,8 +97,11 @@ class CoorteCursoAdmin(BaseModelAdmin):
             fields = export_order
             skip_unchanged = True
 
+    class PapelCursoFilter(PapelFilter):
+        contexto = Papel.Contexto.CURSO
+
     list_display = ["curso", "papel"]
-    list_filter = ["papel"]
+    list_filter = [PapelCursoFilter]
     search_fields = ["curso__nome", "curso__codigo"]
     autocomplete_fields = ["papel", "curso"]
     inlines = [VinculoInline]
@@ -109,8 +119,11 @@ class CoortePoloResourceAdmin(BaseModelAdmin):
             fields = export_order
             skip_unchanged = True
 
+    class PapelPoloFilter(PapelFilter):
+        contexto = Papel.Contexto.POLO
+
     list_display = ["polo", "papel"]
-    list_filter = ["papel"]
+    list_filter = [PapelPoloFilter]
     search_fields = ["polo__nome"]
     autocomplete_fields = ["papel", "polo"]
     inlines = [VinculoInline]
@@ -129,8 +142,11 @@ class CoorteProgramaAdmin(BaseModelAdmin):
             fields = export_order
             skip_unchanged = True
 
+    class PapelProgramaFilter(PapelFilter):
+        contexto = Papel.Contexto.PROGRAMA
+
     list_display = ["programa", "papel"]
-    list_filter = ["papel"]
+    list_filter = [PapelProgramaFilter]
     search_fields = ["programa__sigla", "programa__nome"]
     autocomplete_fields = ["papel", "programa"]
     inlines = [VinculoInline]
