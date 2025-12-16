@@ -1,16 +1,36 @@
 from django.utils.translation import gettext as _
 from django.utils.safestring import mark_safe
-from django.contrib.admin import register, display, site
+from django.db.models import Model
+from django.contrib.admin import register, display, site, StackedInline
 from django.contrib.auth.models import User, Group, Permission
 from import_export.resources import ModelResource
 from import_export.widgets import ManyToManyWidget
 from import_export.fields import Field
 from base.admin import BaseModelAdmin
+from coorte.models import Vinculo
 
+
+####
+# Hacks
+####
 
 site.unregister(Group)
 site.unregister(User)
 
+
+####
+# Inlines
+####
+
+class VinculoInline(StackedInline):
+    model: Model = Vinculo
+    extra: int = 0
+    autocomplete_fields = ["coorte"]
+
+
+####
+# Admins
+####
 
 @register(Group)
 class GroupAdmin(BaseModelAdmin):
@@ -91,7 +111,8 @@ class UserAdmin(BaseModelAdmin):
         ),
     ]
     readonly_fields = ["date_joined", "last_login"]
-    # autocomplete_fields: Sequence[str] = ['groups']
+    autocomplete_fields: list[str] = ['groups']
+    inlines = [VinculoInline]
     resource_classes = [UserResource]
 
     @display

@@ -4,10 +4,10 @@ from django.contrib.auth.models import User
 from django.contrib.admin import register, StackedInline, SimpleListFilter
 from import_export.resources import ModelResource
 from import_export.fields import Field
-from import_export.widgets import ForeignKeyWidget, ManyToManyWidget
-from base.admin import BaseModelAdmin
+from import_export.widgets import ForeignKeyWidget
+from base.admin import BasicModelAdmin, BaseModelAdmin
 from edu.models import Curso, Polo, Programa
-from coorte.models import Papel, Vinculo, CoorteCurso, CoortePolo, CoortePrograma
+from coorte.models import Papel, Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma
 
 
 ####
@@ -170,3 +170,10 @@ class CoorteProgramaAdmin(BaseModelAdmin):
         if db_field.name == "papel":
             kwargs["queryset"] = Papel.objects.filter(contexto=Papel.Contexto.PROGRAMA)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@register(Coorte)
+class CoorteAdmin(BasicModelAdmin):
+    list_display = ["papel"]
+    search_fields = ["papel__papel", "papel__sigla", "papel__nome"]
+    readonly_fields = ["papel"]
