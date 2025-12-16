@@ -12,8 +12,6 @@ from django.contrib.admin.exceptions import DisallowedModelAdminToField
 from django.core.exceptions import PermissionDenied
 from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.widgets import DateTimeWidget
-from django_tenants.admin import TenantAdminMixin  # tenants
-
 
 
 DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
@@ -136,7 +134,3 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             )
             inline_admin_formsets.append(inline_admin_formset)
         return inline_admin_formsets
-
-
-class TenantBaseModelAdmin(TenantAdminMixin, BaseModelAdmin):
-    pass

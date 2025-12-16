@@ -1,4 +1,4 @@
-FROM python:3.13.3-slim-bookworm AS production-build-stage
+FROM python:3.13.11-slim-trixie AS production-build-stage
 
 ENV PYTHONUNBUFFERED 1
 

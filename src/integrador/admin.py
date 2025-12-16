@@ -41,7 +41,6 @@ class BaseChangeList(ChangeList):
         )
 
 
-# class BaseModelAdmin(TenantAdminMixin, ImportExportMixin, ExportActionMixin, ModelAdmin): # tenants
 class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
     list_filter = []
 

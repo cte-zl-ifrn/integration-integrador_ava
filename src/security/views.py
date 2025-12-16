@@ -22,7 +22,7 @@ OAUTH = settings.OAUTH
 def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
-    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri=http://{request.get_host()}/api/authenticate/"
+    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri=http://{request.get_host()}/authenticate/"
     return redirect(suap_url)
 
 
@@ -41,7 +41,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
                 data={
                     "grant_type": "authorization_code",
                     "code": request.GET.get("code"),
-                    "redirect_uri": f"http://{request.get_host()}/api/authenticate/",
+                    "redirect_uri": f"http://{request.get_host()}/authenticate/",
                     "client_id": OAUTH["CLIENT_ID"],
                     "client_secret": OAUTH["CLIENT_SECRET"],
                 },

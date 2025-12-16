@@ -1,11 +1,11 @@
 from django.utils.translation import gettext as _
-from django.db.models import Model
+from django.db.models import Model, Q
 from django.contrib.auth.models import User
 from django.contrib.admin import register, StackedInline
 from import_export.resources import ModelResource
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
-from base.admin import TenantBaseModelAdmin, BaseModelAdmin
+from base.admin import BaseModelAdmin
 from edu.models import Curso, Polo, Programa
 from coorte.models import Papel, Coorte, Vinculo, CoorteCurso, CoortePolo, CoortePrograma
 
@@ -18,6 +18,7 @@ from coorte.models import Papel, Coorte, Vinculo, CoorteCurso, CoortePolo, Coort
 class VinculoInline(StackedInline):
     model: Model = Vinculo
     extra: int = 0
+    autocomplete_fields = ["colaborador"]
 
 
 ####
@@ -26,7 +27,7 @@ class VinculoInline(StackedInline):
 
 
 @register(Papel)
-class PapelAdmin(TenantBaseModelAdmin):
+class PapelAdmin(BaseModelAdmin):
     class PapelResource(ModelResource):
         class Meta:
             model = Papel
@@ -42,13 +43,13 @@ class PapelAdmin(TenantBaseModelAdmin):
 
 
 @register(Coorte)
-class CoorteAdmin(TenantBaseModelAdmin):
+class CoorteAdmin(BaseModelAdmin):
     class CoorteResource(ModelResource):
         papel = Field(attribute="papel", column_name="papel", widget=ForeignKeyWidget(Papel, field="papel"))
 
     resource_classes = [CoorteResource]
     list_display = ["papel", "instancia"]
-    readonly_fields = ["instancia"]
+    readonly_fields = ["instancia", "papel"]
 
     def instancia(self, obj):
         if isinstance(obj, CoorteCurso):
@@ -62,7 +63,7 @@ class CoorteAdmin(TenantBaseModelAdmin):
 
 
 @register(CoorteCurso)
-class CoorteCursoAdmin(TenantBaseModelAdmin):
+class CoorteCursoAdmin(BaseModelAdmin):
     class CoorteCursoResource(ModelResource):
         curso = Field(
             attribute="curso",
@@ -71,11 +72,14 @@ class CoorteCursoAdmin(TenantBaseModelAdmin):
         )
 
     list_display = ["curso", "papel"]
+    list_filter = ["papel"]
+    search_fields = ["curso__nome", "curso__codigo"]
+    autocomplete_fields = ["papel", "curso"]
     inlines = [VinculoInline]
 
 
 @register(CoortePolo)
-class CoortePoloResourceAdmin(TenantBaseModelAdmin):
+class CoortePoloResourceAdmin(BaseModelAdmin):
     class CoortePoloResource(ModelResource):
         polo = Field(
             attribute="polo",
@@ -84,11 +88,14 @@ class CoortePoloResourceAdmin(TenantBaseModelAdmin):
         )
 
     list_display = ["polo", "papel"]
+    list_filter = ["papel"]
+    search_fields = ["polo__nome"]
+    autocomplete_fields = ["papel", "polo"]
     inlines = [VinculoInline]
 
 
 @register(CoortePrograma)
-class CoorteProgramaAdmin(TenantBaseModelAdmin):
+class CoorteProgramaAdmin(BaseModelAdmin):
     class CoorteProgramaResource(ModelResource):
         programa = Field(
             attribute="programa",
@@ -97,11 +104,14 @@ class CoorteProgramaAdmin(TenantBaseModelAdmin):
         )
 
     list_display = ["programa", "papel"]
+    list_filter = ["papel"]
+    search_fields = ["programa__sigla", "programa__nome"]
+    autocomplete_fields = ["papel", "programa"]
     inlines = [VinculoInline]
 
 
 @register(Vinculo)
-class VinculoAdmin(TenantBaseModelAdmin):
+class VinculoAdmin(BaseModelAdmin):
     class VinculoResource(ModelResource):
         colaborador = Field(
             attribute="colaborador",
@@ -112,7 +122,9 @@ class VinculoAdmin(TenantBaseModelAdmin):
 
     resource_classes = [VinculoResource]
     list_display = ["colaborador", "coorte", "coorte__papel", "instancia"]
-    readonly_fields = ["cursos", "programas", "polos"]
+    list_filter = ["coorte__papel"]
+    search_fields = ["colaborador__username", "colaborador__first_name", "colaborador__last_name"]
+    readonly_fields = ["coorte", "colaborador", "cursos", "programas", "polos"]
 
     def cursos(self, obj):
         coorte_cursos = CoorteCurso.objects.filter(coorte_ptr_id=obj.coorte_id)
@@ -165,3 +177,26 @@ class VinculoAdmin(TenantBaseModelAdmin):
         if coorte is None:
             return "---"
         return coorte.instancia.nome
+
+    def get_search_results(self, request, queryset, search_term):
+        qs, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        if not search_term:
+            return qs, use_distinct
+
+        qs_curso = queryset.filter(
+            Q(coorte__coortecurso__curso__nome__icontains=search_term)
+            | Q(coorte__coortecurso__curso__codigo__icontains=search_term)
+        )
+
+        qs_polo = queryset.filter(
+            Q(coorte__coortepolo__polo__nome__icontains=search_term)
+        )
+
+        qs_programa = queryset.filter(
+            Q(coorte__coorteprograma__programa__nome__icontains=search_term)
+            | Q(coorte__coorteprograma__programa__sigla__icontains=search_term)
+        )
+
+        qs = qs | qs_curso | qs_polo | qs_programa
+        return qs.distinct(), True

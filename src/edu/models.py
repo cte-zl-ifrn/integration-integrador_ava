@@ -42,7 +42,7 @@ class Polo(Model):
 
     @property
     def codigo_integracao(self):
-        return re.sub(r"[^a-zA-Z]", "", self.codigo)
+        return re.sub(r"[^a-zA-Z]", "", self.nome)
 
 
 class Programa(Model):
