@@ -1,19 +1,43 @@
 from django.utils.translation import gettext as _
 from django.utils.safestring import mark_safe
-from django.urls import reverse
-from django.contrib.admin import register, display, StackedInline, ModelAdmin, site
-from django.utils.html import format_html
-from django.contrib.auth.models import User
+from django.contrib.admin import register, display, site
+from django.contrib.auth.models import User, Group, Permission
 from import_export.resources import ModelResource
+from import_export.widgets import ManyToManyWidget
+from import_export.fields import Field
 from base.admin import BaseModelAdmin
 
 
+site.unregister(Group)
 site.unregister(User)
+
+
+@register(Group)
+class GroupAdmin(BaseModelAdmin):
+    class GroupResource(ModelResource):
+        permissions = Field(
+            attribute='permissions',
+            widget=ManyToManyWidget(Permission, field='codename', separator='|')
+        )
+        class Meta:
+            model = Group
+            export_order = ["name","permissions"]
+            import_id_fields = ("name",)
+            fields = export_order
+            skip_unchanged = True
+
+    list_display = ["name"]
+    search_fields = ["name"]
+    resource_classes = [GroupResource]
 
 
 @register(User)
 class UserAdmin(BaseModelAdmin):
     class UserResource(ModelResource):
+        groups = Field(
+            attribute='groups',
+            widget=ManyToManyWidget(Permission, field='name', separator='|')
+        )
         class Meta:
             model = User
             export_order = [
@@ -25,13 +49,14 @@ class UserAdmin(BaseModelAdmin):
                 "is_superuser",
                 "is_active",
                 "is_staff",
+                "groups",
             ]
             import_id_fields = ("username",)
             fields = export_order
             skip_unchanged = True
 
     list_display = ["username", "first_name", "last_name", "email", "auth"]
-    list_filter = ["is_superuser", "is_active", "is_staff"]
+    list_filter = ["is_superuser", "is_active", "is_staff", "groups__name"]
     search_fields = ["first_name", "last_name", "username", "email"]
     fieldsets = [
         (
@@ -80,4 +105,9 @@ class UserAdmin(BaseModelAdmin):
             result += "<span title='Pode operar o admin'>👷‍♂️</span>"
         elif not obj.is_staff and not obj.is_superuser:
             result += "<span title='É um simples colaborador, sem acesso ao admin.'>👨</span>"
+        if obj.groups.count() > 0:
+            plural = "nos grupos" if obj.groups.count() > 1 else "no grupo"
+            grupos = ", ".join([f"'{g.name}'" for g in obj.groups.all()])
+            result += f"<span title=\"Está {plural} {grupos}.\">👥</span>"
+            
         return mark_safe(f"<span style='font-size: 150%'>{result}</span>")
