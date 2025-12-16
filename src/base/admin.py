@@ -28,7 +28,7 @@ class BaseChangeList(ChangeList):
         )
 
 
-class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
+class BasicModelAdmin(ModelAdmin):
     list_filter = []
 
     def get_changelist(self, request, **kwargs):
@@ -134,3 +134,7 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             )
             inline_admin_formsets.append(inline_admin_formset)
         return inline_admin_formsets
+
+
+class BaseModelAdmin(ImportExportMixin, ExportActionMixin, BasicModelAdmin):
+    pass

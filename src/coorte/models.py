@@ -96,8 +96,8 @@ class CoorteCurso(Coorte):
     curso = ForeignKey(Curso, on_delete=PROTECT, related_name="coorte_curso")
 
     class Meta:
-        verbose_name = _("Coorte x Curso")
-        verbose_name_plural = _("Coorte x Curso")
+        verbose_name = _("coortes de curso")
+        verbose_name_plural = _("coortes de cursos")
         ordering = ["curso"]
 
     @property
@@ -119,13 +119,18 @@ class CoorteCurso(Coorte):
             raise ValidationError(
                 {"curso": _("Já existe uma CoorteCurso com esse papel e curso.")}
             )
+    def __str__(self):
+        if not self.pk:
+            return f"CoorteCurso (sem pk)"
+        return f"SG.{self.papel.sigla}.{self.codigo}"
+
 
 class CoortePolo(Coorte):
     polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
 
     class Meta:
-        verbose_name = _("Coorte x Polo")
-        verbose_name_plural = _("Coorte x Polo")
+        verbose_name = _("coorte de polo")
+        verbose_name_plural = _("coortes de polos")
         ordering = ["polo"]
 
     @property
@@ -153,8 +158,8 @@ class CoortePrograma(Coorte):
     programa = ForeignKey(Programa, on_delete=PROTECT, related_name="coorte_programa")
 
     class Meta:
-        verbose_name = _("Coorte x Programa")
-        verbose_name_plural = _("Coorte x Programa")
+        verbose_name = _("coortes de programa")
+        verbose_name_plural = _("coortes de programas")
         ordering = ["programa"]
 
     @property
