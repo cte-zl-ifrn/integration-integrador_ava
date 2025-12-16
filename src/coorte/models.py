@@ -1,4 +1,5 @@
 from django.utils.translation import gettext as _
+from django.core.exceptions import ValidationError
 from django.db.models import CharField, BooleanField, ForeignKey, PROTECT
 from django.db.models import Model
 from django.contrib.auth.models import User
@@ -107,6 +108,17 @@ class CoorteCurso(Coorte):
     def codigo(self):
         return self.instancia.codigo_integracao
 
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        if not self.papel_id or not self.curso_id:
+            return
+        qs = type(self).objects.filter(papel=self.papel, curso=self.curso)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError(
+                {"curso": _("Já existe uma CoorteCurso com esse papel e curso.")}
+            )
 
 class CoortePolo(Coorte):
     polo = ForeignKey(Polo, on_delete=PROTECT, related_name="coorte_polo")
@@ -124,6 +136,18 @@ class CoortePolo(Coorte):
     def codigo(self):
         return self.instancia.codigo_integracao
 
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        if not self.papel_id or not self.polo_id:
+            return
+        qs = type(self).objects.filter(papel=self.papel, polo=self.polo)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError(
+                {"polo": _("Já existe uma CoortePolo com esse papel e polo.")}
+            )
+
 
 class CoortePrograma(Coorte):
     programa = ForeignKey(Programa, on_delete=PROTECT, related_name="coorte_programa")
@@ -140,6 +164,18 @@ class CoortePrograma(Coorte):
     @property
     def codigo(self):
         return self.instancia.codigo_integracao
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        if not self.papel_id or not self.programa_id:
+            return
+        qs = type(self).objects.filter(papel=self.papel, programa=self.programa)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError(
+                {"programa": _("Já existe uma CoortePrograma com esse papel e programa.")}
+            )
 
 
 class Vinculo(Model):
