@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
             model_name="ambiente",
             name="expressao_seletora",
             field=models.TextField(
-                default="campus.sigla==ZL'",
+                default="campus.sigla=='ZL'",
                 max_length=2550,
                 verbose_name="expressão seletora",
             ),
