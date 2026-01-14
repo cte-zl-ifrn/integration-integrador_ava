@@ -1,4 +1,4 @@
-FROM python:3.13.11-slim-trixie AS production-build-stage
+FROM python:3.14.2-slim-trixie AS production-build-stage
 
 ENV PYTHONUNBUFFERED 1
 
@@ -11,7 +11,7 @@ COPY requirements*.txt /app/
 RUN python3 -m venv /app/venv
 RUN /app/venv/bin/pip install --upgrade --no-cache-dir --root-user-action ignore pip setuptools
 RUN /app/venv/bin/pip install --no-cache-dir -r /app/requirements.txt -r /app/requirements-build.txt
-RUN echo '__version__ = "unknown"' > /app/venv/lib/python3.13/site-packages/django_better_choices/version.py
+RUN echo '__version__ = "unknown"' > /app/venv/lib/python3.14/site-packages/django_better_choices/version.py
 
 COPY src /app/src
 WORKDIR /app/src
@@ -24,7 +24,7 @@ RUN mkdir -p /app/static \
 #########################
 # Development build stage
 ########################################################################
-FROM python:3.13.3-slim-bookworm AS development-build-stage
+FROM python:3.14.2-slim-trixie AS development-build-stage
 
 ENV PYTHONUNBUFFERED 1
 
@@ -39,7 +39,7 @@ RUN /app/venv/bin/pip install -r /app/requirements-dev.txt -r /app/requirements-
 ########################
 # Production final stage
 ########################################################################
-FROM python:3.13.3-slim-bookworm AS production
+FROM python:3.14.2-slim-trixie AS production
 
 RUN useradd -ms /usr/sbin/nologin app
 COPY --chown=app:app --from=production-build-stage /app /app
@@ -54,7 +54,7 @@ CMD  ["/app/venv/bin/gunicorn" ]
 #########################
 # Development final stage
 ########################################################################
-FROM python:3.13.3-slim-bookworm
+FROM python:3.14.2-slim-trixie
 
 ENV PATH="/app/venv/bin/:$PATH"
 RUN useradd -ms /bin/bash app
