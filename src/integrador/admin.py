@@ -189,7 +189,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
     )
     list_filter = ("operacao", "tipo", "ambiente", "status", "status_code", "campus_sigla")
 
-    search_fields = ["recebido", "enviado", "respondido", "diario_codigo", "diario_id"]
+    search_fields = ["diario_codigo", "diario_id"]
     date_hierarchy = "timestamp"
     ordering = ("-timestamp",)
 
