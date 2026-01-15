@@ -94,7 +94,6 @@ class Solicitacao(Model):
     
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if self.recebido:
-            print(self.recebido)
             diario = self.recebido.get("diario", {})
             componente = diario.get('sigla', '')
             turma = self.recebido.get("turma", {}).get("codigo", '')
