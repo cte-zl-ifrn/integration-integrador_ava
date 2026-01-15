@@ -65,18 +65,14 @@ class Solicitacao(Model):
         SYNC_UP_DIARIO = Choices.Value(_("Sync UP: Diário"), value="SUDiario", schema=json.load(open(f"integrador/static/SUDiario.schema.json")))
         SYNC_DOWN_NOTAS = Choices.Value(_("Sync DOWN: Notas"), value="SDNotas", schema=json.load(open(f"integrador/static/SDNotas.schema.json")))
 
-    class Tipo(Choices):
-        DIARIO = Choices.Value(_("Diário"), value="diario")
-        FICMENOS = Choices.Value(_("FIC-"), value="fic-")
-        MINICURSO = Choices.Value(_("Minicurso"), value="minicurso")
 
     ambiente = ForeignKey(Ambiente, verbose_name=_("ambiente"), on_delete=PROTECT, null=True, blank=False)
     timestamp = DateTimeField(_("quando ocorreu"), auto_now_add=True, db_index=True)
-    campus_sigla = CharField(_("sigla do campus"), max_length=256, null=True, blank=True)
+    campus_sigla = CharField(_("campus"), max_length=256, null=True, blank=True)
     diario_codigo = CharField(_("código do diário"), max_length=256, null=True, blank=True)
     diario_id = CharField(_("ID do diário"), max_length=256, null=True, blank=True)
     operacao = CharField(_("operação"), max_length=256, choices=Operacao, null=False, blank=False, default=Operacao.SYNC_UP_DIARIO)
-    tipo = CharField(_("tipo"), max_length=256, choices=Tipo, null=False, blank=False, default=Tipo.DIARIO)
+    tipo = CharField(_("tipo de diário"), max_length=256, null=True, blank=True, default=None)
     status = CharField(_("status"), max_length=256, choices=Status, null=True, blank=False)
     status_code = CharField(_("status code"), max_length=256, null=True, blank=True)
     recebido = JSONField(_("JSON recebido"), null=True, blank=True)
@@ -95,4 +91,18 @@ class Solicitacao(Model):
     @property
     def status_merged(self):
         return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
+    
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if self.recebido:
+            print(self.recebido)
+            diario = self.recebido.get("diario", {})
+            componente = diario.get('sigla', '')
+            turma = self.recebido.get("turma", {}).get("codigo", '')
+
+            self.ambiente = Ambiente.objects.seleciona_ambiente(self.recebido)
+            self.campus_sigla = self.recebido.get("campus", {}).get("sigla", None)
+            self.diario_id = diario.get("id", '')
+            self.diario_codigo = f'{turma}.{componente}#{self.diario_id}'
+            self.tipo = self.recebido.get("diario", {}).get("tipo", 'regular' if self.operacao == Solicitacao.Operacao.SYNC_UP_DIARIO else None)
+        return super().save(force_insert, force_update, using, update_fields)
 

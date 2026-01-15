@@ -1,5 +1,6 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.html import format_html
@@ -183,7 +184,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
         "status_merged",
         "ambiente",
         "campus_sigla",
-        "diario_codigo",
+        "codigo_diario",
         "professores",
         "acoes",
     )
@@ -224,27 +225,25 @@ class SolicitacaoAdmin(BaseModelAdmin):
     @display(description="Professores", ordering="timestamp")
     def professores(self, obj):
         try:
-            return format_html(
-                "<ul>" + "".join([f"<li>{x['nome']}</li>" for x in obj.recebido["professores"]]) + "</ul>"
-            )
+            profs = ""
+            for p in (obj.recebido or {}).get("professores", []):
+                username = p.get('login', None)
+                urlpath = '/admin/comum/prestadorservico/?q=' if username and len(username) > 10 else '/admin/rh/servidor/?ativo__exact=1&q='
+                vinculo = 'externo' if username and len(username) > 10 else 'servidor'
+                profs += f'<li><a href="{settings.SUAP_BASE_URL}{urlpath}{username}">{p.get("nome")} ({p.get("tipo")}:{vinculo})</a></li>'
+            return format_html(f"<ul>{profs}</ul>")
         except Exception:
             return "-"
 
-    @display(description="Diário", ordering="timestamp")
+    @display(description="Links", ordering="timestamp")
     def codigo_diario(self, obj):
+        respondido = obj.respondido or {}
         try:
-            codigo = (
-                f"{obj.recebido['turma']['codigo']}.{obj.recebido['diario']['sigla']}#{obj.recebido['diario']['id']}"
+            return format_html(
+                f"""<ul><li><a href='{respondido.get('url', '#')}'>{obj.diario_codigo}</a></li>
+                    <li><a href='{respondido.get('url_sala_coordenacao', '#')}'>Sala de coordenação</a></li>
+                    <li><a href='{settings.SUAP_BASE_URL}/edu/meu_diario/{obj.diario_id}/1/'>Diário no SUAP</a></li></ul>"""
             )
-            try:
-                suap_url = "https://suap.ifrn.edu.br"
-                return format_html(
-                    f"""<ul><li><a href='{obj.respondido['url']}'>{codigo}</a></li>
-                        <li><a href='{obj.respondido['url_sala_coordenacao']}'>Sala de coordenação</a></li>
-                        <li><a href='{suap_url}/edu/meu_diario/{obj.recebido['diario']['id']}/1/'>Diário no SUAP</a></li></ul>"""
-                )
-            except Exception:
-                return codigo
         except Exception:
             return "-"
 
