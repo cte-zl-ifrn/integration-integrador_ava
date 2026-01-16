@@ -1,9 +1,7 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
-from django.utils.html import format_html
 from django.urls import path, reverse
-from django.db.models import Model
-from django.contrib.admin import ModelAdmin, register, display, TabularInline
+from django.contrib.admin import ModelAdmin
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
