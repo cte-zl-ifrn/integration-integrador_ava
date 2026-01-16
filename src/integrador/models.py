@@ -1,10 +1,9 @@
 from django.utils.translation import gettext as _
 import json
 from django.db.models import CharField, DateTimeField, JSONField, BooleanField, IntegerField, TextField, ForeignKey, PROTECT
-from django.db.models import Manager, Model, QuerySet, Q
+from django.db.models import Manager, Model
 from django.utils.html import format_html
 from django_better_choices import Choices
-from simple_history.models import HistoricalRecords
 from rule_engine import Rule
 from base.models import ActiveMixin
 
@@ -52,6 +51,16 @@ class Ambiente(Model):
     @property
     def credentials(self):
         return {"Authentication": f"Token {self.token}"}
+
+    @property
+    def valid_expressao_seletora(self):
+        try:
+            if self.expressao_seletora is None or self.expressao_seletora.strip() == "":
+                return False
+            Rule(self.expressao_seletora)
+            return True
+        except Exception:
+            return False
 
 
 class Solicitacao(Model):
