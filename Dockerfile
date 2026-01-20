@@ -7,6 +7,8 @@ ENV PYTHONUNBUFFERED=1
 COPY . /app
 WORKDIR /app/src
 RUN    useradd -ms /usr/sbin/nologin app \
+    && apt update -y  \
+    && apt install -y curl \
     && pip install -r /app/requirements.txt  -r /app/requirements-build.txt \
     && mkdir -p /app/static \
     && python manage.py compilescss \

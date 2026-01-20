@@ -8,9 +8,9 @@ APP_LAST_STARTUP = int(datetime.datetime.timestamp(datetime.datetime.now()) * 10
 SHOW_SUPPORT_FORM = env_as_bool("SHOW_SUPPORT_FORM", True)
 SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 
-THIRD_APPS = env_as_list("THIRD_APPS", ["import_export", "simple_history", "sass_processor", "django_json_widget", "django_extensions"])
+THIRD_APPS = env_as_list("THIRD_APPS", ["import_export", "simple_history", "sass_processor", "django_json_widget", "django_extensions", "django_rule_engine"])
 DJANGO_APPS = [f"django.contrib.{x}" for x in ["admin", "auth", "contenttypes", "sessions", "messages", "staticfiles", "humanize"]]
-MY_APPS = env_as_list("MY_APPS", ["base", "coorte", "edu", "health", "integrador", "security", "dsgovbr"])
+MY_APPS = env_as_list("MY_APPS", ["base", "coorte", "edu", "health", "integrador", "security"])
 try:
     import dsgovbr
 except ImportError:

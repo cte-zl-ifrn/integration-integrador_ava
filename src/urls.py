@@ -9,6 +9,7 @@ admin.site.site_title = f"Integrador AVA (v{settings.APP_VERSION})"
 admin.site.site_header = admin.site.site_title
 
 urlpatterns = [
+    path("api/", include("django_rule_engine.api.urls")),  # API precisa vir ANTES do admin
     path("", include("security.urls")),
     path("", admin.site.urls),
     path("", include("health.urls")),

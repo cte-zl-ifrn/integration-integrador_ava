@@ -63,9 +63,30 @@ def post_json_api(ava: Ambiente, service: str, jsonbody: dict):
             headers=ava.credentials,
             json=jsonbody,
         )
-        return json.loads(retorno.text)
+        
+        # Verifica se a resposta foi bem-sucedida
+        if not retorno.ok:
+            raise SyncError(
+                f"Erro ao se comunicar com o Moodle: HTTP {retorno.status_code}. Texto recebido: {retorno.text[:500]}",
+                retorno.status_code,
+                retorno=retorno.text
+            )
+        
+        try:
+            return json.loads(retorno.text)
+        except json.JSONDecodeError as json_error:
+            raise SyncError(
+                f"Erro ao se comunicar com o Moodle: Ocorreu um erro: {json_error}. Texto recebido: {retorno.text[:500]}",
+                502,
+                retorno=retorno.text
+            )
+    except SyncError:
+        raise
     except Exception as e:
         logging.error(e)
         sentry_sdk.capture_exception(e)
-        raise e
+        raise SyncError(
+            f"Erro inesperado ao se comunicar com o Moodle: {str(e)}",
+            500
+        )
 

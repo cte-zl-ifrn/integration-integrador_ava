@@ -7,7 +7,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 from base.admin import BasicModelAdmin, BaseModelAdmin
 from edu.models import Curso, Polo, Programa
-from coorte.models import Papel, Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma
+from coorte.models import Papel, Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma, Cohort
 
 
 ####
@@ -177,3 +177,27 @@ class CoorteAdmin(BasicModelAdmin):
     list_display = ["papel"]
     search_fields = ["papel__papel", "papel__sigla", "papel__nome"]
     readonly_fields = ["papel"]
+
+@register(Cohort)
+class CohortAdmin(BasicModelAdmin):
+    list_display = ["name", "idnumber", "rule_diario", "rule_coordenacao", "visible"]
+    search_fields = ["name", "idnumber"]
+    list_filter = ["visible"]
+    fieldsets = (
+        (_("Informações Básicas"), {
+            'fields': (('name', 'idnumber', 'visible'), 'papel')
+        }),
+        (_("Regras de Validação"), {
+            'fields': ("rule_diario", "rule_coordenacao",),
+            'classes': ('wide',),
+            'description': _('Configure a regra para validar quando este coorte deve ser sincronizado no diário')
+        }),
+        (_("Descrição"), {
+            'fields': ('description',)
+        }),
+    )
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """Garante que o RuleField use o widget correto."""
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        return formfield
