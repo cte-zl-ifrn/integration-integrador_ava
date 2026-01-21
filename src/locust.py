@@ -13,7 +13,7 @@ class EnviarDiariosTaskSet(TaskSet):
             solicitaca = json.load(file)
             solicitaca["turma"]["codigo"] = f"20251.1.15312.555.{incrementador}E"
             self.client.post(
-                "/enviar_diarios/",
+                "/api/enviar_diarios/",
                 json=solicitaca,
                 headers={"Authentication": "Token changeme"},
             )
