@@ -3,7 +3,7 @@
 
 
 ### Apenas os atributos os obrigatórios
-POST http://integrador/enviar_diarios/ HTTP/1.1
+POST http://localhost:8091/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 
@@ -18,7 +18,7 @@ Authentication: Token changeme
 }
 
 ### Matricula alguns alunos
-POST http://integrador/enviar_diarios/ HTTP/1.1
+POST http://localhost:8091/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 
@@ -33,7 +33,7 @@ Authentication: Token changeme
 }
 
 ### Desativa o 6 pois deixou de vir
-POST http://integrador/enviar_diarios/ HTTP/1.1
+POST http://localhost:8091/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 
@@ -49,7 +49,7 @@ Authentication: Token changeme
 
 
 ### Apenas os atributos os obrigatórios
-GET http://integrador/baixar_notas/?campus_sigla=EAD&diario_id=2 HTTP/1.1
+GET http://localhost:8091/baixar_notas/?campus_sigla=EAD&diario_id=2 HTTP/1.1
 Authentication: Token changeme
 
 

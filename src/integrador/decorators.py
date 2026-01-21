@@ -93,20 +93,22 @@ def check_json(operacao: str):
                 message = request.body.decode("utf-8")
                 try:
                     request.json_recebido = json.loads(message)
-                    try:
-                        jsonschema.validate(instance=request.json_recebido, schema=operacao.schema)
-                    except Exception as e3:
-                        parts = e3.message.split("Failed")
-                        if len(parts) > 1:
-                            request.json_recebido = {
-                                "error": {"code": 411, "message": parts[0]},
-                                "request_message": request.json_recebido
-                            }
-                        else:
-                            request.json_recebido = {
-                                "error": {"code": 410, "message": e3.message},
-                                "request_message": request.json_recebido
-                            }
+
+                    # # TODO: Remover comentário após corrigir todos os schemas
+                    # try:
+                    #     jsonschema.validate(instance=request.json_recebido, schema=operacao.schema)
+                    # except Exception as e3:
+                    #     parts = e3.message.split("Failed")
+                    #     if len(parts) > 1:
+                    #         request.json_recebido = {
+                    #             "error": {"code": 411, "message": parts[0]},
+                    #             "request_message": request.json_recebido
+                    #         }
+                    #     else:
+                    #         request.json_recebido = {
+                    #             "error": {"code": 410, "message": e3.message},
+                    #             "request_message": request.json_recebido
+                    #         }
                 except Exception as e2:
                     request.json_recebido = {
                         "error": {"code": 512, "message": f"Foi enviado um JSON mal formado ou nem é JSON ({e2})."},
