@@ -1,9 +1,5 @@
-from django.shortcuts import get_object_or_404
 from ninja import NinjaAPI, Router, Schema
-
-from django.contrib.admin.views.decorators import staff_member_required
-from integrador.suap2local_suap.brokers import Suap2LocalSuapBroker
-
+from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 
 class SincronizacaoIn(Schema):
     pass
@@ -17,11 +13,10 @@ class NotasOut(Schema):
     pass
 
 
-# api = NinjaAPI(docs_decorator=staff_member_required)
 router = Router()
 
 
-@router.path('/suap')
+@router.path('/suap/local_suap')
 class Suap2LocalSuapApi:
     def __init__(self, request):
         # user_projects = request.user.project_set
@@ -31,7 +26,6 @@ class Suap2LocalSuapApi:
 
     @router.get('/enviar_diarios/', response=SincronizacaoOut)
     def enviar_diarios(self, request) -> SincronizacaoOut:
-        request.solicitacao
         return SincronizacaoOut(self.broker.enviar_diarios())
 
     @router.get('/baixar_notas/', response=NotasOut)

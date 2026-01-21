@@ -1,6 +1,5 @@
 from ninja import NinjaAPI, Router, Schema
-from integrador.suap2local_suap.brokers import Suap2LocalSuapBroker
-
+from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 
 class SincronizacaoIn(Schema):
     pass

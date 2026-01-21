@@ -14,7 +14,7 @@ from django_json_widget.widgets import JSONEditorWidget
 from import_export.resources import ModelResource
 from base.admin import BaseModelAdmin
 from integrador.models import Ambiente, Solicitacao
-from integrador.brokers import MoodleBroker
+from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 
 
 ####
@@ -156,7 +156,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
     def sync_moodle_view(self, request, object_id, form_url="", extra_context=None):
         s = get_object_or_404(Solicitacao, pk=object_id)
         try:
-            solicitacao = MoodleBroker().sync(s.recebido)
+            solicitacao = Suap2LocalSuapBroker(s.recebido).sync_up_enrolments()
             if solicitacao is None:
                 raise Exception("Erro desconhecido.")
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))

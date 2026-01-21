@@ -3,6 +3,7 @@ from sc4py.env import env_as_bool
 
 # Integrador
 MIDDLEWARE = [
+    "integrador.middleware.DisableCSRFForAPIMiddleware",  # Deve vir ANTES do CsrfViewMiddleware
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

@@ -7,7 +7,7 @@ WSGI_APPLICATION = env("DJANGO_WSGI_APPLICATION", "wsgi.application")
 # SECURE_PROXY_SSL_HEADER = env_as_list("DJANGO_SECURE_PROXY_SSL_HEADER", "")
 ROOT_URLCONF = env("DJANGO_ROOT_URLCONF", "urls")
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
-ROOT_URL_PATH = env("DJANGO_ROOT_URL_PATH", "api")
+ROOT_URL_PATH = env("DJANGO_ROOT_URL_PATH", "")
 STATIC_URL = env("DJANGO_STATIC_URL", f"/static/")
 STATIC_ROOT = env("DJANGO_STATIC_ROOT", "/app/static")
 MEDIA_URL = env("DJANGO_MEDIA_URL", f"/media/")

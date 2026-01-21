@@ -17,7 +17,7 @@ class Ambiente(Model):
                     if Rule(a.expressao_seletora).matches(sync_json):
                         return a
                 except Exception as e:
-                    raise Exception(f"Erro ao processar o ambiente {a}: {e}")
+                    raise Exception(f"Erro ao processar o ambiente {a} ({a.expressao_seletora}): {e} {sync_json}")
             return None
 
     def _c(color: str):
@@ -43,14 +43,6 @@ class Ambiente(Model):
     @property
     def base_url(self):
         return self.url if self.url[-1:] != "/" else self.url[:-1]
-
-    @property
-    def moodle_base_api_url(self):
-        return f"{self.base_url}/local/suap/api"
-
-    @property
-    def credentials(self):
-        return {"Authentication": f"Token {self.token}"}
 
     @property
     def valid_expressao_seletora(self):

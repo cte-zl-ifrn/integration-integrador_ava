@@ -5,7 +5,7 @@ from functools import wraps
 from django.http import HttpRequest, JsonResponse
 from django.conf import settings
 from integrador.models import Ambiente, Solicitacao
-from integrador.brokers import SyncError
+from integrador.utils import SyncError
 
 
 def json_response(func):
@@ -19,6 +19,10 @@ def detect_ambiente(func):
     def inner(request: HttpRequest, *args, **kwargs):
         request.json_recebido = getattr(request, "json_recebido", {"campus": {"sigla": request.GET.get("campus_sigla")}})
         request.ambiente = Ambiente.objects.seleciona_ambiente(request.json_recebido)
+
+        if getattr(request, "ambiente") is None:
+            raise SyncError(f"Não encontramos um Ambiente ativo para o campus {request.GET.get('campus_sigla')}", 404)
+
         return JsonResponse(func(request, *args, **kwargs), safe=False)
     return inner
 
@@ -132,25 +136,26 @@ def try_solicitacao(operacao: str):
                 )
 
             try:
-                ambiente = request.ambiente
                 campus_sigla = request.json_recebido.get("campus", {}).get("sigla", "-")
                 codigo_turma = request.json_recebido.get("turma", {}).get("codigo", "-")
                 sigla_componente = request.json_recebido.get("componente", {}).get("sigla", ".")
+                if request.GET.get('diario_id') is not None:
+                    request.json_recebido["diario"] = {"id": int(request.GET["diario_id"])}
                 id_diario = str(request.json_recebido.get("diario", {}).get("id", "#-"))
                 diario_codigo=f"{campus_sigla}:{codigo_turma}.{sigla_componente}#{id_diario}"
 
                 solicitacao = Solicitacao.objects.create(
-                    ambiente=ambiente,
+                    ambiente=request.ambiente,
                     campus_sigla=campus_sigla,
                     diario_id=id_diario,
                     diario_codigo=diario_codigo,
                     recebido=request.json_recebido, 
                     status=Solicitacao.Status.PROCESSANDO,
                     operacao=operacao,
-                    tipo=Solicitacao.Tipo.get(request.json_recebido.get("tipo_diario"), 'diario'),
+                    tipo=request.json_recebido.get("tipo_diario", 'diario'),
                 )
                 
-                if ambiente is None:
+                if request.ambiente is None:
                     raise SyncError("Ambiente não encontrado ou não ativo.", 404)
                 
                 request.solicitacao = solicitacao

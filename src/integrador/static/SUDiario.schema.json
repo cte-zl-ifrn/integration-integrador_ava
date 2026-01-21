@@ -89,6 +89,8 @@
                 "situacao_diario": {
                     "type": "string",
                     "enum": [
+                        "ativo",
+                        "inativo",
                         "Ativo",
                         "Inativo"
                     ]
@@ -212,6 +214,9 @@
                     "type": "string"
                 },
                 "sigla": {
+                    "type": "string"
+                },
+                "tipo": {
                     "type": "string"
                 }
             },
