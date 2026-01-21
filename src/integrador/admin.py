@@ -5,6 +5,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.html import format_html
+from django.utils.timezone import localtime
 from django.db import transaction
 from django.urls import path, reverse
 from django.db.models import JSONField
@@ -108,7 +109,10 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
     @display(description="Quando", ordering="timestamp")
     def quando(self, obj):
-        return obj.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    if obj.timestamp:
+        local = localtime(obj.timestamp)
+        return local.strftime("%Y-%m-%d %H:%M:%S")
+    return "-"
 
     @display(description="Professores", ordering="timestamp")
     def professores(self, obj):

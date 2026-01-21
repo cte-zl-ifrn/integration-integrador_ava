@@ -1,0 +1,48 @@
+{% load static %}
+
+{# Inclui os arquivos de Media do JSONEditorWidget #}
+{{ widget.json_widget_media }}
+
+<div class="rule-widget-container" data-field-id="{{ widget.field_id }}">
+    <div class="rule-widget-header">
+        <h3>Editor de Regras</h3>
+        <div class="rule-widget-actions">
+            <span class="auto-validation-hint">Validação automática ativa</span>
+            <button type="button" class="btn-validate" title="Validar agora (Ctrl+Enter)">
+                <svg width="16" height="16" fill="currentColor">
+                    <path d="M13.5 2l-7.5 7.5-3.5-3.5-2.5 2.5 6 6 10-10z"/>
+                </svg>
+                Validar Agora
+            </button>
+        </div>
+    </div>
+    
+    <div class="rule-widget-body">
+        <div class="rule-editor-section">
+            <textarea 
+                name="{{ widget.name }}" 
+                id="{{ widget.attrs.id }}"
+                class="rule-editor-textarea"
+                rows="2"
+                {% if widget.attrs.required %}required{% endif %}
+            >{{ widget.value|default:"" }}</textarea>
+        </div>
+        
+        <div class="example-data-section">
+            {{ widget.json_widget_html }}
+        </div>
+    </div>
+    
+    <div class="rule-widget-footer">
+        <div class="validation-result" style="display: none;">
+            <div class="result-header">
+                <strong>Resultado:</strong>
+                <button type="button" class="btn-close-result" title="Fechar">×</button>
+            </div>
+            <div class="result-content"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+</style>

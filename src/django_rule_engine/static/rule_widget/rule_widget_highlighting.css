@@ -1,0 +1,54 @@
+/**
+ * Estilos customizados para syntax highlighting do rule-engine
+ * Tema: Material
+ */
+
+/* Operadores com cor mais vibrante */
+.cm-s-material .cm-operator {
+    color: #89ddff !important;
+    font-weight: bold;
+}
+
+/* Strings com amarelo/laranja */
+.cm-s-material .cm-string {
+    color: #c3e88d !important;
+}
+
+/* Keywords em roxo/magenta */
+.cm-s-material .cm-keyword {
+    color: #c792ea !important;
+    font-weight: bold;
+}
+
+/* Números em laranja */
+.cm-s-material .cm-number {
+    color: #f78c6c !important;
+}
+
+/* Funções built-in em amarelo */
+.cm-s-material .cm-builtin {
+    color: #ffcb6b !important;
+}
+
+/* Variáveis */
+.cm-s-material .cm-variable {
+    color: #eeffff !important;
+}
+
+/* Propriedades (acesso a atributos) */
+.cm-s-material .cm-property {
+    color: #82aaff !important;
+}
+
+/* ERRO - operador inválido como '=' sozinho */
+.cm-s-material .cm-error {
+    color: #ff5370 !important;
+    background-color: rgba(255, 83, 112, 0.2) !important;
+    border-bottom: 2px wavy #ff5370 !important;
+    font-weight: bold;
+}
+
+/* Parênteses e colchetes */
+.cm-s-material .cm-bracket {
+    color: #89ddff !important;
+}

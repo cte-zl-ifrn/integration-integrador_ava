@@ -9,7 +9,7 @@ django-polymorphic==4.10.2
 # Rule engine
 jsonschema==4.26.0
 rule-engine==4.5.3
--e ../django_rule_engine
+# -e ../django_rule_engine
 
 # REST
 httpie==3.2.4
