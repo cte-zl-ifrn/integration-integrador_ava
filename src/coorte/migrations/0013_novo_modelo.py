@@ -5,51 +5,89 @@ from django.db import migrations
 
 def aplicar_novo_modelo(apps, schema_editor):
     # Percorre todas as coortes (CoorteCurso, CoortePolo, CoortePrograma) existentes e criar as correspondentes Cohort e Enrolment.
+    import re
+    
     CoorteCurso = apps.get_model('coorte', 'CoorteCurso')
     CoortePolo = apps.get_model('coorte', 'CoortePolo')
     CoortePrograma = apps.get_model('coorte', 'CoortePrograma')
     Cohort = apps.get_model('coorte', 'Cohort')
     Enrolment = apps.get_model('coorte', 'Enrolment')
     User = apps.get_model('auth', 'User')
-    for coorte_model in [CoorteCurso, CoortePolo, CoortePrograma]:
-        for coorte in coorte_model.objects.all():
-            print(coorte_model)
-            # Definir as regras conforme o tipo de coorte
-            if coorte_model == CoorteCurso:
-                regra_diario = f"curso.codigo == '{coorte.curso.codigo}'"
-                rule_coordenacao = regra_diario
-                descricao = f'{coorte.papel.sigla} do Curso "{coorte.curso.nome}"'
-            elif coorte_model == CoortePolo:
-                regra_diario = f"polo:{coorte.polo.id}"
-                rule_coordenacao = regra_diario
-                descricao = f'{coorte.papel.sigla} do Pólo "{coorte.polo.nome}"'
-            elif coorte_model == CoortePrograma:
-                regra_diario = f"programa:{coorte.programa.id}"
-                rule_coordenacao = regra_diario
-                descricao = f'{coorte.papel.sigla} do Programa "{coorte.programa.nome}"'
-            else:
-                continue  # Não deve ocorrer
-
-            print(regra_diario, rule_coordenacao, coorte.codigo, descricao)
-
-            # Criar a nova Cohort
-            cohort = Cohort.objects.create(
-                nome=coorte.codigo,
-                descricao=descricao,
-                data_inicio=coorte.data_inicio,
-                data_fim=coorte.data_fim,
-                regra_diario=regra_diario,
-                regra_coordenacao=rule_coordenacao,
-                visivel=coorte.visivel,
+    
+    # Processar CoorteCurso
+    for coorte in CoorteCurso.objects.all():
+        codigo = coorte.curso.codigo  # Campo real do banco
+        regra_diario = f"curso.codigo == '{codigo}'"
+        rule_coordenacao = regra_diario
+        descricao = f'{coorte.papel.sigla} do Curso "{coorte.curso.nome}"'
+        idnumber = f"ZL.{coorte.papel.sigla}.{codigo}"
+        
+        # Criar a nova Cohort
+        cohort = Cohort.objects.create(
+            name=idnumber,
+            idnumber=idnumber,
+            visible=True,
+            papel=coorte.papel,
+            rule_diario=regra_diario,
+            rule_coordenacao=rule_coordenacao,
+            description=descricao,
+        )
+        
+        # Migrar os vínculos para enrolments
+        for vinculo in coorte.vinculos.all():
+            Enrolment.objects.create(
+                cohort=cohort,
+                colaborador=vinculo.colaborador,
             )
-            # Migrar os vínculos para enrolments
-            vinculos = coorte.vinculo_set.all()
-            for vinculo in vinculos:
-                Enrolment.objects.create(
-                    cohort=cohort,
-                    colaborador=vinculo.colaborador,
-                    data_matricula=vinculo.data_vinculo,
-                )
+    
+    # Processar CoortePolo
+    for coorte in CoortePolo.objects.all():
+        # Polo usa nome com remoção de caracteres não-alfabéticos
+        codigo = re.sub(r"[^a-zA-Z]", "", coorte.polo.nome)
+        regra_diario = f"polo.id == {coorte.polo.id}"
+        rule_coordenacao = regra_diario
+        descricao = f'{coorte.papel.sigla} do Pólo "{coorte.polo.nome}"'
+        idnumber = f"ZL.{coorte.papel.sigla}.{codigo}"
+        
+        cohort = Cohort.objects.create(
+            name=idnumber,
+            idnumber=idnumber,
+            visible=True,
+            papel=coorte.papel,
+            rule_diario=regra_diario,
+            rule_coordenacao=rule_coordenacao,
+            description=descricao,
+        )
+        
+        for vinculo in coorte.vinculos.all():
+            Enrolment.objects.create(
+                cohort=cohort,
+                colaborador=vinculo.colaborador,
+            )
+    
+    # Processar CoortePrograma
+    for coorte in CoortePrograma.objects.all():
+        codigo = coorte.programa.sigla  # Campo real do banco
+        regra_diario = f"programa == '{coorte.programa.nome}'"
+        rule_coordenacao = regra_diario
+        descricao = f'{coorte.papel.sigla} do Programa "{coorte.programa.nome}"'
+        idnumber = f"ZL.{coorte.papel.sigla}.{codigo}"
+        
+        cohort = Cohort.objects.create(
+            name=idnumber,
+            idnumber=idnumber,
+            visible=True,
+            papel=coorte.papel,
+            rule_diario=regra_diario,
+            rule_coordenacao=rule_coordenacao,
+            description=descricao,
+        )
+        
+        for vinculo in coorte.vinculos.all():
+            Enrolment.objects.create(
+                cohort=cohort,
+                colaborador=vinculo.colaborador,
+            )
 
 
 def reverter_novo_modelo(apps, schema_editor):

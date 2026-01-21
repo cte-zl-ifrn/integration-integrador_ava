@@ -7,7 +7,7 @@ from import_export.resources import ModelResource
 from import_export.widgets import ManyToManyWidget
 from import_export.fields import Field
 from base.admin import BaseModelAdmin
-from coorte.models import Vinculo
+from coorte.models import Enrolment
 
 
 ####
@@ -22,10 +22,10 @@ site.unregister(User)
 # Inlines
 ####
 
-class VinculoInline(StackedInline):
-    model: Model = Vinculo
+class EnrolmentInline(StackedInline):
+    model: Model = Enrolment
     extra: int = 0
-    autocomplete_fields = ["coorte"]
+    autocomplete_fields = ["cohort"]
 
 
 ####
@@ -112,7 +112,7 @@ class UserAdmin(BaseModelAdmin):
     ]
     readonly_fields = ["date_joined", "last_login"]
     autocomplete_fields: list[str] = ['groups']
-    inlines = [VinculoInline]
+    inlines = [EnrolmentInline]
     resource_classes = [UserResource]
 
     @display

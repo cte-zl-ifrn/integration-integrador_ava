@@ -106,16 +106,6 @@ JSON_DE_EXEMPLO = {
 }
 
 
-
-def dados_vinculo(vinculo):
-    return {
-        "login": vinculo.colaborador.username,
-        "email": vinculo.colaborador.email,
-        "nome": vinculo.colaborador.get_full_name(),
-        "status": "Ativo" if vinculo.coorte.papel.active else "Inativo",
-    }
-
-
 class Papel(ActiveMixin, Model):
     class Contexto(Choices):
         CURSO = Choices.Value(_("Curso"), value="curso")
