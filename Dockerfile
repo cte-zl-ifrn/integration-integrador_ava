@@ -1,6 +1,6 @@
 ARG PYTHON_VERSION=3.14.2-slim-trixie
 
-FROM python:$PYTHON_VERSION AS production
+FROM python:$PYTHON_VERSION AS build
 
 ENV PYTHONUNBUFFERED=1
 
@@ -18,6 +18,17 @@ RUN    useradd -ms /usr/sbin/nologin app \
     && find /app -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.14/site-packages/ -type d -name "__pycache__" -exec rm -rf {} +
 
+
+#########################
+# Development build stage
+########################################################################
+FROM build AS development
+
+RUN pip install -r /app/requirements-dev.txt -r /app/requirements-lint.txt -r /app/requirements-build.txt \
+    && python manage.py show_urls \
+    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
+    && find /usr/local/lib/python3.14/site-packages/ -type d -name "__pycache__" -exec rm -rf {} +
+
 USER app
 EXPOSE 8000
 ENTRYPOINT [ "/app/src/django-entrypoint.sh" ]
@@ -26,14 +37,9 @@ CMD  ["gunicorn" ]
 
 
 #########################
-# Development build stage
+# Production build stage
 ########################################################################
-FROM production AS development
-
-RUN pip install -r /app/requirements-dev.txt -r /app/requirements-lint.txt -r /app/requirements-build.txt \
-    && python manage.py show_urls \
-    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
-    && find /usr/local/lib/python3.14/site-packages/ -type d -name "__pycache__" -exec rm -rf {} +
+FROM build AS production
 
 USER app
 EXPOSE 8000
