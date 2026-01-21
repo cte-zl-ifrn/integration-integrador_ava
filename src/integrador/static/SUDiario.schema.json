@@ -148,7 +148,10 @@
                     "type": "string"
                 },
                 "periodo": {
-                    "type": "null"
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
                 },
                 "tipo": {
                     "type": "integer"
