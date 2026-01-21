@@ -202,6 +202,19 @@ class Cohort(ActiveMixin, Model):
         return self.name
 
 
+class Enrolment(Model):
+    colaborador = ForeignKey(User, on_delete=PROTECT)
+    cohort = ForeignKey(Cohort, on_delete=PROTECT, related_name="enrolments")
+
+    class Meta:
+        verbose_name = _("vínculo")
+        verbose_name_plural = _("vínculos")
+        ordering = ["cohort", "colaborador"]
+
+    def __str__(self):
+        return f"{self.colaborador.username} ({self.colaborador.get_full_name()}) em {self.cohort}"
+
+
 class Coorte(PolymorphicModel):
     papel = ForeignKey(Papel, on_delete=PROTECT, related_name="coorte_papel")
 
@@ -211,7 +224,7 @@ class Coorte(PolymorphicModel):
         ordering = ["papel"]
 
     def __str__(self):
-        return f"CAMPUS.{self.papel.sigla}.{self.codigo}"
+        return f"ZL.{self.papel.sigla}.{self.codigo}"
 
     @property
     def codigo(self):
@@ -248,7 +261,7 @@ class CoorteCurso(Coorte):
     def __str__(self):
         if not self.pk:
             return f"CoorteCurso (sem pk)"
-        return f"CAMPUS.{self.papel.sigla}.{self.codigo}"
+        return f"ZL.{self.papel.sigla}.{self.codigo}"
 
 
 class CoortePolo(Coorte):

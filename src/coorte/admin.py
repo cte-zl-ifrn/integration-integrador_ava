@@ -7,7 +7,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 from base.admin import BasicModelAdmin, BaseModelAdmin
 from edu.models import Curso, Polo, Programa
-from coorte.models import Papel, Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma, Cohort
+from coorte.models import Enrolment, Papel, Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma, Cohort
 
 
 ####
@@ -16,6 +16,11 @@ from coorte.models import Papel, Vinculo, Coorte, CoorteCurso, CoortePolo, Coort
 
 class VinculoInline(StackedInline):
     model: Model = Vinculo
+    extra: int = 0
+    autocomplete_fields = ["colaborador"]
+
+class EnrolmentInline(StackedInline):
+    model: Model = Enrolment
     extra: int = 0
     autocomplete_fields = ["colaborador"]
 
@@ -29,7 +34,7 @@ class CoorteResource(ModelResource):
     vinculos = Field(column_name="vinculos")
 
     def dehydrate_vinculos(self, obj):
-        return "|".join(u.username for u in User.objects.filter(vinculo__coorte=obj).distinct())
+        return "|".join(u.username for u in User.objects.filter(enrolment__cohort=obj).distinct())
 
     def after_save_instance(self, instance, row, **kwargs):
         raw_vinculos = row.get("vinculos")
@@ -38,7 +43,7 @@ class CoorteResource(ModelResource):
 
         usernames = [v.strip() for v in raw_vinculos.split("|") if v.strip()]
         for user in User.objects.filter(username__in=usernames):
-            Vinculo.objects.get_or_create(coorte=instance, colaborador=user)
+            Enrolment.objects.get_or_create(cohort=instance, colaborador=user)
 
     def import_row(self, row, instance_loader, **kwargs):
         return super().import_row(row, instance_loader, **kwargs)
@@ -196,6 +201,7 @@ class CohortAdmin(BasicModelAdmin):
             'fields': ('description',)
         }),
     )
+    inlines = [EnrolmentInline]
     
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         """Garante que o RuleField use o widget correto."""
