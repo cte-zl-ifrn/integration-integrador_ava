@@ -20,6 +20,7 @@ from unittest.mock import patch, Mock, MagicMock, mock_open
 from http.client import HTTPException
 import json
 import io
+import logging
 
 from integrador.models import Ambiente, Solicitacao
 from integrador.apps import IntegradorConfig
@@ -45,6 +46,9 @@ from integrador.utils import (
 from integrador.middleware import DisableCSRFForAPIMiddleware
 from integrador.brokers.base import BaseBroker
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
+
+# Configura logging para WARNING durante testes (suprime DEBUG e INFO)
+logging.getLogger('integrador').setLevel(logging.WARNING)
 
 
 class IntegradorConfigTestCase(TestCase):
@@ -710,6 +714,9 @@ class MiddlewareTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
+        # Suprime logs durante testes
+        logging.getLogger('integrador').setLevel(logging.WARNING)
+        
         self.factory = RequestFactory()
         self.middleware = DisableCSRFForAPIMiddleware(lambda x: None)
 

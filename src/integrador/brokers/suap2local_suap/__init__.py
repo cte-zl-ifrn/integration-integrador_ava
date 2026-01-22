@@ -14,13 +14,14 @@ class Suap2LocalSuapBroker(BaseBroker):
 
 
     def __get_service_url(self, service: str) -> str:
-        print(f"{self.moodle_base_api_url}/index.php?{service}")
+        logger.debug(f"{self.moodle_base_api_url}/index.php?{service}")
         return f"{self.moodle_base_api_url}/index.php?{service}"
    
 
     def __get_json(self, service: str, **params: dict):
         querystring = "&".join([f"{k}={v}" for k, v in params.items() if v is not None]) if params is not None else ""
-        print(http_get_json(f"{self.__get_service_url(service)}&{querystring}", headers=self.credentials))
+        result = http_get_json(f"{self.__get_service_url(service)}&{querystring}", headers=self.credentials)
+        logger.debug(f"Response: {result}")
         return []
 
 

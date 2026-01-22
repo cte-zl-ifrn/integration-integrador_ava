@@ -25,7 +25,7 @@ class DisableCSRFForAPIMiddleware(MiddlewareMixin):
         
         for pattern in self.CSRF_EXEMPT_URLS:
             if pattern.match(path):
-                logger.info(f"CSRF exemption applied for path: {path}")
+                logger.debug(f"CSRF exemption applied for path: {path}")
                 setattr(request, '_dont_enforce_csrf_checks', True)
                 break
         

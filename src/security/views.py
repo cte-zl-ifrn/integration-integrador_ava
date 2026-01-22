@@ -19,6 +19,62 @@ logger = logging.getLogger(__name__)
 OAUTH = settings.OAUTH
 
 
+def _get_tokens(request):
+    if "code" not in request.GET:
+        raise Exception(_("O SUAP não informou o código de autenticação."))
+    response = requests.post(
+        OAUTH.get('TOKEN_URL', ""),
+        data={
+            "grant_type": "authorization_code",
+            "code": request.GET.get("code"),
+            "redirect_uri": f"http://{request.get_host()}/authenticate/",
+            "client_id": OAUTH["CLIENT_ID"],
+            "client_secret": OAUTH["CLIENT_SECRET"],
+        },
+    )
+    print("_get_tokens", response.text)
+    data = json.loads(response.text)
+    if data.get("error_description") == "Mismatching redirect URI.":
+        raise ValueError(
+            "O administrador do sistema configurou errado o 'Redirect uris' no SUAP-Login ou no OAUTH_REDIRECT_URI."
+        )
+    return data
+
+def _get_userinfo(request_data):
+    response = requests.get(
+        f"{OAUTH['USERINFO_URL']}?scope={request_data.get('scope')}",
+        headers={
+            "Authorization": f"Bearer {request_data.get('access_token')}",
+            "x-api-key": OAUTH["CLIENT_SECRET"],
+        },
+    )
+    print("_get_userinfo", response.text)
+    return json.loads(response.text)
+
+def _save_user(userinfo):
+    username = userinfo["identificacao"]
+    user = User.objects.filter(username=username).first()
+
+    defaults = {
+        "first_name": userinfo.get("primeiro_nome"),
+        "last_name": userinfo.get("ultimo_nome"),
+        "email": userinfo.get("email_preferencial") or userinfo.get("identificacao") + "@ifrn.edu.br",
+    }
+
+    if user is None:
+        is_superuser = User.objects.count() == 0
+        user = User.objects.create(
+            username=username,
+            is_superuser=is_superuser,
+            is_staff=is_superuser,
+            **defaults,
+        )
+    else:
+        user = User.objects.filter(username=username).first()
+        User.objects.filter(username=username).update(**defaults)
+    return user
+
+
 def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
@@ -32,61 +88,6 @@ def authenticate(request: HttpRequest) -> HttpResponse:
         return render(request, "security/not_authorized.html")
 
     try:
-
-        def _get_tokens(request):
-            if "code" not in request.GET:
-                raise Exception(_("O SUAP não informou o código de autenticação."))
-            response = requests.post(
-                OAUTH.get('TOKEN_URL', ""),
-                data={
-                    "grant_type": "authorization_code",
-                    "code": request.GET.get("code"),
-                    "redirect_uri": f"http://{request.get_host()}/authenticate/",
-                    "client_id": OAUTH["CLIENT_ID"],
-                    "client_secret": OAUTH["CLIENT_SECRET"],
-                },
-            )
-            print("_get_tokens", response.text)
-            data = json.loads(response.text)
-            if data.get("error_description") == "Mismatching redirect URI.":
-                raise ValueError(
-                    "O administrador do sistema configurou errado o 'Redirect uris' no SUAP-Login ou no OAUTH_REDIRECT_URI."
-                )
-            return data
-
-        def _get_userinfo(request_data):
-            response = requests.get(
-                f"{OAUTH['USERINFO_URL']}?scope={request_data.get('scope')}",
-                headers={
-                    "Authorization": f"Bearer {request_data.get('access_token')}",
-                    "x-api-key": OAUTH["CLIENT_SECRET"],
-                },
-            )
-            print("_get_userinfo", response.text)
-            return json.loads(response.text)
-
-        def _save_user(userinfo):
-            username = userinfo["identificacao"]
-            user = User.objects.filter(username=username).first()
-
-            defaults = {
-                "first_name": userinfo.get("primeiro_nome"),
-                "last_name": userinfo.get("ultimo_nome"),
-                "email": userinfo.get("email_preferencial") or userinfo.get("identificacao") + "@ifrn.edu.br",
-            }
-
-            if user is None:
-                is_superuser = User.objects.count() == 0
-                user = User.objects.create(
-                    username=username,
-                    is_superuser=is_superuser,
-                    is_staff=is_superuser,
-                    **defaults,
-                )
-            else:
-                user = User.objects.filter(username=username).first()
-                User.objects.filter(username=username).update(**defaults)
-            return user
 
         request_data = _get_tokens(request)
         userinfo = _get_userinfo(request_data)

@@ -28,12 +28,12 @@ if settings.DEBUG:
 else:
     urlpatterns += [
         re_path(
-            f"{settings.ROOT_URL_PATH}/media/(?P<path>.*)$",
+            f"{settings.ROOT_URL_PATH}media/(?P<path>.*)$",
             serve,
             {"document_root": settings.MEDIA_ROOT},
         ),
         re_path(
-            f"{settings.ROOT_URL_PATH}/static/(?P<path>.*)$",
+            f"{settings.ROOT_URL_PATH}static/(?P<path>.*)$",
             serve,
             {"document_root": settings.STATIC_ROOT},
         ),
