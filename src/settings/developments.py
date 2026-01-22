@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 from sc4py.env import env_as_bool, env_as_list
 from .apps import INSTALLED_APPS
 from .middlewares import MIDDLEWARE
@@ -6,12 +7,18 @@ from .middlewares import MIDDLEWARE
 DEBUG = env_as_bool("DJANGO_DEBUG", True)
 DEBUG_URLPATTERNS = []
 
-if DEBUG:
+# Check if running tests
+IS_RUNNING_TESTS = 'test' in sys.argv
+
+if DEBUG and not IS_RUNNING_TESTS:
     try:
         import debug_toolbar
         MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
         INSTALLED_APPS += env_as_list("DEV_APPS", ["debug_toolbar"])
-        DEBUG_TOOLBAR_CONFIG = {"SHOW_TOOLBAR_CALLBACK": lambda request: request.get_host() in ["manager"]}
+        DEBUG_TOOLBAR_CONFIG = {
+            "SHOW_TOOLBAR_CALLBACK": lambda request: request.get_host() in ["manager"],
+            "IS_RUNNING_TESTS": False
+        }
         
         # https://github.com/unbit/django-uwsgi
         # https://github.com/giginet/django-debug-toolbar-vcs-info

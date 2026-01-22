@@ -22,7 +22,6 @@ class DisableCSRFForAPIMiddleware(MiddlewareMixin):
         Marca a requisição como isenta de CSRF se a URL corresponder aos padrões.
         """
         path = request.path_info.lstrip('/')
-        logger.info(f"DisableCSRFForAPIMiddleware checking path: {path}")
         
         for pattern in self.CSRF_EXEMPT_URLS:
             if pattern.match(path):
