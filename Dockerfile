@@ -4,19 +4,8 @@ FROM python:$PYTHON_VERSION AS build
 
 ENV PYTHONUNBUFFERED=1
 
-COPY . /app
-WORKDIR /app/src
-RUN    useradd -ms /usr/sbin/nologin app \
-    && apt update -y  \
-    && apt install -y curl \
-    && pip install -r /app/requirements.txt  -r /app/requirements-build.txt \
-    && mkdir -p /app/static \
-    && python manage.py compilescss \
-    && python manage.py collectstatic --noinput \
-    && ls -l /app/static \
-    && pip uninstall -y  -r /app/requirements-build.txt \
-    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
-    && find /usr/local/lib/python3.14/site-packages/ -type d -name "__pycache__" -exec rm -rf {} +
+COPY requirements.txt requirements-build.txt /
+RUN pip install -r /requirements.txt  -r /requirements-build.txt
 
 
 #########################
@@ -24,22 +13,32 @@ RUN    useradd -ms /usr/sbin/nologin app \
 ########################################################################
 FROM build AS development
 
-RUN pip install -r /app/requirements-dev.txt -r /app/requirements-lint.txt -r /app/requirements-build.txt \
-    && python manage.py show_urls \
-    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
-    && find /usr/local/lib/python3.14/site-packages/ -type d -name "__pycache__" -exec rm -rf {} +
+COPY requirements-dev.txt requirements-lint.txt /
+COPY src/dsgovbr /app/src/dsgovbr
+RUN useradd -ms /usr/sbin/nologin app \
+    && pip install -r /requirements-dev.txt -r /requirements-lint.txt
 
 USER app
 EXPOSE 8000
 ENTRYPOINT [ "/app/src/django-entrypoint.sh" ]
 WORKDIR /app/src
-CMD  ["gunicorn" ]
+CMD  ["gunicorn"]
 
 
 #########################
 # Production build stage
 ########################################################################
 FROM build AS production
+
+COPY src /app/src
+WORKDIR /app/src
+RUN    useradd -ms /usr/sbin/nologin app \
+    && mkdir -p /app/static \
+    && python manage.py compilescss \
+    && python manage.py collectstatic --noinput \
+    && ls -l /app/static \
+    && find /app -type d -name "__pycache__" -exec rm -rf {} + \
+    && find /usr/local/lib/python3.14/site-packages/ -type d -name "__pycache__" -exec rm -rf {} +
 
 USER app
 EXPOSE 8000

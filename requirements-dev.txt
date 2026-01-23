@@ -1,4 +1,5 @@
 # -e ../django-adminlte3
+# -e /app/src/dsgovbr
 types-libsass
 black
 debugpy

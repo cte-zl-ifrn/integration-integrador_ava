@@ -76,7 +76,7 @@ class UserAdmin(BaseModelAdmin):
             skip_unchanged = True
 
     list_display = ["username", "first_name", "last_name", "email", "auth"]
-    list_filter = ["is_superuser", "is_active", "is_staff", "groups__name"]
+    list_filter = ["is_superuser", "is_active", "is_staff"]
     search_fields = ["first_name", "last_name", "username", "email"]
     fieldsets = [
         (

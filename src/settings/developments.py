@@ -15,9 +15,16 @@ if DEBUG and not IS_RUNNING_TESTS:
         import debug_toolbar
         MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
         INSTALLED_APPS += env_as_list("DEV_APPS", ["debug_toolbar"])
+        INTERNAL_IPS = ["127.0.0.1", "localhost"]
         DEBUG_TOOLBAR_CONFIG = {
-            "SHOW_TOOLBAR_CALLBACK": lambda request: request.get_host() in ["manager"],
-            "IS_RUNNING_TESTS": False
+            "SHOW_TOOLBAR_CALLBACK": lambda request: True,
+            "IS_RUNNING_TESTS": False,
+            "DISABLE_PANELS": {
+                "debug_toolbar.panels.history.HistoryPanel",
+                "debug_toolbar.panels.versions.VersionsPanel",
+                'debug_toolbar.panels.redirects.RedirectsPanel',
+            },
+            "SHOW_COLLAPSED": True,
         }
         
         # https://github.com/unbit/django-uwsgi

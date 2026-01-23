@@ -8,7 +8,17 @@ from django.views.static import serve
 admin.site.site_title = f"Integrador AVA (v{settings.APP_VERSION})"
 admin.site.site_header = admin.site.site_title
 
-urlpatterns = [
+urlpatterns = []
+
+# Debug toolbar deve vir PRIMEIRO em modo DEBUG
+if settings.DEBUG:
+    try:
+        import debug_toolbar
+        urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
+    except ModuleNotFoundError:
+        pass
+
+urlpatterns += [
     path("api/", include("django_rule_engine.api.urls")),  # API precisa vir ANTES do admin
     path("", include("integrador.urls")),  # URLs do integrador ANTES do admin
     path("", include("health.urls")),
@@ -19,12 +29,6 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    try:
-        import debug_toolbar
-
-        urlpatterns.append(path(f"/__debug__/", include(debug_toolbar.urls)))
-    except ModuleNotFoundError:
-        pass
 else:
     urlpatterns += [
         re_path(
