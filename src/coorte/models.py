@@ -166,7 +166,7 @@ class Papel(ActiveMixin, Model):
 class Cohort(ActiveMixin, Model):
     name = CharField(_("nome da coorte"), max_length=2560, unique=True)
     idnumber = CharField(_("idnumber"), max_length=2560, unique=True)
-    visible = BooleanField(_("visível"), default=True)
+    active = BooleanField(_("visível"), default=True)
     papel = ForeignKey(Papel, on_delete=PROTECT, related_name="cohort_papel")
     rule_diario = RuleField(
         _("regra de validação para diário"),

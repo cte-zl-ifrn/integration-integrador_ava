@@ -186,12 +186,12 @@ class PapelAdmin(BaseModelAdmin):
 
 @register(Cohort)
 class CohortAdmin(BasicModelAdmin):
-    list_display = ["name", "idnumber", "rule_diario", "rule_coordenacao", "visible"]
+    list_display = ["name", "idnumber", "rule_diario", "rule_coordenacao", "active"]
     search_fields = ["name", "idnumber"]
-    list_filter = ["visible"]
+    list_filter = ["active"]
     fieldsets = (
         (_("Informações Básicas"), {
-            'fields': (('name', 'idnumber', 'visible'), 'papel')
+            'fields': (('name', 'idnumber', 'active'), 'papel')
         }),
         (_("Regras de Validação"), {
             'fields': ("rule_diario", "rule_coordenacao",),

@@ -12,10 +12,6 @@ SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)
 
 THIRD_APPS = env_as_list("THIRD_APPS", ["import_export", "simple_history", "sass_processor", "django_json_widget", "django_extensions", "django_rule_engine"])
 DJANGO_APPS = [f"django.contrib.{x}" for x in ["admin", "auth", "contenttypes", "sessions", "messages", "staticfiles", "humanize"]]
-MY_APPS = env_as_list("MY_APPS", ["base", "coorte", "edu", "health", "integrador", "security", "dsgovbr"])
-try:
-    import dsgovbr
-except ImportError:
-    MY_APPS.remove("dsgovbr")
+MY_APPS = env_as_list("MY_APPS", ["coorte", "edu", "health", "integrador", "security", "dashboard", "base", "dsgovbr"])
 HACK_APPS = env_as_list("HACK_APPS", ["hacks"])
 INSTALLED_APPS = MY_APPS + THIRD_APPS + DJANGO_APPS + HACK_APPS

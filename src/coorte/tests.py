@@ -173,7 +173,7 @@ class CohortModelTestCase(TestCase):
         self.cohort = Cohort.objects.create(
             name="Test Cohort",
             idnumber="TEST001",
-            visible=True,
+            active=True,
             papel=self.papel
         )
 
@@ -182,7 +182,7 @@ class CohortModelTestCase(TestCase):
         cohort = Cohort.objects.create(
             name="New Cohort",
             idnumber="NEW001",
-            visible=True,
+            active=True,
             papel=self.papel
         )
         
@@ -212,15 +212,15 @@ class CohortModelTestCase(TestCase):
                 papel=self.papel
             )
 
-    def test_cohort_visible_field(self):
-        """Testa campo visible."""
-        self.assertTrue(self.cohort.visible)
+    def test_cohort_active_field(self):
+        """Testa campo active."""
+        self.assertTrue(self.cohort.active)
         
-        self.cohort.visible = False
+        self.cohort.active = False
         self.cohort.save()
         
         cohort = Cohort.objects.get(pk=self.cohort.pk)
-        self.assertFalse(cohort.visible)
+        self.assertFalse(cohort.active)
 
     def test_cohort_rule_diario_field(self):
         """Testa campo rule_diario (RuleField)."""
@@ -825,7 +825,7 @@ class CohortAdminTestCase(TestCase):
 
     def test_cohort_admin_list_display(self):
         """Testa configuração de list_display."""
-        expected = ["name", "idnumber", "rule_diario", "rule_coordenacao", "visible"]
+        expected = ["name", "idnumber", "rule_diario", "rule_coordenacao", "active"]
         self.assertEqual(self.cohort_admin.list_display, expected)
 
     def test_cohort_admin_search_fields(self):
@@ -835,7 +835,7 @@ class CohortAdminTestCase(TestCase):
 
     def test_cohort_admin_list_filter(self):
         """Testa configuração de list_filter."""
-        self.assertIn("visible", self.cohort_admin.list_filter)
+        self.assertIn("active", self.cohort_admin.list_filter)
 
     def test_cohort_admin_fieldsets(self):
         """Testa configuração de fieldsets."""
