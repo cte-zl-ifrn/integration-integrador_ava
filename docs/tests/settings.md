@@ -3,7 +3,7 @@
 Cobertura:
 
 1. SettingsAppsTestCase - Configuração de apps
-   - ✅ APP_LABEL, APP_VERSION, APP_LAST_STARTUP
+   - ✅ PROJECT_LABEL, PROJECT_VERSION, PROJECT_LAST_STARTUP
    - ✅ INSTALLED_APPS (Django, custom, terceiros)
    - ✅ SHOW_SUPPORT_FORM, SHOW_SUPPORT_CHAT
 2. SettingsDatabasesTestCase - Banco de dados

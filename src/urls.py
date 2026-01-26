@@ -5,7 +5,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
 
-admin.site.site_title = f"Integrador AVA (v{settings.APP_VERSION})"
+admin.site.site_title = f"{settings.PROJECT_TITLE} (v{settings.PROJECT_VERSION})"
+admin.site.index_title = settings.PROJECT_TITLE
 admin.site.site_header = admin.site.site_title
 
 urlpatterns = []

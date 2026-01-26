@@ -184,8 +184,8 @@ class Cohort(ActiveMixin, Model):
     description = TextField(_("Descrição"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("cohort")
-        verbose_name_plural = _("cohorts")
+        verbose_name = _("coorte")
+        verbose_name_plural = _("coortes")
         ordering = ["name"]
 
     def __str__(self):

@@ -19,25 +19,25 @@ import os
 class SettingsAppsTestCase(TestCase):
     """Testes para settings/apps.py."""
 
-    def test_app_label_is_defined(self):
-        """Testa se APP_LABEL está definido."""
-        from settings.apps import APP_LABEL
-        self.assertIsNotNone(APP_LABEL)
-        self.assertIsInstance(APP_LABEL, str)
-        self.assertEqual(APP_LABEL, "Integrador AVA")
+    def test_project_title_is_defined(self):
+        """Testa se PROJECT_TITLE está definido."""
+        from settings.apps import PROJECT_TITLE
+        self.assertIsNotNone(PROJECT_TITLE)
+        self.assertIsInstance(PROJECT_TITLE, str)
+        self.assertEqual(PROJECT_TITLE, "Integrador AVA")
 
-    def test_app_version_is_defined(self):
-        """Testa se APP_VERSION está definido."""
-        from settings.apps import APP_VERSION
-        self.assertIsNotNone(APP_VERSION)
-        self.assertIsInstance(APP_VERSION, str)
-        self.assertRegex(APP_VERSION, r'^\d+\.\d+\.\d+$')
+    def test_project_version_is_defined(self):
+        """Testa se PROJECT_VERSION está definido."""
+        from settings.apps import PROJECT_VERSION
+        self.assertIsNotNone(PROJECT_VERSION)
+        self.assertIsInstance(PROJECT_VERSION, str)
+        self.assertRegex(PROJECT_VERSION, r'^\d+\.\d+\.\d+$')
 
-    def test_app_last_startup_is_timestamp(self):
-        """Testa se APP_LAST_STARTUP é um timestamp válido."""
-        from settings.apps import APP_LAST_STARTUP
-        self.assertIsInstance(APP_LAST_STARTUP, int)
-        self.assertGreater(APP_LAST_STARTUP, 0)
+    def test_project_last_startup_is_timestamp(self):
+        """Testa se PROJECT_LAST_STARTUP é um timestamp válido."""
+        from settings.apps import PROJECT_LAST_STARTUP
+        self.assertIsInstance(PROJECT_LAST_STARTUP, int)
+        self.assertGreater(PROJECT_LAST_STARTUP, 0)
 
     def test_installed_apps_contains_django_apps(self):
         """Testa se INSTALLED_APPS contém apps Django."""
