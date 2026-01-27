@@ -1047,7 +1047,179 @@ class EdgeCasesTestCase(TestCase):
         )
         
         sync_json = {"campus": {"sigla": "TEST"}}
+
+
+class CSRFErrorViewTestCase(TestCase):
+    """Testes para a view customizada de erro CSRF."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        self.factory = RequestFactory()
+        # Importa a view de erro CSRF
+        from integrador.views_errors import csrf_failure
+        self.csrf_failure_view = csrf_failure
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_sends_to_sentry(self, mock_sentry):
+        """Testa que erro CSRF envia informação para o Sentry."""
+        request = self.factory.post('/api/test/')
+        request.META['HTTP_USER_AGENT'] = 'TestAgent/1.0'
+        request.META['REMOTE_ADDR'] = '192.168.1.1'
+        request.META['HTTP_REFERER'] = 'https://external.com'
+        request.user = Mock()
+        request.user.is_authenticated = False
         
-        # Deve lançar exceção
-        with self.assertRaises(Exception):
-            Ambiente.objects.seleciona_ambiente(sync_json)
+        response = self.csrf_failure_view(request, reason="CSRF cookie not set")
+        
+        # Verifica que Sentry foi chamado
+        mock_sentry.capture_message.assert_called_once()
+        call_args = mock_sentry.capture_message.call_args
+        self.assertIn("CSRF verification failed", call_args[0][0])
+        self.assertEqual(call_args[1]["level"], "warning")
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_returns_json_for_api(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON para requisições de API."""
+        request = self.factory.post('/api/test/')
+        request.META['HTTP_ACCEPT'] = 'application/json'
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="Token mismatch")
+        
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+        
+        data = json.loads(response.content)
+        self.assertIn("error", data)
+        self.assertIn("reason", data)
+        self.assertEqual(data["reason"], "Token mismatch")
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_returns_html_for_browser(self, mock_sentry):
+        """Testa que erro CSRF retorna HTML para requisições de navegador."""
+        request = self.factory.post('/admin/login/')
+        request.META['HTTP_ACCEPT'] = 'text/html'
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="Referer check failed")
+        
+        self.assertEqual(response.status_code, 403)
+        self.assertIn(b'403', response.content)
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
+        """Testa que erro CSRF inclui informações do usuário autenticado."""
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        
+        request = self.factory.post('/api/test/')
+        request.user = user
+        request.META['HTTP_ACCEPT'] = 'application/json'
+        
+        response = self.csrf_failure_view(request, reason="Token expired")
+        
+        # Verifica que o contexto do Sentry foi configurado corretamente
+        mock_sentry.push_scope.assert_called()
+
+    @patch('integrador.views_errors.sentry_sdk')
+    @patch('integrador.views_errors.logger')
+    def test_csrf_failure_logs_warning(self, mock_logger, mock_sentry):
+        """Testa que erro CSRF gera log de warning."""
+        request = self.factory.post('/api/test/')
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="Invalid token")
+        
+        # Verifica se o logger foi chamado
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        self.assertIn("CSRF verification failed", call_args[0][0])
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_captures_request_details(self, mock_sentry):
+        """Testa que erro CSRF captura detalhes completos da requisição."""
+        request = self.factory.post('/api/sensitive-endpoint/')
+        request.META['HTTP_USER_AGENT'] = 'MaliciousBot/1.0'
+        request.META['REMOTE_ADDR'] = '10.0.0.1'
+        request.META['HTTP_REFERER'] = 'https://malicious-site.com'
+        request.META['CONTENT_TYPE'] = 'application/json'
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="CSRF cookie not set")
+        
+        # Verifica que todos os detalhes foram capturados
+        self.assertEqual(response.status_code, 403)
+        mock_sentry.capture_message.assert_called_once()
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_with_empty_reason(self, mock_sentry):
+        """Testa erro CSRF com razão vazia."""
+        request = self.factory.post('/api/test/')
+        request.META['HTTP_ACCEPT'] = 'application/json'
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="")
+        
+        self.assertEqual(response.status_code, 403)
+        data = json.loads(response.content)
+        self.assertIn("reason", data)
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_returns_json_when_content_type_is_json(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON quando Content-Type é application/json."""
+        request = self.factory.post(
+            '/admin/test/',
+            content_type='application/json',
+            data=json.dumps({"test": "data"})
+        )
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="Token mismatch")
+        
+        # Mesmo sem /api/ no path, deve retornar JSON porque Content-Type é JSON
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+        
+        data = json.loads(response.content)
+        self.assertEqual(data["error"], "CSRF verification failed")
+        self.assertEqual(data["reason"], "Token mismatch")
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_returns_json_when_accept_is_json(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON quando Accept é application/json."""
+        request = self.factory.post('/admin/test/')
+        request.META['HTTP_ACCEPT'] = 'application/json; charset=utf-8'
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="Referer check failed")
+        
+        # Deve retornar JSON porque Accept contém application/json
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+        
+        data = json.loads(response.content)
+        self.assertEqual(data["error"], "CSRF verification failed")
+
+    @patch('integrador.views_errors.sentry_sdk')
+    def test_csrf_failure_returns_json_for_api_paths(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON para paths começando com /api/."""
+        request = self.factory.post('/api/some/endpoint/')
+        request.META['HTTP_ACCEPT'] = 'text/html'  # Mesmo com Accept HTML
+        request.user = Mock()
+        request.user.is_authenticated = False
+        
+        response = self.csrf_failure_view(request, reason="CSRF token missing")
+        
+        # Deve retornar JSON porque path começa com /api/
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)

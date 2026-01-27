@@ -266,8 +266,8 @@ class CohortModelTestCase(TestCase):
 
     def test_cohort_verbose_names(self):
         """Testa verbose_name e verbose_name_plural."""
-        self.assertEqual(Cohort._meta.verbose_name, "cohort")
-        self.assertEqual(Cohort._meta.verbose_name_plural, "cohorts")
+        self.assertEqual(Cohort._meta.verbose_name, "coorte")
+        self.assertEqual(Cohort._meta.verbose_name_plural, "coortes")
 
 
 class EnrolmentModelTestCase(TestCase):
