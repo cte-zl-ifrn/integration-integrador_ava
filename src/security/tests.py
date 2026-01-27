@@ -629,3 +629,236 @@ class EdgeCasesTestCase(TestCase):
         
         # Deve funcionar mesmo sem usuário
         self.assertEqual(response.status_code, 302)
+
+
+class GetTokensTestCase(TestCase):
+    """Testes para a função _get_tokens."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        self.factory = RequestFactory()
+
+    @patch('security.views.requests.post')
+    @override_settings(OAUTH={
+        'CLIENT_ID': 'test_client',
+        'CLIENT_SECRET': 'test_secret',
+        'TOKEN_URL': 'https://suap.test.com/o/token/'
+    })
+    def test_get_tokens_success(self, mock_post):
+        """Testa obtenção bem-sucedida de tokens."""
+        from security.views import _get_tokens
+        
+        mock_post.return_value = Mock(text=json.dumps({
+            'access_token': 'test_access_token',
+            'refresh_token': 'test_refresh_token',
+            'token_type': 'Bearer',
+            'scope': 'read write'
+        }))
+        
+        request = self.factory.get('/authenticate/?code=authorization_code_123')
+        request.META['HTTP_HOST'] = 'localhost:8000'
+        
+        tokens = _get_tokens(request)
+        
+        self.assertEqual(tokens['access_token'], 'test_access_token')
+        self.assertEqual(tokens['token_type'], 'Bearer')
+        mock_post.assert_called_once()
+
+    @override_settings(OAUTH={
+        'CLIENT_ID': 'test_client',
+        'CLIENT_SECRET': 'test_secret',
+        'TOKEN_URL': 'https://suap.test.com/o/token/'
+    })
+    def test_get_tokens_missing_code(self):
+        """Testa erro quando código não é fornecido."""
+        from security.views import _get_tokens
+        
+        request = self.factory.get('/authenticate/')
+        
+        with self.assertRaises(Exception) as context:
+            _get_tokens(request)
+        
+        self.assertIn('código', str(context.exception))
+
+    @patch('security.views.requests.post')
+    @override_settings(OAUTH={
+        'CLIENT_ID': 'test_client',
+        'CLIENT_SECRET': 'test_secret',
+        'TOKEN_URL': 'https://suap.test.com/o/token/'
+    })
+    def test_get_tokens_mismatching_redirect_uri(self, mock_post):
+        """Testa erro quando redirect URI não corresponde."""
+        from security.views import _get_tokens
+        
+        mock_post.return_value = Mock(text=json.dumps({
+            'error_description': 'Mismatching redirect URI.'
+        }))
+        
+        request = self.factory.get('/authenticate/?code=test_code')
+        request.META['HTTP_HOST'] = 'localhost:8000'
+        
+        with self.assertRaises(ValueError) as context:
+            _get_tokens(request)
+        
+        self.assertIn('Redirect', str(context.exception))
+
+
+class GetUserinfoTestCase(TestCase):
+    """Testes para a função _get_userinfo."""
+
+    @patch('security.views.requests.get')
+    @override_settings(OAUTH={
+        'CLIENT_SECRET': 'test_secret',
+        'USERINFO_URL': 'https://suap.test.com/api/v1/user'
+    })
+    def test_get_userinfo_success(self, mock_get):
+        """Testa obtenção bem-sucedida de informações do usuário."""
+        from security.views import _get_userinfo
+        
+        mock_get.return_value = Mock(text=json.dumps({
+            'identificacao': 'testuser123',
+            'primeiro_nome': 'Test',
+            'ultimo_nome': 'User',
+            'email_preferencial': 'test@example.com'
+        }))
+        
+        request_data = {
+            'access_token': 'valid_access_token',
+            'scope': 'read'
+        }
+        
+        userinfo = _get_userinfo(request_data)
+        
+        self.assertEqual(userinfo['identificacao'], 'testuser123')
+        self.assertEqual(userinfo['email_preferencial'], 'test@example.com')
+        mock_get.assert_called_once()
+
+    @patch('security.views.requests.get')
+    @override_settings(OAUTH={
+        'CLIENT_SECRET': 'test_secret',
+        'USERINFO_URL': 'https://suap.test.com/api/v1/user'
+    })
+    def test_get_userinfo_with_all_fields(self, mock_get):
+        """Testa obtenção de userinfo com todos os campos."""
+        from security.views import _get_userinfo
+        
+        mock_get.return_value = Mock(text=json.dumps({
+            'identificacao': 'fulluser',
+            'primeiro_nome': 'Full',
+            'ultimo_nome': 'Name User',
+            'email_preferencial': 'full@example.com'
+        }))
+        
+        request_data = {'access_token': 'token', 'scope': 'read write'}
+        
+        userinfo = _get_userinfo(request_data)
+        
+        self.assertIn('identificacao', userinfo)
+        self.assertIn('primeiro_nome', userinfo)
+        self.assertIn('ultimo_nome', userinfo)
+
+
+class SaveUserTestCase(TestCase):
+    """Testes para a função _save_user."""
+
+    def test_save_user_creates_new_user(self):
+        """Testa criação de novo usuário."""
+        from security.views import _save_user
+        
+        # Garante que há pelo menos um usuário (para não ser superuser)
+        User.objects.create_user(username='existing')
+        
+        userinfo = {
+            'identificacao': 'newuser',
+            'primeiro_nome': 'New',
+            'ultimo_nome': 'User',
+            'email_preferencial': 'new@example.com'
+        }
+        
+        user = _save_user(userinfo)
+        
+        self.assertIsNotNone(user.pk)
+        self.assertEqual(user.username, 'newuser')
+        self.assertEqual(user.first_name, 'New')
+        self.assertEqual(user.last_name, 'User')
+        self.assertEqual(user.email, 'new@example.com')
+        self.assertFalse(user.is_superuser)
+
+    def test_save_user_first_user_is_superuser(self):
+        """Testa se primeiro usuário é superuser."""
+        from security.views import _save_user
+        
+        # Remove todos os usuários
+        User.objects.all().delete()
+        
+        userinfo = {
+            'identificacao': 'firstuser',
+            'primeiro_nome': 'First',
+            'ultimo_nome': 'User',
+            'email_preferencial': 'first@example.com'
+        }
+        
+        user = _save_user(userinfo)
+        
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+
+    def test_save_user_updates_existing_user(self):
+        """Testa atualização de usuário existente."""
+        from security.views import _save_user
+        
+        # Cria usuário existente
+        existing_user = User.objects.create_user(
+            username='existinguser',
+            first_name='Old',
+            last_name='Name',
+            email='old@example.com'
+        )
+        
+        userinfo = {
+            'identificacao': 'existinguser',
+            'primeiro_nome': 'Updated',
+            'ultimo_nome': 'NewName',
+            'email_preferencial': 'updated@example.com'
+        }
+        
+        user = _save_user(userinfo)
+        
+        # Recarrega do banco
+        user = User.objects.get(username='existinguser')
+        self.assertEqual(user.first_name, 'Updated')
+        self.assertEqual(user.last_name, 'NewName')
+        self.assertEqual(user.email, 'updated@example.com')
+
+    def test_save_user_uses_default_email(self):
+        """Testa uso de email padrão quando preferencial não existe."""
+        from security.views import _save_user
+        
+        User.objects.create_user(username='existing')  # Para não ser superuser
+        
+        userinfo = {
+            'identificacao': 'noemailuser',
+            'primeiro_nome': 'No',
+            'ultimo_nome': 'Email'
+        }
+        
+        user = _save_user(userinfo)
+        
+        self.assertEqual(user.email, 'noemailuser@ifrn.edu.br')
+
+    def test_save_user_with_empty_email_preferencial(self):
+        """Testa quando email_preferencial está vazio."""
+        from security.views import _save_user
+        
+        User.objects.create_user(username='existing')
+        
+        userinfo = {
+            'identificacao': 'emptyemail',
+            'primeiro_nome': 'Empty',
+            'ultimo_nome': 'Email',
+            'email_preferencial': ''
+        }
+        
+        user = _save_user(userinfo)
+        
+        self.assertEqual(user.email, 'emptyemail@ifrn.edu.br')
