@@ -130,7 +130,7 @@ class BasicModelAdmin(ModelAdmin):
 
         context.update(extra_context or {})
 
-        return self.render_change_form(request, context, add=False, change=True, obj=obj, form_url=form_url)
+        return self.render_change_form(request, context, add=False, change=False, obj=obj, form_url=form_url)
 
     def get_inline_formsets(self, request, formsets, inline_instances, obj=None):
         # Edit permissions on parent model are required for editable inlines.
