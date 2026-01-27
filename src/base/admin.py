@@ -1,5 +1,6 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
+from django.utils.text import capfirst
 from django.urls import path, reverse
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.exceptions import NotRegistered
@@ -19,6 +20,41 @@ DEFAULT_DATETIME_FORMAT_WIDGET = DateTimeWidget(format=DEFAULT_DATETIME_FORMAT)
 
 
 class BaseChangeList(ChangeList):
+    def __init__(
+            self,
+            request,
+            model,
+            list_display,
+            list_display_links,
+            list_filter,
+            date_hierarchy,
+            search_fields,
+            list_select_related,
+            list_per_page,
+            list_max_show_all,
+            list_editable,
+            model_admin,
+            sortable_by,
+            search_help_text,
+        ):
+        super().__init__(
+            request,
+            model,
+            list_display,
+            list_display_links,
+            list_filter,
+            date_hierarchy,
+            search_fields,
+            list_select_related,
+            list_per_page,
+            list_max_show_all,
+            list_editable,
+            model_admin,
+            sortable_by,
+            search_help_text,
+        )
+        self.title = str(capfirst(model_admin.opts.verbose_name_plural))
+
     def url_for_result(self, result):
         pk = getattr(result, self.pk_attname)
         return reverse(
@@ -92,10 +128,9 @@ class BasicModelAdmin(ModelAdmin):
         can_change_related = wrapper_kwargs.get('can_change_related', False)
         can_view_related = wrapper_kwargs.get('can_view_related', False)
 
-
         context = {
             **self.admin_site.each_context(request),
-            "title": _("View %s") % self.opts.verbose_name,
+            "title": str(capfirst(self.opts.verbose_name_plural)),
             "subtitle": str(obj) if obj else None,
             "adminform": admin_form,
             "object_id": object_id,

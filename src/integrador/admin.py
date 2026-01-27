@@ -44,23 +44,23 @@ class AmbienteAdmin(BaseModelAdmin):
 
     @display(description="URL")
     def checked_url(self, obj):
+        validation_error = f'<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>'
+        validation_success = f'<span title="A URL deste AVA foi validada com sucesso."> ✅</span>'
         try:
             response = requests.get(f'{obj.url}/version.php', timeout=1)
-            if response.status_code == 200:
-                return format_html(f'<a href="{obj.url}">{obj.url}</a> ✅')
-            else:
-                return format_html(f'<a href="{obj.url}">{obj.url}</a> 🚫 ({response.status_code})')
+            message = validation_success if response.status_code == 200 else validation_error
         except Exception:
-            return format_html(f'<a href="{obj.url}">{obj.url}</a> 🚫')
+            message = validation_error
+        return format_html(f'<a href="{obj.url}">{obj.url}</a>{message}')
 
     @display(description="URL")
     def checked_expressao_seletora(self, obj):
         if obj.expressao_seletora is None or obj.expressao_seletora.strip() == "":
             return format_html('<span style="color: orange;">Não configurada ⚠️</span>')
         elif obj.valid_expressao_seletora:
-            return format_html(f'<code>{obj.expressao_seletora}</code> ✅')
+            return format_html(f'<code>{obj.expressao_seletora}</code><span title="Regra validada com sucesso."> ✅</span>')
         else:
-            return format_html(f'<span style="color: red;">{obj.expressao_seletora} (É inválida 🚫)</span>')
+            return format_html(f'<span style="color: red;">{obj.expressao_seletora}</span><span title="Regra inválida."> 🚫</span>')
 
 
 
