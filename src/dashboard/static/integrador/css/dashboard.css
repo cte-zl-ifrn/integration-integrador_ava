@@ -24,10 +24,6 @@
     }
 }
 
-.row {
-    display: contents;
-}
-
 .dashboard-card {
     background: #fff;
     border: 1px solid #ddd;
