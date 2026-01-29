@@ -14,7 +14,7 @@ def aplicar_novo_modelo(apps, schema_editor):
                 c.papel_id,
                 CONCAT('curso.codigo == "', cur.codigo, '"') as rule_diario,
                 CONCAT('curso.codigo == "', cur.codigo, '"') as rule_coordenacao,
-                CONCAT(p.sigla, ' do Curso "', cur.nome, '"') as description
+                CONCAT(p.nome, ' do Curso "', cur.nome, '"') as description
         FROM    coorte_coorte c
                     JOIN coorte_papel p ON (c.papel_id = p.id)
                     JOIN coorte_coortecurso cc ON (c.id = cc.coorte_ptr_id)
@@ -50,9 +50,9 @@ def aplicar_novo_modelo(apps, schema_editor):
                 CONCAT('ZL.', p.sigla, '.', REGEXP_REPLACE(polo.nome, '[^a-zA-Z]', '')) as idnumber,
                 TRUE as visible,
                 c.papel_id,
-                CONCAT('polo.nome == "', polo.nome, '"') as rule_diario,
-                CONCAT('polo.nome == "', polo.nome, '"') as rule_coordenacao,
-                CONCAT(p.sigla, ' do Pólo "', polo.nome, '"') as description
+                CONCAT('$any([aluno.polo.descricao == "', polo.nome, '" for aluno in alunos])') as rule_diario,
+                CONCAT('$any([aluno.polo.descricao == "', polo.nome, '" for aluno in alunos])') as rule_coordenacao,
+                CONCAT(p.nome, ' do Pólo "', polo.nome, '"') as description
         FROM    coorte_coorte c
                     JOIN coorte_papel p ON (c.papel_id = p.id)
                     JOIN coorte_coortepolo cp ON (c.id = cp.coorte_ptr_id)
@@ -88,9 +88,9 @@ def aplicar_novo_modelo(apps, schema_editor):
                 CONCAT('ZL.', p.sigla, '.', prog.sigla) as idnumber,
                 TRUE as visible,
                 c.papel_id,
-                CONCAT('programa == "', prog.sigla, '"') as rule_diario,
-                CONCAT('programa == "', prog.sigla, '"') as rule_coordenacao,
-                CONCAT(p.sigla, ' do Programa "', prog.nome, '"') as description
+                CONCAT('$any([aluno.programa == "', prog.sigla, '" for aluno in alunos])') as rule_diario,
+                CONCAT('$any([aluno.programa == "', prog.sigla, '" for aluno in alunos])') as rule_coordenacao,
+                CONCAT(p.nome, ' do Programa "', prog.nome, '"') as description
         FROM    coorte_coorte c
                     JOIN coorte_papel p ON (c.papel_id = p.id)
                     JOIN coorte_coorteprograma cp ON (c.id = cp.coorte_ptr_id)
