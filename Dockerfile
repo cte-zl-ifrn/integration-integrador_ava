@@ -22,7 +22,7 @@ USER app
 EXPOSE 8000
 ENTRYPOINT [ "/app/src/django-entrypoint.sh" ]
 WORKDIR /app/src
-CMD  ["gunicorn"]
+CMD  ["runserver_plus"]
 
 
 #########################
