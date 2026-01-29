@@ -14,8 +14,9 @@ urlpatterns = []
 # Debug toolbar deve vir PRIMEIRO em modo DEBUG
 if settings.DEBUG:
     try:
-        import debug_toolbar
-        urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
+        if "debug_toolbar" in settings.INSTALLED_APPS:
+            import debug_toolbar
+            urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
     except ModuleNotFoundError:
         pass
 

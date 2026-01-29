@@ -111,7 +111,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
     def quando(self, obj):
         if obj.timestamp:
             local = localtime(obj.timestamp)
-            return local.strftime("%Y-%m-%d %H:%M:%S")
+            return local.strftime("%d/%m/%Y %H:%M:%S")
         return "-"
 
     @display(description="Professores", ordering="timestamp")

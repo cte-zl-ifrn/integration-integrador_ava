@@ -11,12 +11,6 @@ from django.contrib.admin.helpers import AdminErrorList, AdminForm, InlineAdminF
 from django.contrib.admin.exceptions import DisallowedModelAdminToField
 from django.core.exceptions import PermissionDenied
 from import_export.admin import ImportExportMixin, ExportActionMixin
-from import_export.widgets import DateTimeWidget
-from django.contrib.auth import get_permission_codename
-
-
-DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-DEFAULT_DATETIME_FORMAT_WIDGET = DateTimeWidget(format=DEFAULT_DATETIME_FORMAT)
 
 
 class BaseChangeList(ChangeList):

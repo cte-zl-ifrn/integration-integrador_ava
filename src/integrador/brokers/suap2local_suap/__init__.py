@@ -31,7 +31,7 @@ class Suap2LocalSuapBroker(BaseBroker):
 
     def sync_up_enrolments(self) -> dict:
         try:
-            self.solicitacao.enviado = dict(**self.solicitacao.recebido, **{"coortes": self.get_coortes()})
+            self.solicitacao.enviado = dict(**self.solicitacao.recebido, **{"coortes": self.get_cohort()})
             self.solicitacao.save()
         except Exception as e:
             SyncError(f"Erro ao tentar obter as coortes antes de iniciar a integração com o AVA. Contacte um administrador. Erro: {e}.", getattr(e, "code", 525))

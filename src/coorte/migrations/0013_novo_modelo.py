@@ -4,90 +4,119 @@ from django.db import migrations
 
 
 def aplicar_novo_modelo(apps, schema_editor):
-    # Percorre todas as coortes (CoorteCurso, CoortePolo, CoortePrograma) existentes e criar as correspondentes Cohort e Enrolment.
-    import re
+    # Inserir Cohorts a partir de CoorteCurso
+    schema_editor.execute("""
+        INSERT INTO coorte_cohort (name, idnumber, visible, papel_id, rule_diario, rule_coordenacao, description)
+        SELECT  
+                CONCAT('ZL.', p.sigla, '.', cur.codigo) as name,
+                CONCAT('ZL.', p.sigla, '.', cur.codigo) as idnumber,
+                TRUE as visible,
+                c.papel_id,
+                CONCAT('curso.codigo == "', cur.codigo, '"') as rule_diario,
+                CONCAT('curso.codigo == "', cur.codigo, '"') as rule_coordenacao,
+                CONCAT(p.sigla, ' do Curso "', cur.nome, '"') as description
+        FROM    coorte_coorte c
+                    JOIN coorte_papel p ON (c.papel_id = p.id)
+                    JOIN coorte_coortecurso cc ON (c.id = cc.coorte_ptr_id)
+                    JOIN edu_curso cur ON (cc.curso_id = cur.id)
+        ON CONFLICT DO NOTHING
+    """)
     
-    CoorteCurso = apps.get_model('coorte', 'CoorteCurso')
-    CoortePolo = apps.get_model('coorte', 'CoortePolo')
-    CoortePrograma = apps.get_model('coorte', 'CoortePrograma')
-    Cohort = apps.get_model('coorte', 'Cohort')
-    Enrolment = apps.get_model('coorte', 'Enrolment')
-    User = apps.get_model('auth', 'User')
-    
-    # Processar CoorteCurso
-    for coorte in CoorteCurso.objects.all():
-        codigo = coorte.curso.codigo  # Campo real do banco
-        regra_diario = f"curso.codigo == '{codigo}'"
-        rule_coordenacao = regra_diario
-        descricao = f'{coorte.papel.sigla} do Curso "{coorte.curso.nome}"'
-        idnumber = f"ZL.{coorte.papel.sigla}.{codigo}"
-        
-        # Criar a nova Cohort
-        cohort = Cohort.objects.create(
-            name=idnumber,
-            idnumber=idnumber,
-            visible=True,
-            papel=coorte.papel,
-            rule_diario=regra_diario,
-            rule_coordenacao=rule_coordenacao,
-            description=descricao,
+    # Inserir Enrolments a partir de CoorteCurso
+    schema_editor.execute("""
+        INSERT INTO coorte_enrolment (cohort_id, colaborador_id)
+        WITH c AS (
+            SELECT  CONCAT('ZL.', p.sigla, '.', cur.codigo) as name, c.id coorte_id
+            FROM    coorte_coorte c
+                        JOIN coorte_papel p ON (c.papel_id = p.id)
+                        JOIN coorte_coortecurso cc ON (c.id = cc.coorte_ptr_id)
+                        JOIN edu_curso cur ON (cc.curso_id = cur.id)
+        ), c2 AS (
+            SELECT  cohort.id cohort_id, c.coorte_id
+            FROM    c
+                    JOIN coorte_cohort cohort ON (c.name = cohort.name)
         )
-        
-        # Migrar os vínculos para enrolments
-        for vinculo in coorte.vinculos.all():
-            Enrolment.objects.create(
-                cohort=cohort,
-                colaborador=vinculo.colaborador,
-            )
+        SELECT  c2.cohort_id,
+                cv.colaborador_id
+        FROM    c2
+                    JOIN coorte_vinculo cv ON (c2.coorte_id = cv.coorte_id)
+    """)
     
-    # Processar CoortePolo
-    for coorte in CoortePolo.objects.all():
-        # Polo usa nome com remoção de caracteres não-alfabéticos
-        codigo = re.sub(r"[^a-zA-Z]", "", coorte.polo.nome)
-        regra_diario = f"polo.id == {coorte.polo.id}"
-        rule_coordenacao = regra_diario
-        descricao = f'{coorte.papel.sigla} do Pólo "{coorte.polo.nome}"'
-        idnumber = f"ZL.{coorte.papel.sigla}.{codigo}"
-        
-        cohort = Cohort.objects.create(
-            name=idnumber,
-            idnumber=idnumber,
-            visible=True,
-            papel=coorte.papel,
-            rule_diario=regra_diario,
-            rule_coordenacao=rule_coordenacao,
-            description=descricao,
-        )
-        
-        for vinculo in coorte.vinculos.all():
-            Enrolment.objects.create(
-                cohort=cohort,
-                colaborador=vinculo.colaborador,
-            )
+    # Inserir Cohorts a partir de CoortePolo
+    schema_editor.execute("""
+        INSERT INTO coorte_cohort (name, idnumber, visible, papel_id, rule_diario, rule_coordenacao, description)
+        SELECT  
+                CONCAT('ZL.', p.sigla, '.', REGEXP_REPLACE(polo.nome, '[^a-zA-Z]', '')) as name,
+                CONCAT('ZL.', p.sigla, '.', REGEXP_REPLACE(polo.nome, '[^a-zA-Z]', '')) as idnumber,
+                TRUE as visible,
+                c.papel_id,
+                CONCAT('polo.nome == "', polo.nome, '"') as rule_diario,
+                CONCAT('polo.nome == "', polo.nome, '"') as rule_coordenacao,
+                CONCAT(p.sigla, ' do Pólo "', polo.nome, '"') as description
+        FROM    coorte_coorte c
+                    JOIN coorte_papel p ON (c.papel_id = p.id)
+                    JOIN coorte_coortepolo cp ON (c.id = cp.coorte_ptr_id)
+                    JOIN edu_polo polo ON (cp.polo_id = polo.id)
+        ON CONFLICT DO NOTHING                         
+    """)
     
-    # Processar CoortePrograma
-    for coorte in CoortePrograma.objects.all():
-        codigo = coorte.programa.sigla  # Campo real do banco
-        regra_diario = f"programa == '{coorte.programa.nome}'"
-        rule_coordenacao = regra_diario
-        descricao = f'{coorte.papel.sigla} do Programa "{coorte.programa.nome}"'
-        idnumber = f"ZL.{coorte.papel.sigla}.{codigo}"
-        
-        cohort = Cohort.objects.create(
-            name=idnumber,
-            idnumber=idnumber,
-            visible=True,
-            papel=coorte.papel,
-            rule_diario=regra_diario,
-            rule_coordenacao=rule_coordenacao,
-            description=descricao,
+    # Inserir Enrolments a partir de CoortePolo
+    schema_editor.execute("""
+        INSERT INTO coorte_enrolment (cohort_id, colaborador_id)
+        WITH c AS (
+            SELECT  CONCAT('ZL.', p.sigla, '.', REGEXP_REPLACE(polo.nome, '[^a-zA-Z]', '')) as name, c.id coorte_id
+            FROM    coorte_coorte c
+                        JOIN coorte_papel p ON (c.papel_id = p.id)
+                        JOIN coorte_coortepolo cp ON (c.id = cp.coorte_ptr_id)
+                        JOIN edu_polo polo ON (cp.polo_id = polo.id)
+        ), n AS (
+            SELECT  cohort.id cohort_id, c.coorte_id
+            FROM    c
+                    JOIN coorte_cohort cohort ON (c.name = cohort.name)
         )
-        
-        for vinculo in coorte.vinculos.all():
-            Enrolment.objects.create(
-                cohort=cohort,
-                colaborador=vinculo.colaborador,
-            )
+        SELECT  n.cohort_id,
+                cv.colaborador_id
+        FROM    n
+                    JOIN coorte_vinculo cv ON (n.coorte_id = cv.coorte_id)
+    """)
+    
+    # Inserir Cohorts a partir de CoortePrograma
+    schema_editor.execute("""
+        INSERT INTO coorte_cohort (name, idnumber, visible, papel_id, rule_diario, rule_coordenacao, description)
+        SELECT 
+                CONCAT('ZL.', p.sigla, '.', prog.sigla) as name,
+                CONCAT('ZL.', p.sigla, '.', prog.sigla) as idnumber,
+                TRUE as visible,
+                c.papel_id,
+                CONCAT('programa == "', prog.sigla, '"') as rule_diario,
+                CONCAT('programa == "', prog.sigla, '"') as rule_coordenacao,
+                CONCAT(p.sigla, ' do Programa "', prog.nome, '"') as description
+        FROM    coorte_coorte c
+                    JOIN coorte_papel p ON (c.papel_id = p.id)
+                    JOIN coorte_coorteprograma cp ON (c.id = cp.coorte_ptr_id)
+                    JOIN edu_programa prog ON (cp.programa_id = prog.id)
+        ON CONFLICT DO NOTHING                         
+    """)
+    
+    # Inserir Enrolments a partir de CoortePrograma
+    schema_editor.execute("""
+        INSERT INTO coorte_enrolment (cohort_id, colaborador_id)
+        WITH c AS (
+            SELECT  CONCAT('ZL.', p.sigla, '.', prog.sigla) as name, c.id coorte_id
+            FROM    coorte_coorte c
+                        JOIN coorte_papel p ON (c.papel_id = p.id)
+                        JOIN coorte_coorteprograma cp ON (c.id = cp.coorte_ptr_id)
+                        JOIN edu_programa prog ON (cp.programa_id = prog.id)
+        ), n AS (
+            SELECT  cohort.id cohort_id, c.coorte_id
+            FROM    c
+                    JOIN coorte_cohort cohort ON (c.name = cohort.name)
+        )
+        SELECT  n.cohort_id,
+                cv.colaborador_id
+        FROM    n
+                    JOIN coorte_vinculo cv ON (n.coorte_id = cv.coorte_id)
+    """)
 
 
 def reverter_novo_modelo(apps, schema_editor):

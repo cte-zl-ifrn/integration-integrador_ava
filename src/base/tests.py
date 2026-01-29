@@ -305,20 +305,6 @@ class BaseModelAdminTestCase(TestCase):
         self.assertTrue(issubclass(BaseModelAdmin, ExportActionMixin))
 
 
-class DateTimeWidgetTestCase(TestCase):
-    """Testes para as configurações de DateTimeWidget."""
-
-    def test_default_datetime_format_constant(self):
-        """Testa se DEFAULT_DATETIME_FORMAT está definido corretamente."""
-        from base.admin import DEFAULT_DATETIME_FORMAT
-        self.assertEqual(DEFAULT_DATETIME_FORMAT, "%d/%m/%Y %H:%M:%S")
-
-    def test_default_datetime_format_widget_exists(self):
-        """Testa se DEFAULT_DATETIME_FORMAT_WIDGET foi criado."""
-        from base.admin import DEFAULT_DATETIME_FORMAT_WIDGET
-        from import_export.widgets import DateTimeWidget
-        self.assertIsInstance(DEFAULT_DATETIME_FORMAT_WIDGET, DateTimeWidget)
-
 
 class IntegrationTestCase(TestCase):
     """Testes de integração entre os componentes."""
