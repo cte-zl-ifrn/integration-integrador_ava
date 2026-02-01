@@ -777,11 +777,11 @@ class BaseBrokerTestCase(TestCase):
         self.assertIn("Authentication", credentials)
         self.assertIn("test_token_123", credentials["Authentication"])
 
-    def test_base_broker_get_coortes(self):
-        """Testa método get_coortes."""
-        coortes = self.broker.get_coortes()
+    def test_base_broker_get_cohorts(self):
+        """Testa método get_cohort."""
+        cohorts = self.broker.get_cohort()
         
-        self.assertEqual(coortes, [])
+        self.assertEqual(cohorts, [])
 
     def test_base_broker_sync_up_enrolments_not_implemented(self):
         """Testa que sync_up_enrolments não está implementado."""
@@ -1223,3 +1223,135 @@ class CSRFErrorViewTestCase(TestCase):
         # Deve retornar JSON porque path começa com /api/
         self.assertEqual(response.status_code, 403)
         self.assertIsInstance(response, JsonResponse)
+
+
+class AmbienteAdminTestCase(TestCase):
+    """Testes para AmbienteAdmin."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        from integrador.admin import AmbienteAdmin
+        from django.contrib.admin.sites import AdminSite
+        self.admin = AmbienteAdmin(Ambiente, AdminSite())
+        self.ambiente = Ambiente.objects.create(
+            nome="Test Ambiente",
+            url="https://test.com",
+            token="test_token",
+            expressao_seletora="campus.sigla == 'TEST'",
+            active=True
+        )
+
+    @patch('requests.get')
+    def test_checked_url_success(self, mock_get):
+        """Testa checked_url com sucesso."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        result = self.admin.checked_url(self.ambiente)
+        self.assertIn('✅', result)
+        self.assertIn('https://test.com', result)
+
+    @patch('requests.get')
+    def test_checked_url_failure(self, mock_get):
+        """Testa checked_url com falha."""
+        mock_get.side_effect = Exception("Connection error")
+        
+        result = self.admin.checked_url(self.ambiente)
+        self.assertIn('🚫', result)
+
+    def test_checked_expressao_seletora_valid(self):
+        """Testa checked_expressao_seletora válida."""
+        self.ambiente.expressao_seletora = "campus.sigla == 'TEST'"
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn('✅', result)
+
+    def test_checked_expressao_seletora_invalid(self):
+        """Testa checked_expressao_seletora inválida."""
+        self.ambiente.expressao_seletora = "invalid rule"
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn('🚫', result)
+
+    def test_checked_expressao_seletora_none(self):
+        """Testa checked_expressao_seletora nula."""
+        self.ambiente.expressao_seletora = None
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn('⚠️', result)
+
+
+class SolicitacaoAdminTestCase(TestCase):
+    """Testes para SolicitacaoAdmin."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        from integrador.admin import SolicitacaoAdmin
+        from django.contrib.admin.sites import AdminSite
+        self.admin = SolicitacaoAdmin(Solicitacao, AdminSite())
+        self.ambiente = Ambiente.objects.create(
+            nome="Test Ambiente",
+            url="https://test.com",
+            token="test_token",
+            active=True,
+            expressao_seletora="1==1"
+        )
+        self.solicitacao = Solicitacao.objects.create(
+            ambiente=self.ambiente,
+            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
+            tipo="CRIAR_DIARIO",
+            status=Solicitacao.Status.PROCESSANDO,
+            recebido={"diario": {"id": 123, "codigo": "TEST123"}}
+        )
+
+    def test_status_merged(self):
+        """Testa status_merged."""
+        result = self.admin.status_merged(self.solicitacao)
+        self.assertIn('Processando', result)
+
+    def test_acoes(self):
+        """Testa acoes."""
+        result = self.admin.acoes(self.solicitacao)
+        self.assertIn('Reenviar', result)
+
+    def test_quando(self):
+        """Testa quando."""
+        result = self.admin.quando(self.solicitacao)
+        self.assertIsInstance(result, str)
+
+    def test_professores(self):
+        """Testa professores."""
+        self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": "prof123", "tipo": "servidor"}]}
+        result = self.admin.professores(self.solicitacao)
+        self.assertIn('Prof Test', result)
+
+    def test_codigo_diario(self):
+        """Testa codigo_diario."""
+        self.solicitacao.respondido = {"url": "https://test.com/diario"}
+        result = self.admin.codigo_diario(self.solicitacao)
+        self.assertIn('https://test.com/diario', result)
+
+    @patch('integrador.admin.Suap2LocalSuapBroker')
+    def test_sync_moodle_view_success(self, mock_broker):
+        """Testa sync_moodle_view com sucesso."""
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.get(f'/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/')
+        
+        mock_instance = Mock()
+        mock_instance.sync_up_enrolments.return_value = self.solicitacao
+        mock_broker.return_value = mock_instance
+        
+        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
+        self.assertEqual(response.status_code, 302)  # Redirect
+
+    @patch('integrador.admin.Suap2LocalSuapBroker')
+    def test_sync_moodle_view_error(self, mock_broker):
+        """Testa sync_moodle_view com erro."""
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.get(f'/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/')
+        
+        mock_broker.side_effect = Exception("Test error")
+        
+        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Test error', response.content.decode())

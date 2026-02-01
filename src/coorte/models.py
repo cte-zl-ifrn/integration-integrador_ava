@@ -107,18 +107,7 @@ JSON_DE_EXEMPLO = {
 
 
 class Papel(ActiveMixin, Model):
-    class Contexto(Choices):
-        CURSO = Choices.Value(_("Curso"), value="curso")
-        POLO = Choices.Value(_("Pólo"), value="polo")
-        PROGRAMA = Choices.Value(_("Programa"), value="programa")
 
-    contexto = CharField(
-        _("aplica-se a"),
-        max_length=256,
-        choices=Contexto,
-        default=Contexto.CURSO,
-        help_text="Limita em qual contexto pode ocorrer a ação",
-    )
     nome = CharField(
         _("nome da coorte"),
         max_length=256,
@@ -152,7 +141,7 @@ class Papel(ActiveMixin, Model):
     class Meta:
         verbose_name = _("papel")
         verbose_name_plural = _("papéis")
-        ordering = ["contexto", "nome"]
+        ordering = ["nome"]
 
     @property
     def exemplo(self):

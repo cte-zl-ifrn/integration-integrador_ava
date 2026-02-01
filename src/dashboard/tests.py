@@ -248,6 +248,46 @@ class DashboardStorageTestCase(TestCase):
             # Deve retornar contexto mesmo com erro
             self.assertIsNotNone(context)
 
+    def test_load_coortes_handles_exception(self):
+        """Testa tratamento de exceção no carregamento de coortes."""
+        with patch('dashboard.storage.Cohort.objects.count', side_effect=Exception("DB Error")):
+            storage = DashboardStorage()
+            storage._load_coortes()
+            # Deve manter valores padrão
+            self.assertEqual(storage.data['coortes_total'], 0)
+
+    def test_load_papeis_handles_exception(self):
+        """Testa tratamento de exceção no carregamento de papéis."""
+        with patch('dashboard.storage.Papel.objects.count', side_effect=Exception("DB Error")):
+            storage = DashboardStorage()
+            storage._load_papeis()
+            # Deve manter valores padrão
+            self.assertEqual(storage.data['papeis_total'], 0)
+
+    def test_load_usuarios_handles_exception(self):
+        """Testa tratamento de exceção no carregamento de usuários."""
+        with patch('dashboard.storage.User.objects.count', side_effect=Exception("DB Error")):
+            storage = DashboardStorage()
+            storage._load_usuarios()
+            # Deve manter valores padrão
+            self.assertEqual(storage.data['usuarios_total'], 0)
+
+    def test_load_solicitacoes_handles_exception(self):
+        """Testa tratamento de exceção no carregamento de solicitações."""
+        with patch('dashboard.storage.Solicitacao.objects.filter', side_effect=Exception("DB Error")):
+            storage = DashboardStorage()
+            storage._load_solicitacoes()
+            # Deve manter valores padrão
+            self.assertEqual(storage.data['total_solicitacoes'], 0)
+
+    def test_load_series_temporal_handles_exception(self):
+        """Testa tratamento de exceção no carregamento da série temporal."""
+        with patch('dashboard.storage.Solicitacao.objects.all', side_effect=Exception("DB Error")):
+            storage = DashboardStorage()
+            storage._load_series_temporal()
+            # Deve manter lista vazia
+            self.assertEqual(storage.data['solicitacoes_series'], [])
+
     def test_cache_key_storage(self):
         """Testa se os dados são armazenados no cache."""
         cache.clear()

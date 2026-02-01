@@ -26,27 +26,6 @@ class EnrolmentInline(StackedInline):
     autocomplete_fields = ["colaborador"]
 
 
-
-####
-# Filters
-####
-
-class PapelFilter(SimpleListFilter):
-    title = _("papel")
-    parameter_name = "papel"
-    contexto = None
-
-    def lookups(self, request, model_admin):
-        qs = Papel.objects.filter(contexto=self.contexto)
-        return [(p.id, str(p)) for p in qs]
-
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(papel_id=self.value())
-        return queryset
-
-
-
 ####
 # Admins
 ####
@@ -56,13 +35,13 @@ class PapelAdmin(BaseModelAdmin):
     class PapelResource(ModelResource):
         class Meta:
             model = Papel
-            export_order = ["contexto", "papel", "sigla", "nome", "active"]
+            export_order = ["papel", "sigla", "nome", "active"]
             import_id_fields = ("sigla",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "contexto", "papel", "sigla", "exemplo", "active"]
-    list_filter = ["active", "contexto"] + BaseModelAdmin.list_filter
+    list_display = ["nome", "papel", "sigla", "exemplo", "active"]
+    list_filter = ["active",] + BaseModelAdmin.list_filter
     search_fields = ["papel", "sigla", "nome"]
     resource_classes = [PapelResource]
 

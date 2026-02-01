@@ -8,7 +8,6 @@
 - VinculoModelTestCase: Vínculos com coortes polimórficas
 - PapelAdminTestCase: Configuração do admin (list_display, filters, resources, import/export)
 - CohortAdminTestCase: Configuração do admin com fieldsets e inline
-- PapelFilterTestCase: Filtro customizado por contexto
 - IntegrationTestCase: Fluxos completos de criação (Papel → Cohort → Enrolment e Papel → CoorteCurso → Vinculo)
 - EdgeCasesTestCase: Casos extremos (sem pk, sigla vazia, propriedades através de polimorfismo)
 

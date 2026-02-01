@@ -3,8 +3,8 @@ from sc4py.env import env, env_as_bool, env_as_list
 
 ALLOWED_HOSTS = env_as_list("DJANGO_ALLOWED_HOSTS", ["integrador"] if env_as_bool("DJANGO_DEBUG", True) else [])
 WSGI_APPLICATION = env("DJANGO_WSGI_APPLICATION", "wsgi.application")
-# USE_X_FORWARDED_HOST = env_as_bool("DJANGO_USE_X_FORWARDED_HOST", True)
-# SECURE_PROXY_SSL_HEADER = env_as_list("DJANGO_SECURE_PROXY_SSL_HEADER", "")
+USE_X_FORWARDED_HOST = env_as_bool("DJANGO_USE_X_FORWARDED_HOST", True)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 ROOT_URLCONF = env("DJANGO_ROOT_URLCONF", "urls")
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 ROOT_URL_PATH = env("DJANGO_ROOT_URL_PATH", "")

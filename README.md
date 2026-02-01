@@ -2,7 +2,7 @@
 
 O Integrador é um Middleware que integra o SUAP ao Moodle.
 
-> Neste projeto usamos Git, Python 3.12+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
+> Neste projeto usamos Git, Python 3.14+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
 
 ## Como funciona
 
@@ -14,7 +14,27 @@ As variáveis de ambiente no SUAP têm as seguintes definições:
 
 ## Como implantar
 
-...
+### Via GitHub Actions
+
+O projeto está configurado para deploy automático no Docker Hub via GitHub Actions.
+
+**Configuração necessária:**
+1. No repositório GitHub, vá para **Settings > Secrets and variables > Actions**.
+2. Adicione os seguintes secrets:
+   - `DOCKER_USERNAME`: Seu nome de usuário no Docker Hub (ctezlifrn).
+   - `DOCKER_PASSWORD`: Seu token de acesso do Docker Hub (gerado em Docker Hub > Account Settings > Security > New Access Token).
+
+**Deploy automático:**
+- O workflow é acionado em push para a branch `main`.
+- A imagem é construída para o estágio `production` e enviada para `ctezlifrn/avaintegrador:latest` e `ctezlifrn/avaintegrador:<commit-sha>`.
+
+### Manualmente
+
+Para deploy manual, siga as instruções em "Como construir a imagem localmente" e depois faça push para o Docker Hub.
+
+```bash
+docker push ctezlifrn/avaintegrador:<tag>
+```
 
 ## Como construir a imagem localmente
 
@@ -154,15 +174,3 @@ Se tudo estiver configurado corretamente, os diários serão criados automaticam
 
 ### 4. Enviar via locust
 locust -f integrador/example/carga.json --host=http://integrador --users 300 --spawn-rate 50
-
-```css
-/* add ao css do admin */
-.submit-row [type="submit"], .submit-row a {
-    border: 1px solid rgb(var(--color-base-200));
-    padding: 4px 8px;
-    border-radius: 8px;
-    line-height: 100%;
-    margin: 0;
-    height: auto !important;
-}
-```

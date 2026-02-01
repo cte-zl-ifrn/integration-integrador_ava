@@ -27,7 +27,7 @@ def _get_tokens(request):
         data={
             "grant_type": "authorization_code",
             "code": request.GET.get("code"),
-            "redirect_uri": f"http://{request.get_host()}/authenticate/",
+            "redirect_uri": request.build_absolute_uri('/authenticate/'),
             "client_id": OAUTH["CLIENT_ID"],
             "client_secret": OAUTH["CLIENT_SECRET"],
         },
@@ -78,7 +78,8 @@ def _save_user(userinfo):
 def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
-    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri=http://{request.get_host()}/authenticate/"
+    redirect_uri = request.build_absolute_uri('/authenticate/')
+    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri={redirect_uri}"
     return redirect(suap_url)
 
 
