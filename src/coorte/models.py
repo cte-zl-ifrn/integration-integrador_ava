@@ -1,14 +1,10 @@
 from django.utils.translation import gettext as _
-from django.core.exceptions import ValidationError
 from django.db.models import CharField, BooleanField, ForeignKey, PROTECT, TextField
 from django.db.models import Model
 from django.contrib.auth.models import User
-from django_better_choices import Choices
 from simple_history.models import HistoricalRecords
-from polymorphic.models import PolymorphicModel
 from base.models import ActiveMixin
 from django_rule_engine.fields import RuleField
-from edu.models import Curso, Polo, Programa
 
 
 JSON_DE_EXEMPLO = {
