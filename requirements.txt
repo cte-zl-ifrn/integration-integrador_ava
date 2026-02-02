@@ -3,14 +3,16 @@ Django==5.2.10
 sc4py==0.1.4
 django-extensions
 
+# Da DEAD
+django-rule-engine==1.0.1
+django-dsgovbr==5.2.3
+
 # Models
 django-better-choices==1.18
-django-polymorphic==4.10.2
 
 # Rule engine
 jsonschema==4.26.0
 rule-engine==4.5.3
-django-rule-engine==1.0.0
 
 # REST
 httpie==3.2.4
@@ -30,7 +32,6 @@ django-simple-history==3.11.0
 # django-safedelete==1.4.1
 
 # UI
-django-dsgovbr==0.1.1
 whitenoise==6.11.0
 django-import-export==4.4.0
 django-json-widget==2.1.1
