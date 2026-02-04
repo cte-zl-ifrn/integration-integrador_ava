@@ -1,164 +1,21 @@
 from django.utils.translation import gettext as _
+import requests
 from functools import update_wrapper
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.html import format_html
+from django.utils.timezone import localtime
 from django.db import transaction
 from django.urls import path, reverse
-from django.db.models import JSONField, Model
+from django.db.models import JSONField
 from django.forms import ModelForm
-from django.contrib.admin import register, display, StackedInline, ModelAdmin
-from django.contrib.admin.views.main import ChangeList
-from django.contrib.admin.utils import quote, unquote
-from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
-from django.contrib.admin.helpers import AdminErrorList, AdminForm, InlineAdminFormSet
-from django.contrib.admin.exceptions import DisallowedModelAdminToField
-from django.core.exceptions import PermissionDenied
+from django.contrib.admin import register, display
 from django_json_widget.widgets import JSONEditorWidget
-from import_export.admin import ImportExportMixin, ExportActionMixin
 from import_export.resources import ModelResource
-from import_export.fields import Field
-from import_export.widgets import ForeignKeyWidget, DateTimeWidget
+from base.admin import BaseModelAdmin
 from integrador.models import Ambiente, Solicitacao
-from integrador.models import Campus
-from integrador.brokers import MoodleBroker
-
-
-DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-DEFAULT_DATETIME_FORMAT_WIDGET = DateTimeWidget(format=DEFAULT_DATETIME_FORMAT)
-
-
-####
-# Base classes
-####
-
-
-class BaseChangeList(ChangeList):
-    def url_for_result(self, result):
-        pk = getattr(result, self.pk_attname)
-        return reverse(
-            "admin:%s_%s_view" % (self.opts.app_label, self.opts.model_name),
-            args=(quote(pk),),
-            current_app=self.model_admin.admin_site.name,
-        )
-
-
-class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
-    list_filter = []
-
-    def get_changelist(self, request, **kwargs):
-        return BaseChangeList
-
-    def get_urls(self):
-        def wrap(view):
-            def wrapper(*args, **kwargs):
-                return self.admin_site.admin_view(view)(*args, **kwargs)
-
-            wrapper.model_admin = self
-            return update_wrapper(wrapper, view)
-
-        prefix = f"{self.opts.app_label}_{self.opts.model_name}"
-        urls = [url for url in super().get_urls() if url.pattern.name is not None]
-        urls.append(path("<path:object_id>/", wrap(self.preview_view), name=f"{prefix}_view"))
-        return urls
-
-    def preview_view(self, request, object_id, form_url="", extra_context=None):
-        to_field = request.POST.get(TO_FIELD_VAR, request.GET.get(TO_FIELD_VAR))
-        if to_field and not self.to_field_allowed(request, to_field):
-            raise DisallowedModelAdminToField(f"The field {to_field} cannot be referenced.")
-
-        obj = self.get_object(request, unquote(object_id), to_field)
-
-        if not self.has_view_or_change_permission(request, obj):
-            raise PermissionDenied
-
-        request.in_view_mode = True
-
-        fieldsets = self.get_fieldsets(request, obj)
-        ModelForm = self.get_form(request, obj, change=False, fields=flatten_fieldsets(fieldsets))
-        form = ModelForm(instance=obj)
-        formsets, inline_instances = self._create_formsets(request, obj, change=True)
-
-        # form = self._get_form_for_get_fields(request, obj)
-        # return [*form.base_fields, *self.get_readonly_fields(request, obj)]
-        readonly_fields = [*form.base_fields, *self.get_readonly_fields(request, obj)]
-        admin_form = AdminForm(form, list(fieldsets), {}, readonly_fields, model_admin=self)
-        media = self.media + admin_form.media
-
-        inline_formsets = self.get_inline_formsets(request, formsets, inline_instances, obj)
-        # inline_formsets = []
-        for inline_formset in inline_formsets:
-            media += inline_formset.media
-            inline_formset.readonly_fields = flatten_fieldsets(inline_formset.fieldsets)
-
-        context = {
-            **self.admin_site.each_context(request),
-            "title": _("View %s") % self.opts.verbose_name,
-            "subtitle": str(obj) if obj else None,
-            "adminform": admin_form,
-            "object_id": object_id,
-            "original": obj,
-            "is_popup": IS_POPUP_VAR in request.POST or IS_POPUP_VAR in request.GET,
-            "to_field": to_field,
-            "media": media,
-            "inline_admin_formsets": inline_formsets,
-            "errors": AdminErrorList(form, formsets),
-            "preserved_filters": self.get_preserved_filters(request),
-            "has_add_permission": True,
-            "has_delete_permission": True,
-            "show_delete": True,
-            "change": False,
-        }
-
-        context.update(extra_context or {})
-
-        return self.render_change_form(request, context, add=False, change=False, obj=obj, form_url=form_url)
-
-    def get_inline_formsets(self, request, formsets, inline_instances, obj=None):
-        # Edit permissions on parent model are required for editable inlines.
-        if getattr(request, "in_view_mode", False):
-            can_edit_parent = False
-        else:
-            can_edit_parent = self.has_change_permission(request, obj) if obj else self.has_add_permission(request)
-
-        inline_admin_formsets = []
-        for inline, formset in zip(inline_instances, formsets):
-            fieldsets = list(inline.get_fieldsets(request, obj))
-            readonly = list(inline.get_readonly_fields(request, obj))
-            if can_edit_parent:
-                has_add_permission = inline.has_add_permission(request, obj)
-                has_change_permission = inline.has_change_permission(request, obj)
-                has_delete_permission = inline.has_delete_permission(request, obj)
-            else:
-                # Disable all edit-permissions, and override formset settings.
-                has_add_permission = has_change_permission = has_delete_permission = False
-                formset.extra = formset.max_num = 0
-            has_view_permission = inline.has_view_permission(request, obj)
-            prepopulated = dict(inline.get_prepopulated_fields(request, obj))
-            inline_admin_formset = InlineAdminFormSet(
-                inline,
-                formset,
-                fieldsets,
-                prepopulated,
-                readonly,
-                model_admin=self,
-                has_add_permission=has_add_permission,
-                has_change_permission=has_change_permission,
-                has_delete_permission=has_delete_permission,
-                has_view_permission=has_view_permission,
-            )
-            inline_admin_formsets.append(inline_admin_formset)
-        return inline_admin_formsets
-
-
-####
-# Inlines
-####
-
-
-class CampusInline(StackedInline):
-    model: Model = Campus
-    extra: int = 0
+from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 
 
 ####
@@ -166,10 +23,6 @@ class CampusInline(StackedInline):
 ####
 @register(Ambiente)
 class AmbienteAdmin(BaseModelAdmin):
-    class CampusInline(StackedInline):
-        model = Campus
-        extra = 0
-
     class AmbienteResource(ModelResource):
         class Meta:
             model = Ambiente
@@ -178,56 +31,55 @@ class AmbienteAdmin(BaseModelAdmin):
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "url", "active"]
+    list_display = ["nome", "checked_url", "checked_expressao_seletora", "active"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
     search_fields = ["nome", "url"]
     list_filter = ["active"]
     fieldsets = [
         (_("Identificação"), {"fields": ["nome"]}),
-        (_("Integração"), {"fields": ["active", "url", "token"]}),
+        (_("Integração"), {"fields": ["active", "url", "token", "expressao_seletora", "ordem"]}),
     ]
-    inlines = [CampusInline]
     resource_classes = [AmbienteResource]
 
+    @display(description="URL")
+    def checked_url(self, obj):
+        validation_error = f'<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>'
+        validation_success = f'<span title="A URL deste AVA foi validada com sucesso."> ✅</span>'
+        try:
+            response = requests.get(f'{obj.url}/version.php', timeout=1)
+            message = validation_success if response.status_code == 200 else validation_error
+        except Exception:
+            message = validation_error
+        return format_html(f'<a href="{obj.url}">{obj.url}</a>{message}')
 
-@register(Campus)
-class CampusAdmin(BaseModelAdmin):
-    class CampusResource(ModelResource):
-        ambiente = Field(
-            attribute="ambiente",
-            column_name="nome_ambiente",
-            widget=ForeignKeyWidget(Ambiente, field="nome"),
-        )
+    @display(description="URL")
+    def checked_expressao_seletora(self, obj):
+        if obj.expressao_seletora is None or obj.expressao_seletora.strip() == "":
+            return format_html('<span style="color: orange;">Não configurada ⚠️</span>')
+        elif obj.valid_expressao_seletora:
+            return format_html(f'<code>{obj.expressao_seletora}</code><span title="Regra validada com sucesso."> ✅</span>')
+        else:
+            return format_html(f'<span style="color: red;">{obj.expressao_seletora}</span><span title="Regra inválida."> 🚫</span>')
 
-        class Meta:
-            model = Campus
-            export_order = ("sigla", "ambiente", "suap_id", "active")
-            import_id_fields = ("sigla",)
-            fields = export_order
-            skip_unchanged = True
-
-    list_display = ["sigla", "ambiente", "active"]
-    history_list_display = list_display
-    field_to_highlight = list_display[0]
-    list_filter = ["active", "ambiente"]
-    search_fields = ["sigla", "suap_id"]
-    resource_classes = [CampusResource]
 
 
 @register(Solicitacao)
 class SolicitacaoAdmin(BaseModelAdmin):
     list_display = (
         "quando",
+        "operacao",
+        "tipo",
         "status_merged",
-        "campus",
+        "ambiente",
+        "campus_sigla",
         "codigo_diario",
         "professores",
         "acoes",
     )
-    list_filter = ("status", "status_code", "campus__sigla")
-    search_fields = ["recebido", "enviado", "respondido", "diario__codigo"]
-    autocomplete_fields = ["campus"]
+    list_filter = ("operacao", "tipo", "ambiente", "status", "status_code", "campus_sigla")
+
+    search_fields = ["diario_codigo", "diario_id"]
     date_hierarchy = "timestamp"
     ordering = ("-timestamp",)
 
@@ -257,32 +109,33 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
     @display(description="Quando", ordering="timestamp")
     def quando(self, obj):
-        return obj.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        if obj.timestamp:
+            local = localtime(obj.timestamp)
+            return local.strftime("%d/%m/%Y %H:%M:%S")
+        return "-"
 
     @display(description="Professores", ordering="timestamp")
     def professores(self, obj):
         try:
-            return format_html(
-                "<ul>" + "".join([f"<li>{x['nome']}</li>" for x in obj.recebido["professores"]]) + "</ul>"
-            )
+            profs = ""
+            for p in (obj.recebido or {}).get("professores", []):
+                username = p.get('login', None)
+                urlpath = '/admin/comum/prestadorservico/?q=' if username and len(username) > 10 else '/admin/rh/servidor/?ativo__exact=1&q='
+                vinculo = 'externo' if username and len(username) > 10 else 'servidor'
+                profs += f'<li><a href="{settings.SUAP_BASE_URL}{urlpath}{username}">{p.get("nome")} ({p.get("tipo")}:{vinculo})</a></li>'
+            return format_html(f"<ul>{profs}</ul>")
         except Exception:
             return "-"
 
-    @display(description="Diário", ordering="timestamp")
+    @display(description="Links", ordering="timestamp")
     def codigo_diario(self, obj):
+        respondido = obj.respondido or {}
         try:
-            codigo = (
-                f"{obj.recebido['turma']['codigo']}.{obj.recebido['diario']['sigla']}#{obj.recebido['diario']['id']}"
+            return format_html(
+                f"""<ul><li><a href='{respondido.get('url', '#')}'>{obj.diario_codigo}</a></li>
+                    <li><a href='{respondido.get('url_sala_coordenacao', '#')}'>Sala de coordenação</a></li>
+                    <li><a href='{settings.SUAP_BASE_URL}/edu/meu_diario/{obj.diario_id}/1/'>Diário no SUAP</a></li></ul>"""
             )
-            try:
-                suap_url = "https://suap.ifrn.edu.br"
-                return format_html(
-                    f"""<ul><li><a href='{obj.respondido['url']}'>{codigo}</a></li>
-                        <li><a href='{obj.respondido['url_sala_coordenacao']}'>Sala de coordenação</a></li>
-                        <li><a href='{suap_url}/edu/meu_diario/{obj.recebido['diario']['id']}/1/'>Diário no SUAP</a></li></ul>"""
-                )
-            except Exception:
-                return codigo
         except Exception:
             return "-"
 
@@ -307,7 +160,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
     def sync_moodle_view(self, request, object_id, form_url="", extra_context=None):
         s = get_object_or_404(Solicitacao, pk=object_id)
         try:
-            solicitacao = MoodleBroker().sync(s.recebido)
+            solicitacao = Suap2LocalSuapBroker(s.recebido).sync_up_enrolments()
             if solicitacao is None:
                 raise Exception("Erro desconhecido.")
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))

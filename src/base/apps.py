@@ -1,7 +1,8 @@
 from django.apps import AppConfig
 
 
-class IntegradorConfig(AppConfig):
+class BaseConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "edu"
+    name = "base"
     icon = "fa fa-home"
+    verbose_name = "Base"

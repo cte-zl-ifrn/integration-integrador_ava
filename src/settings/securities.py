@@ -3,11 +3,12 @@ from sc4py.env import env, env_as_bool, env_as_list, env_as_int
 
 
 SUAP_INTEGRADOR_KEY = env("SUAP_INTEGRADOR_KEY", "changeme")
+SUAP_BASE_URL = env("SUAP_BASE_URL", "https://suap.ifrn.edu.br")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "changeme")
-LOGIN_URL = env("DJANGO_LOGIN_URL", "/api/login/")
-LOGIN_REDIRECT_URL = env("DJANGO_LOGIN_REDIRECT_URL", "/api/admin/")
-LOGOUT_REDIRECT_URL = env("DJANGO_LOGOUT_REDIRECT_URL", "https://suap.ifrn.edu.br/comum/logout")
+LOGIN_URL = env("DJANGO_LOGIN_URL", "/login/")
+LOGIN_REDIRECT_URL = env("DJANGO_LOGIN_REDIRECT_URL", "/admin/")
+LOGOUT_REDIRECT_URL = env("DJANGO_LOGOUT_REDIRECT_URL", f"{SUAP_BASE_URL}/comum/logout")
 GO_TO_HTTPS = env_as_bool("GO_TO_HTTPS", False)
 AUTHENTICATION_BACKENDS = env_as_list("vAUTHENTICATION_BACKENDS", ["django.contrib.auth.backends.ModelBackend"])
 AUTH_PASSWORD_VALIDATORS = env_as_list("DJANGO_AUTH_PASSWORD_VALIDATORS", [])
@@ -35,7 +36,7 @@ CSRF_COOKIE_PATH = env("DJANGO_CSRF_COOKIE_PATH", "/")
 CSRF_COOKIE_SAMESITE = env("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
 CSRF_COOKIE_SECURE = env_as_bool("DJANGO_CSRF_COOKIE_SECURE", False)
 CSRF_USE_SESSIONS = env_as_bool("DJANGO_CSRF_USE_SESSIONS", False)
-CSRF_FAILURE_VIEW = env("DJANGO_CSRF_FAILURE_VIEW", "django.views.csrf.csrf_failure")
+CSRF_FAILURE_VIEW = env("DJANGO_CSRF_FAILURE_VIEW", "integrador.views_errors.csrf_failure")
 CSRF_HEADER_NAME = env("DJANGO_CSRF_HEADER_NAME", "HTTP_X_CSRFTOKEN")
 CSRF_TRUSTED_ORIGINS = env_as_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
 
@@ -44,10 +45,8 @@ OAUTH = {
     "BASE_URL": oauth_base_url,
     "AUTHORIZE_URL": env("OAUTH_AUTHORIZE_URL", f"{oauth_base_url}/o/authorize/"),
     "TOKEN_URL": env("OAUTH_TOKEN_URL", f"{oauth_base_url}/o/token/"),
-    "USERINFO_URL": env("OAUTH_USERINFO_URL", f"{oauth_base_url}/api/eu/"),
-    "VERIFY_URL": env("OAUTH_VERIFY_URL", f"{oauth_base_url}/api/v1/verify/"),
+    "USERINFO_URL": env("OAUTH_USERINFO_URL", f"{oauth_base_url}/api/rh/eu/"),
     "CLIENT_ID": env("OAUTH_CLIENT_ID", "changeme"),
     "CLIENT_SECRET": env("OAUTH_CLIENT_SECRET", "changeme"),
-    "REDIRECT_URI": env("OAUTH_REDIRECT_URI", "http://integrador/api/authenticate/"),
     "VERIFY_SSL": env_as_bool("OAUTH_VERIFY_SSL", False),
 }

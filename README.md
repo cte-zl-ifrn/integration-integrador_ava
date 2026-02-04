@@ -2,7 +2,7 @@
 
 O Integrador é um Middleware que integra o SUAP ao Moodle.
 
-> Neste projeto usamos Git, Python 3.12+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
+> Neste projeto usamos Git, Python 3.14+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
 
 ## Como funciona
 
@@ -14,7 +14,27 @@ As variáveis de ambiente no SUAP têm as seguintes definições:
 
 ## Como implantar
 
-...
+### Via GitHub Actions
+
+O projeto está configurado para deploy automático no Docker Hub via GitHub Actions.
+
+**Configuração necessária:**
+1. No repositório GitHub, vá para **Settings > Secrets and variables > Actions**.
+2. Adicione os seguintes secrets:
+   - `DOCKER_USERNAME`: Seu nome de usuário no Docker Hub (ctezlifrn).
+   - `DOCKER_PASSWORD`: Seu token de acesso do Docker Hub (gerado em Docker Hub > Account Settings > Security > New Access Token).
+
+**Deploy automático:**
+- O workflow é acionado em push para a branch `main`.
+- A imagem é construída para o estágio `production` e enviada para `ctezlifrn/avaintegrador:latest` e `ctezlifrn/avaintegrador:<commit-sha>`.
+
+### Manualmente
+
+Para deploy manual, siga as instruções em "Como construir a imagem localmente" e depois faça push para o Docker Hub.
+
+```bash
+docker push ctezlifrn/avaintegrador:<tag>
+```
 
 ## Como construir a imagem localmente
 
@@ -64,11 +84,9 @@ Acesse **Ambientes > Adicionar**.
 - **Ativo?:** Marque este campo  
 - **URL:** `http://moodle`  
 - **Token:** `changeme`
+- **Expressão regular:** `{campus}='ZL'`
+- **Order:** `0´ 
 
-**CAMPI**
-- **ID do campus no SUAP:** Escolha um número (apenas identificador interno)  
-- **Sigla do campus:** Defina uma sigla para identificação  
-- **Ativo?:** Marque este campo  
 
 ---
 
@@ -153,3 +171,6 @@ Clique em **Salvar**.
 Após salvar, localize a solicitação na lista e clique em **Reenviar** no canto direito.
 
 Se tudo estiver configurado corretamente, os diários serão criados automaticamente no seu Moodle local.
+
+### 4. Enviar via locust
+locust -f integrador/example/carga.json --host=http://integrador --users 300 --spawn-rate 50

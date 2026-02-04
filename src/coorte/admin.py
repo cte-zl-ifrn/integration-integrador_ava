@@ -1,29 +1,34 @@
 from django.utils.translation import gettext as _
 from django.db.models import Model
-from django.contrib.auth.models import User
-from django.contrib.admin import register, StackedInline
+# from django.contrib.auth.models import User
+from django.contrib.admin import register, StackedInline, SimpleListFilter
 from import_export.resources import ModelResource
-from import_export.fields import Field
-from import_export.widgets import ForeignKeyWidget
-from base.admin import BaseModelAdmin
-from edu.models import Curso, Polo, Programa
-from coorte.models import Papel, Coorte, Vinculo, CoorteCurso, CoortePolo, CoortePrograma
+# from import_export.fields import Field
+# from import_export.widgets import ForeignKeyWidget
+from base.admin import BasicModelAdmin, BaseModelAdmin
+# from edu.models import Curso, Polo, Programa
+from coorte.models import Papel, Cohort, Enrolment
+# from coorte.models import Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma
 
 
 ####
 # Inlines
 ####
 
+# class VinculoInline(StackedInline):
+#     model: Model = Vinculo
+#     extra: int = 0
+#     autocomplete_fields = ["colaborador"]
 
-class VinculoInline(StackedInline):
-    model: Model = Vinculo
+class EnrolmentInline(StackedInline):
+    model: Model = Enrolment
     extra: int = 0
+    autocomplete_fields = ["colaborador"]
 
 
 ####
 # Admins
 ####
-
 
 @register(Papel)
 class PapelAdmin(BaseModelAdmin):
@@ -31,116 +36,37 @@ class PapelAdmin(BaseModelAdmin):
         class Meta:
             model = Papel
             export_order = ["papel", "sigla", "nome", "active"]
-            import_id_fields = ("papel",)
+            import_id_fields = ("sigla",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "contexto", "sigla", "active"]
-    list_filter = ["active", "contexto"] + BaseModelAdmin.list_filter
-    search_fields = ["nome", "sigla"]
+    list_display = ["nome", "papel", "sigla", "exemplo", "active"]
+    list_filter = ["active",] + BaseModelAdmin.list_filter
+    search_fields = ["papel", "sigla", "nome"]
     resource_classes = [PapelResource]
 
 
-@register(Coorte)
-class CoorteAdmin(BaseModelAdmin):
-    class CoorteResource(ModelResource):
-        papel = Field(
-            attribute="papel",
-            column_name="papel",
-            widget=ForeignKeyWidget(Papel, field="papel")
-        )
-    resource_classes = [CoorteResource]
-    list_display = ['papel', 'instancia']
-    readonly_fields =['instancia']
-
-    def instancia(self, obj):
-        if isinstance(obj, CoorteCurso):
-           return obj.curso.nome
-        if isinstance(obj, CoortePolo):
-           return obj.polo.nome
-        if isinstance(obj, CoortePrograma):
-           return obj.programa.sigla
-    instancia.short_description = 'Instância'
-
-
-@register(CoorteCurso)
-class CoorteCursoAdmin(BaseModelAdmin):
-    class CoorteCursoResource(ModelResource):
-         curso = Field(
-            attribute="curso",
-            column_name="curso",
-            widget=ForeignKeyWidget(Curso, field="id"),
-        )
-    list_display = ["curso"]
-    inlines = [VinculoInline]
-
-
-@register(CoortePolo)
-class CoortePoloResourceAdmin(BaseModelAdmin):
-    class CoortePoloResource(ModelResource):
-        polo = Field(
-            attribute="polo",
-            column_name="polo",
-            widget=ForeignKeyWidget(Polo, field="id"),
-        )
-    list_display = ["polo"]
-    inlines = [VinculoInline]
-
-
-@register(CoortePrograma)
-class CoorteProgramaAdmin(BaseModelAdmin):
-    class CoorteProgramaResource(ModelResource):
-         programa = Field(
-            attribute="programa",
-            column_name="programa",
-            widget=ForeignKeyWidget(Programa, field="id"),
-        )
-    list_display = ["programa"]
-    inlines = [VinculoInline]
-
-
-@register(Vinculo)
-class VinculoAdmin(BaseModelAdmin):
-    class VinculoResource(ModelResource):
-        colaborador = Field(
-            attribute="colaborador",
-            column_name="colaborador",
-            widget=ForeignKeyWidget(User, field="username"),
-        )
-        coorte = Field(
-            attribute="coorte",
-            column_name="coorte",
-            widget=ForeignKeyWidget(Coorte, field="id")
-        )
-    resource_classes = [VinculoResource]
-    list_display = ["colaborador", "coorte", "cursos", "polos", "programas"]
-    readonly_fields = ["cursos", "programas", "polos"]
-
-    def cursos(self, obj):
-        coorte_cursos = CoorteCurso.objects.filter(coorte_ptr_id=obj.coorte_id)
-        return  ', '.join([cc.curso.nome for cc in coorte_cursos])
-    def polos(self, obj):
-        coorte_polos = CoortePolo.objects.filter(coorte_ptr_id=obj.coorte_id)
-        return  ', '.join([cp.polo.nome for cp in coorte_polos])
-    def programas(self, obj):
-        coorte_programas = CoortePrograma.objects.filter(coorte_ptr_id=obj.coorte_id)
-        return  ', '.join([cpr.programa.nome for cpr in coorte_programas])
-
+@register(Cohort)
+class CohortAdmin(BasicModelAdmin):
+    list_display = ["name", "idnumber", "rule_diario", "rule_coordenacao", "active"]
+    search_fields = ["name", "idnumber"]
+    list_filter = ["active"]
     fieldsets = (
-            (None, {
-                'fields': ('coorte', 'colaborador',)
-            }),
-            ('Cursos Associados', {
-                'fields': ('cursos',),
-            }),
-             ('Polos Associados', {
-                'fields': ('polos',),
-            }),
-             ('Programas Associados', {
-                'fields': ('programas',),
-            }),
-        )
-
-    cursos.short_description = 'Cursos'
-    polos.short_description = 'Polos'
-    programas.short_description = 'Programas'
+        (_("Informações Básicas"), {
+            'fields': (('name', 'idnumber', 'active'), 'papel')
+        }),
+        (_("Regras de Validação"), {
+            'fields': ("rule_diario", "rule_coordenacao",),
+            'classes': ('wide',),
+            'description': _('Configure a regra para validar quando este coorte deve ser sincronizado no diário')
+        }),
+        (_("Descrição"), {
+            'fields': ('description',)
+        }),
+    )
+    inlines = [EnrolmentInline]
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """Garante que o RuleField use o widget correto."""
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        return formfield

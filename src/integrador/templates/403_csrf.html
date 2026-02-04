@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Integrador AVA - Erro CSRF</title>
+    <meta name="robots" content="noindex">
+
+  </head>
+
+  <body>
+    <div class="main-error-page">
+     
+      <div class="error-title">
+        403 - Acesso Negado
+      </div>
+      
+      <div class="error-subtitle">
+        A verificação de segurança CSRF (Cross-Site Request Forgery) falhou. 
+        A requisição foi bloqueada para proteger o sistema.
+      </div>
+      
+      <div class="error-details">
+        <strong>Motivo da falha:</strong>
+        <p>{{ reason|default:"Token CSRF ausente ou inválido" }}</p>
+      </div>
+      
+      <div class="help-section">
+        <h3>O que fazer?</h3>
+        <ul>
+          <li>Se você está integrando com esta API, certifique-se de incluir o token CSRF nas suas requisições</li>
+          <li>Verifique se o cookie de CSRF está sendo enviado corretamente</li>
+          <li>Confirme que a URL de origem está na lista de origens confiáveis (CSRF_TRUSTED_ORIGINS)</li>
+          <li>Para requisições POST/PUT/DELETE, inclua o header X-CSRFToken ou o campo csrfmiddlewaretoken</li>
+          <li>Se o problema persistir, entre em contato com o administrador do sistema</li>
+        </ul>
+      </div>
+      
+      <a class="back-link" href="/">Voltar para a página inicial</a>
+    </div>
+  </body>
+</html>

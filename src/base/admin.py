@@ -1,7 +1,9 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
+from django.utils.text import capfirst
 from django.urls import path, reverse
 from django.contrib.admin import ModelAdmin
+from django.contrib.admin.exceptions import NotRegistered
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.utils import quote, unquote
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR, flatten_fieldsets
@@ -9,13 +11,44 @@ from django.contrib.admin.helpers import AdminErrorList, AdminForm, InlineAdminF
 from django.contrib.admin.exceptions import DisallowedModelAdminToField
 from django.core.exceptions import PermissionDenied
 from import_export.admin import ImportExportMixin, ExportActionMixin
-from import_export.widgets import DateTimeWidget
 
-
-DEFAULT_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-DEFAULT_DATETIME_FORMAT_WIDGET = DateTimeWidget(format=DEFAULT_DATETIME_FORMAT)
 
 class BaseChangeList(ChangeList):
+    def __init__(
+            self,
+            request,
+            model,
+            list_display,
+            list_display_links,
+            list_filter,
+            date_hierarchy,
+            search_fields,
+            list_select_related,
+            list_per_page,
+            list_max_show_all,
+            list_editable,
+            model_admin,
+            sortable_by,
+            search_help_text,
+        ):
+        super().__init__(
+            request,
+            model,
+            list_display,
+            list_display_links,
+            list_filter,
+            date_hierarchy,
+            search_fields,
+            list_select_related,
+            list_per_page,
+            list_max_show_all,
+            list_editable,
+            model_admin,
+            sortable_by,
+            search_help_text,
+        )
+        self.title = str(capfirst(model_admin.opts.verbose_name_plural))
+
     def url_for_result(self, result):
         pk = getattr(result, self.pk_attname)
         return reverse(
@@ -25,7 +58,7 @@ class BaseChangeList(ChangeList):
         )
 
 
-class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
+class BasicModelAdmin(ModelAdmin):
     list_filter = []
 
     def get_changelist(self, request, **kwargs):
@@ -50,6 +83,17 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             raise DisallowedModelAdminToField(f"The field {to_field} cannot be referenced.")
 
         obj = self.get_object(request, unquote(object_id), to_field)
+        try:
+            related_modeladmin = self.admin_site.get_model_admin(obj.__class__)
+        except NotRegistered as e:
+            wrapper_kwargs = {}
+        else:
+            wrapper_kwargs = {
+                "can_add_related": related_modeladmin.has_add_permission(request),
+                "can_change_related": related_modeladmin.has_change_permission(request),
+                "can_delete_related": related_modeladmin.has_delete_permission(request),
+                "can_view_related": related_modeladmin.has_view_permission(request),
+            }        
 
         if not self.has_view_or_change_permission(request, obj):
             raise PermissionDenied
@@ -73,9 +117,14 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             media += inline_formset.media
             inline_formset.readonly_fields = flatten_fieldsets(inline_formset.fieldsets)
 
+        can_add_related = wrapper_kwargs.get('can_add_related', False)
+        can_delete_related = wrapper_kwargs.get('can_delete_related', False)
+        can_change_related = wrapper_kwargs.get('can_change_related', False)
+        can_view_related = wrapper_kwargs.get('can_view_related', False)
+
         context = {
             **self.admin_site.each_context(request),
-            "title": _("View %s") % self.opts.verbose_name,
+            "title": str(capfirst(self.opts.verbose_name_plural)),
             "subtitle": str(obj) if obj else None,
             "adminform": admin_form,
             "object_id": object_id,
@@ -86,11 +135,27 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             "inline_admin_formsets": inline_formsets,
             "errors": AdminErrorList(form, formsets),
             "preserved_filters": self.get_preserved_filters(request),
-            "has_add_permission": True,
-            "has_delete_permission": True,
-            "show_delete": True,
-            "change": False,
+
+            "has_delete_permission": can_delete_related,
+            "show_delete": can_delete_related,
+            'show_delete_link': can_delete_related,
+            'can_delete_related': can_delete_related,
+
+            "has_add_permission": can_add_related,
+
+            "show_change": can_change_related,
+            "can_change_related": can_change_related,
+
+            'show_save': False,
+            'show_save_as_new': False,
+            'show_save_and_add_another': False,
+            'show_save_and_continue': False,
+
+            'show_close': True,
+
+            'can_view_related': can_view_related,
         }
+
 
         context.update(extra_context or {})
 
@@ -131,3 +196,7 @@ class BaseModelAdmin(ImportExportMixin, ExportActionMixin, ModelAdmin):
             )
             inline_admin_formsets.append(inline_admin_formset)
         return inline_admin_formsets
+
+
+class BaseModelAdmin(ImportExportMixin, ExportActionMixin, BasicModelAdmin):
+    pass

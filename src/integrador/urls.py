@@ -1,6 +1,8 @@
 from django.urls import path
 from django.conf import settings
 from django.views.generic import RedirectView
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from .apps import IntegradorConfig
 from .views import sync_up_enrolments, sync_down_grades
 
@@ -8,8 +10,8 @@ from .views import sync_up_enrolments, sync_down_grades
 app_name = IntegradorConfig.name
 
 
+# Removendo decoradores csrf_exempt aqui pois são APIs públicas (autenticadas por token)
 urlpatterns = [
-    path("", RedirectView.as_view(url=f"/{settings.ROOT_URL_PATH}/admin/")),
-    path("enviar_diarios/", sync_up_enrolments, name="api_sync_up_enrolments"),
-    path("baixar_notas/", sync_down_grades, name="api_sync_down_grades"),
+    path(f"api/enviar_diarios/", sync_up_enrolments, name="api_sync_up_enrolments"),
+    path(f"api/baixar_notas/", sync_down_grades, name="api_sync_down_grades"),
 ]
