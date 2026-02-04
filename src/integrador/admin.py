@@ -16,7 +16,9 @@ from import_export.resources import ModelResource
 from base.admin import BaseModelAdmin
 from integrador.models import Ambiente, Solicitacao
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
+import logging
 
+logger = logging.getLogger(__name__)
 
 ####
 # Admins
@@ -164,6 +166,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
             if solicitacao is None:
                 raise Exception("Erro desconhecido.")
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))
-        except Exception as e:
-            return HttpResponse(f"{e}")
+        except Exception:
+            logger.exception("Error while syncing Moodle for Solicitacao %s", s.id)
+            return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator."))
 

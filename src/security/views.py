@@ -32,7 +32,7 @@ def _get_tokens(request):
             "client_secret": OAUTH["CLIENT_SECRET"],
         },
     )
-    print("_get_tokens", response.text)
+    logger.info("_get_tokens response received with status %s", response.status_code)
     data = json.loads(response.text)
     if data.get("error_description") == "Mismatching redirect URI.":
         raise ValueError(
@@ -48,7 +48,7 @@ def _get_userinfo(request_data):
             "x-api-key": OAUTH["CLIENT_SECRET"],
         },
     )
-    print("_get_userinfo", response.text)
+    logger.info("_get_userinfo response received with status %s", response.status_code)
     return json.loads(response.text)
 
 def _save_user(userinfo):
