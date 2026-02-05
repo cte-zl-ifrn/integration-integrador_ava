@@ -19,18 +19,18 @@ class BaseBroker:
     def cast_cohort(self, c: Cohort) -> dict:
         return {
             "nome": c.name,
-            "role": c.role.role,
+            "role": c.role.name,
             "ativo": c.active,
             "idnumber": c.idnumber,
             "descricao": c.description,
             "colaboradores": [
                 {
-                    "nome": e.colaborador.get_full_name(),
+                    "nome": e.colaborador.fullname,
                     "email": e.colaborador.email,
-                    "login": e.colaborador.username,
-                    "status": e.colaborador.is_active
+                    "login": e.colaborador.login,
+                    "status": e.colaborador.active
                 }
-                for e in c.enrolments.all()
+                for e in c.enrolments.select_related("colaborador").all()
             ]
         }
     def cohort_matches(self, cohort: Cohort, rule_field: str) -> dict:

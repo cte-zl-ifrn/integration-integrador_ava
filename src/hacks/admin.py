@@ -19,16 +19,6 @@ site.unregister(User)
 
 
 ####
-# Inlines
-####
-
-class EnrolmentInline(StackedInline):
-    model: Model = Enrolment
-    extra: int = 0
-    autocomplete_fields = ["cohort"]
-
-
-####
 # Admins
 ####
 
@@ -112,7 +102,6 @@ class UserAdmin(BaseModelAdmin):
     ]
     readonly_fields = ["date_joined", "last_login"]
     autocomplete_fields: list[str] = ['groups']
-    inlines = [EnrolmentInline]
     resource_classes = [UserResource]
 
     @display
