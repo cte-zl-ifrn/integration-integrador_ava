@@ -43,6 +43,7 @@ jobs:
     - name: Pull and restart service
       run: |
         cd ${{ vars.DEPLOY_DOCKER_PATH }}
+        sed -i 's|ctezlifrn/avaintegrador:.*|ctezlifrn/avaintegrador:${{ github.ref_name }}|g' docker-compose.yml && \
         docker compose pull ${{ vars.DOCKER_SERVICE_NAME }}
         docker compose down ${{ vars.DOCKER_SERVICE_NAME }}
         docker compose up -d ${{ vars.DOCKER_SERVICE_NAME }}
