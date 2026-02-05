@@ -17,8 +17,7 @@ from datetime import timedelta
 from dashboard.storage import DashboardStorage
 from dashboard.admin_views import admin_index_dashboard
 from integrador.models import Ambiente, Solicitacao
-from coorte.models import Cohort, Papel, Enrolment
-from edu.models import Programa, Polo
+from cohort.models import Cohort, Role, Enrolment
 
 
 class DashboardStorageTestCase(TestCase):
@@ -38,27 +37,16 @@ class DashboardStorageTestCase(TestCase):
             active=True
         )
         
-        self.programa = Programa.objects.create(
-            nome="Test Program",
-            sigla="PROG"
-        )
-        
-        self.polo = Polo.objects.create(
-            nome="Test Polo",
-            suap_id="P001"
-        )
-        
-        self.papel = Papel.objects.create(
-            sigla="PAPEL",
-            nome="Test Role",
-            papel="testrole",
+        self.role = Role.objects.create(
+            shortname="ROLE01",
+            name="Test Role",
             active=True
         )
         
         self.cohort = Cohort.objects.create(
             name="Test Cohort",
             idnumber="C001",
-            papel=self.papel,
+            role=self.role,
             active=True
         )
         
@@ -155,7 +143,7 @@ class DashboardStorageTestCase(TestCase):
         Cohort.objects.create(
             name="Inactive Cohort",
             idnumber="C002",
-            papel=self.papel,
+            role=self.role,
             active=False
         )
         
@@ -174,10 +162,9 @@ class DashboardStorageTestCase(TestCase):
 
     def test_load_papeis_with_inactive(self):
         """Testa carregamento de papéis inativos."""
-        Papel.objects.create(
-            sigla="PAP02",
-            nome="Inactive Role",
-            papel="inactiverole",
+        Role.objects.create(
+            shortname="ROL02",
+            name="Inactive Role",
             active=False
         )
         
@@ -258,7 +245,7 @@ class DashboardStorageTestCase(TestCase):
 
     def test_load_papeis_handles_exception(self):
         """Testa tratamento de exceção no carregamento de papéis."""
-        with patch('dashboard.storage.Papel.objects.count', side_effect=Exception("DB Error")):
+        with patch('dashboard.storage.Role.objects.count', side_effect=Exception("DB Error")):
             storage = DashboardStorage()
             storage._load_papeis()
             # Deve manter valores padrão

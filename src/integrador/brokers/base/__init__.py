@@ -1,6 +1,6 @@
 import logging
 import rule_engine
-from coorte.models import Cohort
+from cohort.models import Cohort
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class BaseBroker:
     def cast_cohort(self, c: Cohort) -> dict:
         return {
             "nome": c.name,
-            "role": c.papel.papel,
+            "role": c.role.role,
             "ativo": c.active,
             "idnumber": c.idnumber,
             "descricao": c.description,

@@ -45,20 +45,13 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 └─ Processando (badge amarelo)
 ```
 
-### Card 4: Estrutura Educacional
-```
-├─ Cursos Cadastrados
-├─ Pólos
-└─ Programas
-```
-
-### Card 5: Taxa de Sucesso
+### Card 4: Taxa de Sucesso
 ```
 ├─ Percentual de Integrações bem-sucedidas
 └─ Total de Solicitações Processadas
 ```
 
-### Card 6: Ações Rápidas
+### Card 5: Ações Rápidas
 ```
 ├─ Gerenciar Clientes
 ├─ Configurar Ambientes
@@ -78,10 +71,7 @@ admin_views.admin_index_dashboard (nossa view personalizada)
 Coleta dados de:
 ├─ gestao.models.Cliente
 ├─ integrador.models.Ambiente
-├─ integrador.models.Solicitacao
-├─ edu.models.Curso
-├─ edu.models.Polo
-└─ edu.models.Programa
+└─ integrador.models.Solicitacao
     ↓
 Context com estatísticas agregadas
     ↓
@@ -204,14 +194,10 @@ admin.site.index = admin_index_dashboard
 
 ## 📚 Modelos Integrados
 
-| Modelo | App | Dados Capturados |
-|--------|-----|------------------|
-| Cliente | gestao | Total, Ativos, Inativos |
-| Ambiente | integrador | Total, Ativos, Com Erro |
+| Modelo      | App        | Dados Capturados                 |
+|-------------|------------|----------------------------------|
+| Ambiente    | integrador | Total, Ativos, Com Erro          |
 | Solicitação | integrador | 24h, Sucesso, Falha, Processando |
-| Curso | edu | Contagem total |
-| Polo | edu | Contagem total |
-| Programa | edu | Contagem total |
 
 ---
 

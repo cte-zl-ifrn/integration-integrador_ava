@@ -11,9 +11,8 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils.timezone import now
 from django.contrib.auth.models import User, Group
-
 from integrador.models import Ambiente, Solicitacao
-from coorte.models import Cohort, Papel, Enrolment
+from cohort.models import Cohort, Role, Enrolment
 
 logger = logging.getLogger(__name__)
 
@@ -113,8 +112,8 @@ class DashboardStorage:
     def _load_papeis(self):
         """Carrega dados de papéis."""
         try:
-            self.data['papeis_total'] = Papel.objects.count()
-            self.data['papeis_ativos'] = Papel.objects.filter(active=True).count()
+            self.data['papeis_total'] = Role.objects.count()
+            self.data['papeis_ativos'] = Role.objects.filter(active=True).count()
             self.data['papeis_inativos'] = self.data['papeis_total'] - self.data['papeis_ativos']
             logger.info(
                 f"Papéis carregados: total={self.data['papeis_total']}, "

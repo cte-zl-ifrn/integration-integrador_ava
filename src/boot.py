@@ -8,16 +8,26 @@ from sc4py.env import env_as_bool
 
 
 def _wait_db(db):
-    connection = psycopg.connect(
-        dbname=db["NAME"],
-        user=db["USER"],
-        password=db["PASSWORD"],
-        host=db["HOST"],
-        port=db["PORT"],
-    )
-    while connection.closed:
-        logging.info(f"ERROR: Aguardando o banco {db['HOST']:db['PORT']/db['NAME']} subir") # pragma: no cover
-        time.sleep(3) # pragma: no cover
+    connected = False
+    connection = None
+    while not connected:
+        try:
+            connection = psycopg.connect(
+                dbname=db["NAME"],
+                user=db["USER"],
+                password=db["PASSWORD"],
+                host=db["HOST"],
+                port=db["PORT"],
+            )
+            connected = not connection.closed
+            logging.info(f"ERROR: Aguardando por 3s o banco {db['HOST']:db['PORT']/db['NAME']} subir")
+            time.sleep(3)
+        except Exception: # pragma: no cover
+            pass
+        finally:
+            if connection and not connection.closed:
+                connection.close()
+    logging.info(f"SUCCESS: Banco {db['HOST']}:{db['PORT']}/{db['NAME']} está disponível")
 
 
 def start_debug():

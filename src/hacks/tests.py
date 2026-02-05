@@ -225,7 +225,7 @@ class EnrolmentInlineTestCase(TestCase):
 
     def test_enrolment_inline_model(self):
         """Testa o modelo do inline."""
-        from coorte.models import Enrolment
+        from cohort.models import Enrolment
         self.assertEqual(self.inline.model, Enrolment)
 
     def test_enrolment_inline_extra(self):

@@ -102,28 +102,16 @@ JSON_DE_EXEMPLO = {
 }
 
 
-class Papel(ActiveMixin, Model):
+class Role(ActiveMixin, Model):
 
-    nome = CharField(
-        _("nome da coorte"),
+    name = CharField(
+        _("nome da role"),
         max_length=256,
         help_text="Este atributo será cohort.name"
         " Ex.: <sup>Coordenador de curso</sup>, <sup>Coordenador de pólo</sup>, <sup>Coordenador de UAB</sup>.",
     )
-    sigla = CharField(
-        _("sufixo do corteid coorte"),
-        max_length=10,
-        blank=False,
-        null=False,
-        unique=True,
-        help_text=_(
-            "Este atributo será o sufixo da cohort.idnumber,"
-            " ({campus.sigla}.{este_sufixo}.{curso.instancia.codigo})."
-            " Ex.: <sup>COODC</sup>, <sup>COODP</sup>, <sup>COODUAB</sup>"
-        ),
-    )
-    papel = CharField(
-        _("nome do papel (role) no curso"),
+    shortname = CharField(
+        _("shortname da role"),
         max_length=256,
         help_text=_(
             "Este atributo deve ser conforme role.shortname."
@@ -135,24 +123,20 @@ class Papel(ActiveMixin, Model):
     history = HistoricalRecords()
 
     class Meta:
-        verbose_name = _("papel")
-        verbose_name_plural = _("papéis")
-        ordering = ["nome"]
+        verbose_name = _("role")
+        verbose_name_plural = _("roles")
+        ordering = ["name"]
 
-    @property
-    def exemplo(self):
-        return f"SG.{self.sigla}.123456"
 
     def __str__(self):
-        sigla = f"{self.sigla}" if self.sigla else ""
-        return f"{self.nome} {self.active_icon}"
+        return f"{self.name} {self.active_icon}"
 
 
 class Cohort(ActiveMixin, Model):
     name = CharField(_("nome da coorte"), max_length=2560, unique=True)
     idnumber = CharField(_("idnumber"), max_length=2560, unique=True)
     active = BooleanField(_("visível"), default=True)
-    papel = ForeignKey(Papel, on_delete=PROTECT, related_name="cohort_papel")
+    role = ForeignKey(Role, on_delete=PROTECT, related_name="cohort_roles")
     rule_diario = RuleField(
         _("regra de validação para diário"),
         blank=True,
@@ -178,13 +162,13 @@ class Cohort(ActiveMixin, Model):
 
 
 class Enrolment(Model):
-    colaborador = ForeignKey(User, on_delete=PROTECT)
+    user = ForeignKey(User, on_delete=PROTECT, related_name="enrolments")
     cohort = ForeignKey(Cohort, on_delete=PROTECT, related_name="enrolments")
 
     class Meta:
         verbose_name = _("vínculo")
         verbose_name_plural = _("vínculos")
-        ordering = ["cohort", "colaborador"]
+        ordering = ["cohort", "user"]
 
     def __str__(self):
-        return f"{self.colaborador.username} ({self.colaborador.get_full_name()}) em {self.cohort}"
+        return f"{self.user.username} ({self.user.get_full_name()}) em {self.cohort}"

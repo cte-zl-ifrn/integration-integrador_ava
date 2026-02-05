@@ -53,7 +53,7 @@ class SettingsAppsTestCase(TestCase):
 
     def test_installed_apps_contains_custom_apps(self):
         """Testa se INSTALLED_APPS contém apps customizadas."""
-        custom_apps = ['base', 'health', 'integrador', 'coorte', 'edu']
+        custom_apps = ['base', 'health', 'integrador', 'cohort']
         
         for app in custom_apps:
             self.assertIn(app, settings.INSTALLED_APPS)

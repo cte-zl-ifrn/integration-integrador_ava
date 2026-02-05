@@ -7,7 +7,7 @@ from import_export.resources import ModelResource
 from import_export.widgets import ManyToManyWidget
 from import_export.fields import Field
 from base.admin import BaseModelAdmin
-from coorte.models import Enrolment
+from cohort.models import Enrolment
 
 
 ####
@@ -91,7 +91,7 @@ class UserAdmin(BaseModelAdmin):
             {
                 "fields": [("is_active", "is_staff", "is_superuser")],
                 "description": _(
-                    "Controla a identidade do usuário nos sistemas, qual seu papel e quais suas autorizações."
+                    "Controla a identidade do usuário nos sistemas, qual seu role e quais suas autorizações."
                 ),
             },
         ),

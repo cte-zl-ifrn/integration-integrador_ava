@@ -1,49 +1,39 @@
 from django.utils.translation import gettext as _
 from django.db.models import Model
-# from django.contrib.auth.models import User
 from django.contrib.admin import register, StackedInline, SimpleListFilter
 from import_export.resources import ModelResource
-# from import_export.fields import Field
-# from import_export.widgets import ForeignKeyWidget
 from base.admin import BasicModelAdmin, BaseModelAdmin
-# from edu.models import Curso, Polo, Programa
-from coorte.models import Papel, Cohort, Enrolment
-# from coorte.models import Vinculo, Coorte, CoorteCurso, CoortePolo, CoortePrograma
+from cohort.models import Role, Cohort, Enrolment
 
 
 ####
 # Inlines
 ####
 
-# class VinculoInline(StackedInline):
-#     model: Model = Vinculo
-#     extra: int = 0
-#     autocomplete_fields = ["colaborador"]
-
 class EnrolmentInline(StackedInline):
     model: Model = Enrolment
     extra: int = 0
-    autocomplete_fields = ["colaborador"]
+    autocomplete_fields = ["user"]
 
 
 ####
 # Admins
 ####
 
-@register(Papel)
-class PapelAdmin(BaseModelAdmin):
-    class PapelResource(ModelResource):
+@register(Role)
+class RoleAdmin(BaseModelAdmin):
+    class RoleResource(ModelResource):
         class Meta:
-            model = Papel
-            export_order = ["papel", "sigla", "nome", "active"]
-            import_id_fields = ("sigla",)
+            model = Role
+            export_order = ["name", "shortname", "active"]
+            import_id_fields = ("shortname",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "papel", "sigla", "exemplo", "active"]
+    list_display = ["name", "shortname", "active"]
     list_filter = ["active",] + BaseModelAdmin.list_filter
-    search_fields = ["papel", "sigla", "nome"]
-    resource_classes = [PapelResource]
+    search_fields = ["name", "shortname"]
+    resource_classes = [RoleResource]
 
 
 @register(Cohort)
@@ -53,7 +43,7 @@ class CohortAdmin(BasicModelAdmin):
     list_filter = ["active"]
     fieldsets = (
         (_("Informações Básicas"), {
-            'fields': (('name', 'idnumber', 'active'), 'papel')
+            'fields': (('name', 'idnumber', 'active'), 'role')
         }),
         (_("Regras de Validação"), {
             'fields': ("rule_diario", "rule_coordenacao",),

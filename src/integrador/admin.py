@@ -44,6 +44,10 @@ class AmbienteAdmin(BaseModelAdmin):
     ]
     resource_classes = [AmbienteResource]
 
+    def get_queryset(self, request):
+        """Otimiza queryset para evitar N+1 queries."""
+        return super().get_queryset(request).all()
+
     @display(description="URL")
     def checked_url(self, obj):
         validation_error = f'<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>'
@@ -84,6 +88,10 @@ class SolicitacaoAdmin(BaseModelAdmin):
     search_fields = ["diario_codigo", "diario_id"]
     date_hierarchy = "timestamp"
     ordering = ("-timestamp",)
+
+    def get_queryset(self, request):
+        """Otimiza queryset para evitar N+1 queries ao acessar ForeignKey 'ambiente'."""
+        return super().get_queryset(request).select_related('ambiente')
 
     class SolicitacaoAdminForm(ModelForm):
         class Meta:
@@ -166,7 +174,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
             if solicitacao is None:
                 raise Exception("Erro desconhecido.")
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))
-        except Exception:
-            logger.exception("Error while syncing Moodle for Solicitacao %s", s.id)
-            return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator."))
+        except Exception as e:
+            logger.exception(f"Error while syncing Moodle for Solicitacao {s.id}. ERROR: {e}")
+            return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator.") + f'. ERROR: {e}')
 

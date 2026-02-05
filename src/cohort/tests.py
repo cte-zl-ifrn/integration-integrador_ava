@@ -1,37 +1,36 @@
 """
-Testes unitários para a app coorte.
+Testes unitários para a app cohort.
 
 Este módulo contém testes para:
-- Papel: Modelo de papéis (roles) com contextos (curso, polo, programa)
-- Cohort: Modelo de coortes com regras de validação (RuleField)
-- Enrolment: Vínculos entre colaboradores e cohorts
-- Admin: Configurações do admin (PapelAdmin, CohortAdmin)
+- Role: Modelo de roles
+- Cohort: Modelo de cohorts com regras de validação (RuleField)
+- Enrolment: Vínculos entre users e cohorts
+- Admin: Configurações do admin (RoleAdmin, CohortAdmin)
 """
 import unittest
 from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
-from coorte.models import Papel, Cohort, Enrolment
-from coorte.admin import PapelAdmin, CohortAdmin, EnrolmentInline
-from coorte.apps import IntegradorConfig
-from edu.models import Curso
+from cohort.models import Role, Cohort, Enrolment
+from cohort.admin import RoleAdmin, CohortAdmin, EnrolmentInline
+from cohort.apps import CohortConfig
 
 
 class IntegradorConfigTestCase(TestCase):
-    """Testes para a configuração da app coorte."""
+    """Testes para a configuração da app cohort."""
 
     def test_app_config_name(self):
-        """Testa se o nome da app está correto."""
-        self.assertEqual(IntegradorConfig.name, 'coorte')
+        """Testa se o name da app está correto."""
+        self.assertEqual(CohortConfig.name, 'cohort')
 
     def test_app_config_icon(self):
         """Testa se o ícone está definido."""
-        self.assertEqual(IntegradorConfig.icon, 'fa fa-home')
+        self.assertEqual(CohortConfig.icon, 'fa fa-home')
 
     def test_app_config_default_auto_field(self):
         """Testa se default_auto_field está configurado."""
         self.assertEqual(
-            IntegradorConfig.default_auto_field,
+            CohortConfig.default_auto_field,
             'django.db.models.BigAutoField'
         )
 
@@ -41,18 +40,17 @@ class CohortModelTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.papel = Papel.objects.create(
-            nome="Coordenador de Curso",
-            sigla="COODC",
-            papel="teachercoordenadorcurso",
-                    active=True
+        self.role = Role.objects.create(
+            name="Coordenador de Curso",
+            shortname="teachercoordenadorcurso",
+            active=True
         )
         
         self.cohort = Cohort.objects.create(
             name="Test Cohort",
             idnumber="TEST001",
             active=True,
-            papel=self.papel
+            role=self.role
         )
 
     def test_create_cohort(self):
@@ -61,7 +59,7 @@ class CohortModelTestCase(TestCase):
             name="New Cohort",
             idnumber="NEW001",
             active=True,
-            papel=self.papel
+            role=self.role
         )
         
         self.assertIsNotNone(cohort.pk)
@@ -76,9 +74,9 @@ class CohortModelTestCase(TestCase):
         """Testa que name deve ser único."""
         with self.assertRaises(IntegrityError):
             Cohort.objects.create(
-                name="Test Cohort",  # Nome duplicado
+                name="Test Cohort",  # Name duplicado
                 idnumber="DIFF001",
-                papel=self.papel
+                role=self.role
             )
 
     def test_cohort_idnumber_unique(self):
@@ -87,7 +85,7 @@ class CohortModelTestCase(TestCase):
             Cohort.objects.create(
                 name="Different Cohort",
                 idnumber="TEST001",  # IDNumber duplicado
-                papel=self.papel
+                role=self.role
             )
 
     def test_cohort_active_field(self):
@@ -124,17 +122,17 @@ class CohortModelTestCase(TestCase):
         cohort = Cohort.objects.get(pk=self.cohort.pk)
         self.assertEqual(cohort.description, "Test description")
 
-    def test_cohort_papel_relationship(self):
-        """Testa relacionamento com Papel."""
-        self.assertEqual(self.cohort.papel, self.papel)
-        self.assertIn(self.cohort, self.papel.cohort_papel.all())
+    def test_cohort_role_relationship(self):
+        """Testa relacionamento com Role."""
+        self.assertEqual(self.cohort.role, self.role)
+        self.assertIn(self.cohort, self.role.cohort_roles.all())
 
     def test_cohort_ordering(self):
         """Testa ordenação de cohorts."""
         cohort2 = Cohort.objects.create(
             name="Another Cohort",
             idnumber="ANOTHER001",
-            papel=self.papel
+            role=self.role
         )
         
         cohorts = list(Cohort.objects.all())
@@ -158,21 +156,20 @@ class EnrolmentModelTestCase(TestCase):
             password='password123'
         )
         
-        self.papel = Papel.objects.create(
-            nome="Coordenador",
-            sigla="COORD",
-            papel="coordenador",
-                    active=True
+        self.role = Role.objects.create(
+            name="Coordenador",
+            shortname="COORD",
+            active=True
         )
         
         self.cohort = Cohort.objects.create(
             name="Test Cohort",
             idnumber="TEST001",
-            papel=self.papel
+            role=self.role
         )
         
         self.enrolment = Enrolment.objects.create(
-            colaborador=self.user,
+            user=self.user,
             cohort=self.cohort
         )
 
@@ -184,12 +181,12 @@ class EnrolmentModelTestCase(TestCase):
         )
         
         enrolment = Enrolment.objects.create(
-            colaborador=user2,
+            user=user2,
             cohort=self.cohort
         )
         
         self.assertIsNotNone(enrolment.pk)
-        self.assertEqual(enrolment.colaborador, user2)
+        self.assertEqual(enrolment.user, user2)
         self.assertEqual(enrolment.cohort, self.cohort)
 
     def test_enrolment_str_representation(self):
@@ -199,9 +196,9 @@ class EnrolmentModelTestCase(TestCase):
         self.assertIn("testuser", string_repr)
         self.assertIn("Test Cohort", string_repr)
 
-    def test_enrolment_colaborador_relationship(self):
+    def test_enrolment_user_relationship(self):
         """Testa relacionamento com User."""
-        self.assertEqual(self.enrolment.colaborador, self.user)
+        self.assertEqual(self.enrolment.user, self.user)
 
     def test_enrolment_cohort_relationship(self):
         """Testa relacionamento com Cohort."""
@@ -213,18 +210,18 @@ class EnrolmentModelTestCase(TestCase):
         user2 = User.objects.create_user(username='user2', password='pass')
         user3 = User.objects.create_user(username='user3', password='pass')
         
-        Enrolment.objects.create(colaborador=user2, cohort=self.cohort)
-        Enrolment.objects.create(colaborador=user3, cohort=self.cohort)
+        Enrolment.objects.create(user=user2, cohort=self.cohort)
+        Enrolment.objects.create(user=user3, cohort=self.cohort)
         
         self.assertEqual(self.cohort.enrolments.count(), 3)
 
     def test_enrolment_ordering(self):
         """Testa ordenação de enrolments."""
         user2 = User.objects.create_user(username='anotheruser', password='pass')
-        Enrolment.objects.create(colaborador=user2, cohort=self.cohort)
+        Enrolment.objects.create(user=user2, cohort=self.cohort)
         
         enrolments = list(Enrolment.objects.all())
-        # Ordenação: cohort, colaborador
+        # Ordenação: cohort, user
         self.assertEqual(len(enrolments), 2)
 
     def test_enrolment_verbose_names(self):
@@ -233,8 +230,8 @@ class EnrolmentModelTestCase(TestCase):
         self.assertEqual(Enrolment._meta.verbose_name_plural, "vínculos")
 
 
-class PapelAdminTestCase(TestCase):
-    """Testes para PapelAdmin."""
+class RoleAdminTestCase(TestCase):
+    """Testes para RoleAdmin."""
 
     def setUp(self):
         """Configura o ambiente de teste."""
@@ -244,39 +241,39 @@ class PapelAdminTestCase(TestCase):
             email='admin@test.com',
             password='password123'
         )
-        self.papel_admin = PapelAdmin(Papel, None)
+        self.role_admin = RoleAdmin(Role, None)
 
-    def test_papel_admin_list_display(self):
+    def test_role_admin_list_display(self):
         """Testa configuração de list_display."""
-        expected = ["nome", "papel", "sigla", "exemplo", "active"]
-        self.assertEqual(self.papel_admin.list_display, expected)
+        expected = ["name", "shortname", "active"]
+        self.assertEqual(self.role_admin.list_display, expected)
 
-    def test_papel_admin_list_filter(self):
+    def test_role_admin_list_filter(self):
         """Testa configuração de list_filter."""
-        self.assertIn("active", self.papel_admin.list_filter)
+        self.assertIn("active", self.role_admin.list_filter)
 
-    def test_papel_admin_search_fields(self):
+    def test_role_admin_search_fields(self):
         """Testa configuração de search_fields."""
-        expected = ["papel", "sigla", "nome"]
-        self.assertEqual(self.papel_admin.search_fields, expected)
+        expected = ["name", "shortname"]
+        self.assertEqual(self.role_admin.search_fields, expected)
 
-    def test_papel_admin_resource_classes(self):
+    def test_role_admin_resource_classes(self):
         """Testa configuração de resource_classes."""
-        self.assertEqual(len(self.papel_admin.resource_classes), 1)
+        self.assertEqual(len(self.role_admin.resource_classes), 1)
         
-        resource = self.papel_admin.resource_classes[0]()
-        self.assertEqual(resource._meta.model, Papel)
+        resource = self.role_admin.resource_classes[0]()
+        self.assertEqual(resource._meta.model, Role)
 
-    def test_papel_resource_export_order(self):
+    def test_role_resource_export_order(self):
         """Testa ordem de exportação do resource."""
-        resource = self.papel_admin.resource_classes[0]()
-        expected = ["papel", "sigla", "nome", "active"]
+        resource = self.role_admin.resource_classes[0]()
+        expected = ["name", "shortname", "active"]
         self.assertEqual(resource._meta.export_order, expected)
 
-    def test_papel_resource_import_id_fields(self):
+    def test_role_resource_import_id_fields(self):
         """Testa campos de identificação para importação."""
-        resource = self.papel_admin.resource_classes[0]()
-        self.assertEqual(resource._meta.import_id_fields, ("sigla",))
+        resource = self.role_admin.resource_classes[0]()
+        self.assertEqual(resource._meta.import_id_fields, ("shortname",))
 
 
 class CohortAdminTestCase(TestCase):
@@ -325,12 +322,11 @@ class IntegrationTestCase(TestCase):
     """Testes de integração para fluxos completos."""
 
     def test_complete_cohort_workflow(self):
-        """Testa fluxo completo: Papel -> Cohort -> Enrolment."""
-        # 1. Cria papel
-        papel = Papel.objects.create(
-            nome="Coordenador",
-            sigla="COORD",
-            papel="coordenador",
+        """Testa fluxo completo: Role -> Cohort -> Enrolment."""
+        # 1. Cria role
+        role = Role.objects.create(
+            name="Coordenador",
+            shortname="COORD",
             active=True
         )
         
@@ -338,7 +334,7 @@ class IntegrationTestCase(TestCase):
         cohort = Cohort.objects.create(
             name="Integration Cohort",
             idnumber="INT001",
-            papel=papel,
+            role=role,
             rule_diario="curso.codigo == '123456'"
         )
         
@@ -347,56 +343,43 @@ class IntegrationTestCase(TestCase):
         
         # 4. Cria enrolment
         enrolment = Enrolment.objects.create(
-            colaborador=user,
+            user=user,
             cohort=cohort
         )
         
         # Verifica relacionamentos
-        self.assertEqual(cohort.papel, papel)
+        self.assertEqual(cohort.role, role)
         self.assertEqual(enrolment.cohort, cohort)
-        self.assertEqual(enrolment.colaborador, user)
+        self.assertEqual(enrolment.user, user)
 
 
 class EdgeCasesTestCase(TestCase):
     """Testes de casos extremos."""
 
-    def test_papel_exemplo_with_empty_sigla(self):
-        """Testa exemplo com sigla vazia."""
-        papel = Papel(
-            nome="Test",
-            sigla="",
-            papel="test"
-        )
-        
-        exemplo = papel.exemplo
-        self.assertEqual(exemplo, "SG..123456")
-
     def test_cohort_with_null_description(self):
         """Testa cohort com descrição nula."""
-        papel = Papel.objects.create(
-            nome="Test",
-            sigla="T",
-            papel="test",
+        role = Role.objects.create(
+            name="Test",
+            shortname="T",
             active=True
         )
         
         cohort = Cohort.objects.create(
             name="Test",
             idnumber="T001",
-            papel=papel,
+            role=role,
             description=None
         )
         
         self.assertIsNone(cohort.description)
 
-    def test_papel_inactive_icon(self):
-        """Testa ícone de papel inativo."""
-        papel = Papel.objects.create(
-            nome="Inactive",
-            sigla="INAC",
-            papel="inactive",
+    def test_role_inactive_icon(self):
+        """Testa ícone de role inativo."""
+        role = Role.objects.create(
+            name="Inactive",
+            shortname="INAC",
             active=False
         )
         
-        string_repr = str(papel)
+        string_repr = str(role)
         self.assertIn("⛔", string_repr)
