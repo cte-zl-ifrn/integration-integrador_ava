@@ -37,7 +37,7 @@ jobs:
     environment:
       name: ${{ startsWith(github.ref, 'refs/tags/') && 'production' || 'test' }}
     if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.RUNNER_LABEL }}
+    runs-on: ${{ vars.RUNNER_LABEL || 'self-hosted' }}
     needs: build-and-push
     steps:
     - name: Pull and restart service
