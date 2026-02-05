@@ -4,7 +4,7 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 from django.core.exceptions import DisallowedHost
-from .apps import PROJECT_VERSION
+from .project import PROJECT_VERSION
 
 if env("SENTRY_DNS", None):
     sentry_sdk.init(

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from settings.project import *  # noqa
 from settings.apps import *  # noqa
 from settings.caches import *  # noqa
 from settings.databases import *  # noqa
