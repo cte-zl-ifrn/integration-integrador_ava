@@ -47,5 +47,4 @@ jobs:
         docker compose pull ${{ vars.DOCKER_SERVICE_NAME }}
         docker compose down ${{ vars.DOCKER_SERVICE_NAME }}
         docker compose up -d ${{ vars.DOCKER_SERVICE_NAME }}
-        timeout 60s docker compose logs -f ${{ vars.DOCKER_SERVICE_NAME }}
-
+        timeout 60s docker compose logs -f ${{ vars.DOCKER_SERVICE_NAME }} || true
