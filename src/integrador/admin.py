@@ -176,5 +176,5 @@ class SolicitacaoAdmin(BaseModelAdmin):
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))
         except Exception as e:
             logger.exception(f"Error while syncing Moodle for Solicitacao {s.id}. ERROR: {e}")
-            return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator.") + f'. ERROR: {e}')
+            return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator."))
 
