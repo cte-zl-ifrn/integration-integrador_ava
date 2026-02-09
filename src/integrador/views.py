@@ -13,7 +13,7 @@ from integrador.decorators import (
     valid_token,
     check_json,
     try_solicitacao,
-    detect_ambiente
+    detect_ambiente,
 )
 
 
