@@ -1,26 +1,18 @@
-ARG PYTHON_VERSION=3.14.2-slim-trixie
-
-FROM python:$PYTHON_VERSION AS build
-
-ENV PYTHONUNBUFFERED=1
-
-COPY requirements.txt requirements-build.txt /
-RUN pip install -r /requirements.txt  -r /requirements-build.txt
+ARG BASEIMAGE=1.0.1
 
 
 #########################
 # Development build stage
 ########################################################################
-FROM build AS development
+FROM ctezlifrn/avaintegrationbase:$BASEIMAGE AS development
 
-COPY requirements-dev.txt requirements-lint.txt /
-COPY src/dsgovbr /app/src/dsgovbr
-RUN useradd -ms /usr/sbin/nologin app \
-    && pip install -r /requirements-dev.txt -r /requirements-lint.txt
+COPY requirements-dev.txt /
+RUN    useradd -ms /usr/sbin/nologin app \
+    && pip uninstall dsgovbr \
+    && pip install -r /requirements-dev.txt
 
 USER app
 EXPOSE 8000
-ENTRYPOINT [ "/app/src/django-entrypoint.sh" ]
 WORKDIR /app/src
 CMD  ["runserver_plus"]
 
@@ -28,7 +20,7 @@ CMD  ["runserver_plus"]
 #########################
 # Production build stage
 ########################################################################
-FROM build AS production
+FROM ctezlifrn/avaintegrationbase:$BASEIMAGE AS production
 
 COPY src /app/src
 WORKDIR /app/src
@@ -42,6 +34,5 @@ RUN    useradd -ms /usr/sbin/nologin app \
 
 USER app
 EXPOSE 8000
-ENTRYPOINT [ "/app/src/django-entrypoint.sh" ]
 WORKDIR /app/src
 CMD  ["gunicorn" ]

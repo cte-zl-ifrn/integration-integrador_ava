@@ -1,6 +1,5 @@
 # -e ../django-adminlte3
 # -e /app/src/dsgovbr
-types-libsass
 black
 debugpy
 django-debug-toolbar
@@ -16,5 +15,6 @@ pytest
 pytest-cov
 pytest-profiling
 ruff
+types-libsass
 types-requests
 Werkzeug
