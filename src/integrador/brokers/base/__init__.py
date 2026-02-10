@@ -25,14 +25,15 @@ class BaseBroker:
             "descricao": c.description,
             "colaboradores": [
                 {
-                    "nome": e.colaborador.fullname,
-                    "email": e.colaborador.email,
-                    "login": e.colaborador.login,
-                    "status": e.colaborador.active
+                    "nome": e.user.fullname,
+                    "email": e.user.email,
+                    "login": e.user.login,
+                    "status": e.user.active,
                 }
-                for e in c.enrolments.select_related("colaborador").all()
-            ]
+                for e in c.enrolments.select_related("user").all()
+            ],
         }
+
     def cohort_matches(self, cohort: Cohort, rule_field: str) -> dict:
         try:
             return rule_engine.Rule(getattr(cohort, rule_field)).matches(self.solicitacao.recebido)
@@ -41,15 +42,10 @@ class BaseBroker:
             return False
 
     def get_cohort(self) -> list:
-
-
-
         all_cohort = Cohort.objects.filter(active=True)
-        cohort_eligiveis = (
-            [self.cast_cohort(c) for c in all_cohort if self.cohort_matches(c, "rule_diario")] 
-            +
-            [self.cast_cohort(c) for c in all_cohort if self.cohort_matches(c, "rule_coordenacao")]
-        )
+        cohort_eligiveis = [self.cast_cohort(c) for c in all_cohort if self.cohort_matches(c, "rule_diario")] + [
+            self.cast_cohort(c) for c in all_cohort if self.cohort_matches(c, "rule_coordenacao")
+        ]
         return cohort_eligiveis
 
     def sync_up_enrolments(self) -> dict:
