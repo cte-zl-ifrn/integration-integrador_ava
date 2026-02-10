@@ -22,7 +22,7 @@ class Suap2LocalSuapBroker(BaseBroker):
         querystring = "&".join([f"{k}={v}" for k, v in params.items() if v is not None]) if params is not None else ""
         result = http_get_json(f"{self.__get_service_url(service)}&{querystring}", headers=self.credentials)
         logger.debug(f"Response: {result}")
-        return []
+        return result
 
 
     def __post_json(self, service: str, jsonbody: dict):
