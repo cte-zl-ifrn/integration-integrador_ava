@@ -95,3 +95,27 @@ Use this section to tell people how to report a vulnerability.
 Tell them where to go, how often they can expect to get an update on a
 reported vulnerability, what to expect if the vulnerability is accepted or
 declined, etc.
+
+## Histórico de Segurança
+
+### [1.1.042] Correção de Vulnerabilidades de Segurança do Django 5.2.12
+
+**Resumo:**
+
+1. **Dependência afetada**: Django  
+2. **Versão vulnerável**: >= 5.2, < 5.2.12  
+3. **Versão corrigida**: 5.2.12  
+4. **Ação tomada**: Atualização de `Django==5.2.11` para `Django==5.2.12` em `setup.py`
+
+**Correções:**
+
+1. **Vulnerabilidade 1** — Consumo Descontrolado de Recursos (Denial of Service)
+   1. **Severidade**: Alta  
+   2. **Descrição**: Foi descoberto que `URLField.to_python()` chama `urllib.parse.urlsplit()`, que realiza normalização NFKC no Windows de forma desproporcionalmente lenta para determinados caracteres Unicode. Isso permite que um atacante remoto cause negação de serviço (DoS) fornecendo grandes entradas de URL contendo esses caracteres especiais.
+   3. **Impacto**: Negação de serviço via entradas maliciosas em campos de URL.
+   4. **Crédito**: Seokchan Yoon.
+2. **Vulnerabilidade 2** — Condição de Corrida (Race Condition)
+   1. **Severidade**: Média  
+   2. **Descrição**: Foi descoberta uma condição de corrida nos backends de armazenamento em sistema de arquivos e de cache baseado em arquivos do Django. Em ambientes multi-thread, a mudança temporária de umask feita por uma thread pode afetar outras threads, resultando na criação de objetos no sistema de arquivos com permissões incorretas durante requisições concorrentes.
+   3. **Impacto**: Criação de arquivos com permissões incorretas em ambientes multi-thread.  
+   4. **Crédito**: Tarek Nakkouch.

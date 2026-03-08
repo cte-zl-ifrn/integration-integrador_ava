@@ -1,4 +1,4 @@
-ARG BASEIMAGE=1.0.1
+ARG BASEIMAGE=1.0.2
 
 
 #########################
