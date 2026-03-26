@@ -11,7 +11,7 @@ from .examples import JSON_DE_EXEMPLO
 class MoodleUser(ActiveMixin, Model):
     fullname = CharField(_("nome completo do usuário"), max_length=2560)
     email = CharField(_("email do usuário"), max_length=2560)
-    login = CharField(_("login do usuário"), max_length=2560)
+    login = CharField(_("login do usuário"), max_length=2560, unique=True)
     active = BooleanField(_("sincronizar com o Moodle"), help_text=_("Indica se a sincronização do usuário com o Moodle está ativa. Inativar aqui não remove o usuário do Moodle nem o inativa no Moodle, apenas indica que ele não deve ser sincronizado."))
 
     class Meta:
