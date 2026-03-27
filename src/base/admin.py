@@ -1,5 +1,7 @@
 from django.utils.translation import gettext as _
 from functools import update_wrapper
+from django.conf import settings
+from django.forms import Media
 from django.utils.text import capfirst
 from django.urls import path, reverse
 from django.contrib.admin import ModelAdmin
@@ -196,6 +198,21 @@ class BasicModelAdmin(ModelAdmin):
             )
             inline_admin_formsets.append(inline_admin_formset)
         return inline_admin_formsets
+
+    @property
+    def media(self):
+        extra = "" if settings.DEBUG else ".min"
+        js = [
+            "vendor/jquery/jquery%s.js" % extra,
+            "jquery.init.js",
+            "core.js",
+            "admin/RelatedObjectLookups.js",
+            # "actions.js", # Este arquivo causa problema pois não usamos neste tema o padrão do django admin de actions
+            "urlify.js",
+            "prepopulate.js",
+            "vendor/xregexp/xregexp%s.js" % extra,
+        ]
+        return Media(js=["admin/js/%s" % url for url in js])
 
 
 class BaseModelAdmin(ImportExportMixin, ExportActionMixin, BasicModelAdmin):
