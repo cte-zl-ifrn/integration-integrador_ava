@@ -23,6 +23,7 @@ if DEBUG and not IS_RUNNING_TESTS:
                 "debug_toolbar.panels.history.HistoryPanel",
                 "debug_toolbar.panels.versions.VersionsPanel",
                 'debug_toolbar.panels.redirects.RedirectsPanel',
+                'debug_toolbar.panels.profiling.ProfilingPanel',
             },
             "SHOW_COLLAPSED": True,
         }
