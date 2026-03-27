@@ -201,18 +201,21 @@ class BasicModelAdmin(ModelAdmin):
 
     @property
     def media(self):
+        parent_media = super().media if hasattr(super(), 'media') else Media()
         extra = "" if settings.DEBUG else ".min"
         js = [
             "vendor/jquery/jquery%s.js" % extra,
             "jquery.init.js",
             "core.js",
             "admin/RelatedObjectLookups.js",
-            # "actions.js", # Este arquivo causa problema pois não usamos neste tema o padrão do django admin de actions
+            "actions.js", # Este arquivo causa problema pois não usamos neste tema o padrão do django admin de actions
             "urlify.js",
             "prepopulate.js",
             "vendor/xregexp/xregexp%s.js" % extra,
+            # JS customizado dos filtros DSGovBR
+            "dsgovbr_admin_filters.js",
         ]
-        return Media(js=["admin/js/%s" % url for url in js])
+        return parent_media + Media(js=["admin/js/%s" % url for url in js])
 
 
 class BaseModelAdmin(ImportExportMixin, ExportActionMixin, BasicModelAdmin):
