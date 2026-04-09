@@ -1,10 +1,12 @@
 from django.utils.translation import gettext as _
+import logging
 import requests
 from functools import update_wrapper
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.timezone import localtime
 from django.db import transaction
 from django.urls import path, reverse
@@ -16,9 +18,9 @@ from import_export.resources import ModelResource
 from base.admin import BaseModelAdmin
 from integrador.models import Ambiente, Solicitacao
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
-import logging
 
 logger = logging.getLogger(__name__)
+
 
 ####
 # Admins
@@ -40,7 +42,7 @@ class AmbienteAdmin(BaseModelAdmin):
     list_filter = ["active"]
     fieldsets = [
         (_("Identificação"), {"fields": ["nome"]}),
-        (_("Integração"), {"fields": ["active", "url", "token", "expressao_seletora", "ordem"]}),
+        (_("    "), {"fields": ["active", "url", "token", "expressao_seletora", "ordem"]}),
     ]
     resource_classes = [AmbienteResource]
 
@@ -50,24 +52,38 @@ class AmbienteAdmin(BaseModelAdmin):
 
     @display(description="URL")
     def checked_url(self, obj):
-        validation_error = f'<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>'
-        validation_success = f'<span title="A URL deste AVA foi validada com sucesso."> ✅</span>'
+        validation_error = '<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>'
+        validation_success = '<span title="A URL deste AVA foi validada com sucesso."> ✅</span>'
         try:
-            response = requests.get(f'{obj.url}/version.php', timeout=1)
+            response = requests.get(f"{obj.url}/version.php", timeout=1)
             message = validation_success if response.status_code == 200 else validation_error
         except Exception:
             message = validation_error
-        return format_html(f'<a href="{obj.url}">{obj.url}</a>{message}')
+        return format_html('{message}<a href="{url}">{url}🔗</a>', url=obj.url, message=mark_safe(message))
 
-    @display(description="URL")
+    @display(description="Expressão Seletora")
     def checked_expressao_seletora(self, obj):
         if obj.expressao_seletora is None or obj.expressao_seletora.strip() == "":
-            return format_html('<span style="color: orange;">Não configurada ⚠️</span>')
+            title = "Não configurada"
+            status = "⚠️"
+            color = "orange"
         elif obj.valid_expressao_seletora:
-            return format_html(f'<code>{obj.expressao_seletora}</code><span title="Regra validada com sucesso."> ✅</span>')
+            title = "Regra validada com sucesso."
+            status = "✅"
+            color = "green"
         else:
-            return format_html(f'<span style="color: red;">{obj.expressao_seletora}</span><span title="Regra inválida."> 🚫</span>')
+            title = "Regra inválida."
+            status = "🚫"
+            color = "red"
 
+        es = obj.expressao_seletora or ""
+        return format_html(
+            '<span title="{title}"> {status}</span><span style="color: {color};">{expressao_seletora}</span>',
+            expressao_seletora=(es if es.strip() != "" else f""),
+            title=title,
+            status=status,
+            color=color,
+        )
 
 
 @register(Solicitacao)
@@ -91,7 +107,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
     def get_queryset(self, request):
         """Otimiza queryset para evitar N+1 queries ao acessar ForeignKey 'ambiente'."""
-        return super().get_queryset(request).select_related('ambiente')
+        return super().get_queryset(request).select_related("ambiente")
 
     class SolicitacaoAdminForm(ModelForm):
         class Meta:
@@ -129,9 +145,13 @@ class SolicitacaoAdmin(BaseModelAdmin):
         try:
             profs = ""
             for p in (obj.recebido or {}).get("professores", []):
-                username = p.get('login', None)
-                urlpath = '/admin/comum/prestadorservico/?q=' if username and len(username) > 10 else '/admin/rh/servidor/?ativo__exact=1&q='
-                vinculo = 'externo' if username and len(username) > 10 else 'servidor'
+                username = p.get("login", None)
+                urlpath = (
+                    "/admin/comum/prestadorservico/?q="
+                    if username and len(username) > 10
+                    else "/admin/rh/servidor/?ativo__exact=1&q="
+                )
+                vinculo = "externo" if username and len(username) > 10 else "servidor"
                 profs += f'<li><a href="{settings.SUAP_BASE_URL}{urlpath}{username}">{p.get("nome")} ({p.get("tipo")}:{vinculo})</a></li>'
             return format_html(f"<ul>{profs}</ul>")
         except Exception:
@@ -177,4 +197,3 @@ class SolicitacaoAdmin(BaseModelAdmin):
         except Exception as e:
             logger.exception(f"Error while syncing Moodle for Solicitacao {s.id}. ERROR: {e}")
             return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator."))
-

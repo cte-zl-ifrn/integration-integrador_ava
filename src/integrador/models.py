@@ -1,11 +1,36 @@
 from django.utils.translation import gettext as _
 import json
-from django.db.models import CharField, DateTimeField, JSONField, BooleanField, IntegerField, TextField, ForeignKey, PROTECT
+import re
+
+from django import forms
+from django.core.exceptions import ValidationError
+from django.db.models import (
+    CharField,
+    DateTimeField,
+    JSONField,
+    BooleanField,
+    IntegerField,
+    TextField,
+    ForeignKey,
+    PROTECT,
+    URLField,
+)
 from django.db.models import Manager, Model
 from django.utils.html import format_html
 from django_better_choices import Choices
 from rule_engine import Rule
-from base.models import ActiveMixin
+
+
+class PermissiveURLField(URLField):
+    def permissive_url_validator(value):
+        pattern = r"^https?://[\w.-]+(:\d+)?(/.*)?$"
+        if not re.match(pattern, value):
+            raise ValidationError("Informe uma URL válidaaa.")
+
+    default_validators = [permissive_url_validator]
+
+    def formfield(self, **kwargs):
+        return CharField.formfield(self, **{"form_class": forms.CharField, **kwargs})
 
 
 class Ambiente(Model):
@@ -24,7 +49,7 @@ class Ambiente(Model):
         return f"""<span style='background: {color}; color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;'>{color}</span>"""
 
     nome = CharField(_("nome do ambiente"), max_length=255)
-    url = CharField(_("URL"), max_length=255)
+    url = PermissiveURLField(_("URL"), max_length=255)
     token = CharField(_("token"), max_length=255)
     expressao_seletora = TextField(_("expressão seletora"), max_length=2550)
     ordem = IntegerField(_("ordem"), default=0)
@@ -63,16 +88,26 @@ class Solicitacao(Model):
         PROCESSANDO = Choices.Value(_("Processando"), value="P")
 
     class Operacao(Choices):
-        SYNC_UP_DIARIO = Choices.Value(_("Sync UP: Diário"), value="SUDiario", schema=json.load(open(f"integrador/static/SUDiario.schema.json")))
-        SYNC_DOWN_NOTAS = Choices.Value(_("Sync DOWN: Notas"), value="SDNotas", schema=json.load(open(f"integrador/static/SDNotas.schema.json")))
-
+        SYNC_UP_DIARIO = Choices.Value(
+            _("Sync UP: Diário"), value="SUDiario", schema=json.load(open(f"integrador/static/SUDiario.schema.json"))
+        )
+        SYNC_DOWN_NOTAS = Choices.Value(
+            _("Sync DOWN: Notas"), value="SDNotas", schema=json.load(open(f"integrador/static/SDNotas.schema.json"))
+        )
 
     ambiente = ForeignKey(Ambiente, verbose_name=_("ambiente"), on_delete=PROTECT, null=True, blank=False)
     timestamp = DateTimeField(_("quando ocorreu"), auto_now_add=True, db_index=True)
     campus_sigla = CharField(_("campus"), max_length=256, null=True, blank=True)
     diario_codigo = CharField(_("código do diário"), max_length=256, null=True, blank=True)
     diario_id = CharField(_("ID do diário"), max_length=256, null=True, blank=True)
-    operacao = CharField(_("operação"), max_length=256, choices=Operacao.choices, null=False, blank=False, default=Operacao.SYNC_UP_DIARIO)
+    operacao = CharField(
+        _("operação"),
+        max_length=256,
+        choices=Operacao.choices,
+        null=False,
+        blank=False,
+        default=Operacao.SYNC_UP_DIARIO,
+    )
     tipo = CharField(_("tipo de diário"), max_length=256, null=True, blank=True, default=None)
     status = CharField(_("status"), max_length=256, choices=Status.choices, null=True, blank=False)
     status_code = CharField(_("status code"), max_length=256, null=True, blank=True)
@@ -83,7 +118,7 @@ class Solicitacao(Model):
     class Meta:
         verbose_name = _("solicitação")
         verbose_name_plural = _("solicitações")
-        
+
         ordering = ["-timestamp"]
 
     def __str__(self):
@@ -92,17 +127,18 @@ class Solicitacao(Model):
     @property
     def status_merged(self):
         return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
-    
+
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if self.recebido:
             diario = self.recebido.get("diario", {})
-            componente = diario.get('sigla', '')
-            turma = self.recebido.get("turma", {}).get("codigo", '')
+            componente = diario.get("sigla", "")
+            turma = self.recebido.get("turma", {}).get("codigo", "")
 
             self.ambiente = Ambiente.objects.seleciona_ambiente(self.recebido)
             self.campus_sigla = self.recebido.get("campus", {}).get("sigla", None)
-            self.diario_id = diario.get("id", '')
-            self.diario_codigo = f'{turma}.{componente}#{self.diario_id}'
-            self.tipo = self.recebido.get("diario", {}).get("tipo", 'regular' if self.operacao == Solicitacao.Operacao.SYNC_UP_DIARIO else None)
+            self.diario_id = diario.get("id", "")
+            self.diario_codigo = f"{turma}.{componente}#{self.diario_id}"
+            self.tipo = self.recebido.get("diario", {}).get(
+                "tipo", "regular" if self.operacao == Solicitacao.Operacao.SYNC_UP_DIARIO else None
+            )
         return super().save(force_insert, force_update, using, update_fields)
-
