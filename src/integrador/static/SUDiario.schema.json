@@ -1,11 +1,21 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "#/definitions/Welcome1",
+    "$ref": "#/definitions/SUDiario",
     "definitions": {
-        "Welcome1": {
+        "SUDiario": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "polo": {
+                    "anyOf": [
+                        {
+                            "type": "null"
+                        },
+                        {
+                            "$ref": "#/definitions/PoloCompleto"
+                        }
+                    ]
+                },
                 "campus": {
                     "$ref": "#/definitions/Campus"
                 },
@@ -21,8 +31,11 @@
                 "diario": {
                     "$ref": "#/definitions/Diario"
                 },
-                "polo": {
-                    "type": "null"
+                "alunos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Aluno"
+                    }
                 },
                 "professores": {
                     "type": "array",
@@ -30,85 +43,21 @@
                         "$ref": "#/definitions/Professor"
                     }
                 },
-                "alunos": {
+                "equipe": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Aluno"
+                        "$ref": "#/definitions/MembroEquipe"
                     }
                 }
             },
             "required": [
-                "alunos",
                 "campus",
                 "componente",
                 "curso",
                 "diario",
-                "professores",
                 "turma"
             ],
-            "title": "Welcome1"
-        },
-        "Aluno": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "matricula": {
-                    "type": "string"
-                },
-                "nome": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "email_secundario": {
-                    "type": "string"
-                },
-                "situacao": {
-                    "type": "string"
-                },
-                "polo": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "id": {
-                            "type": "integer"
-                        },
-                        "descricao": {
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "id",
-                        "descricao"
-                    ]
-                },
-                "situacao_diario": {
-                    "type": "string",
-                    "enum": [
-                        "ativo",
-                        "inativo",
-                        "Ativo",
-                        "Inativo"
-                    ]
-                },
-                "programa": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "email",
-                "email_secundario",
-                "id",
-                "matricula",
-                "nome",
-                "polo",
-                "situacao"
-            ],
-            "title": "Aluno"
+            "title": "SUDiario"
         },
         "Campus": {
             "type": "object",
@@ -117,63 +66,19 @@
                 "id": {
                     "type": "integer"
                 },
-                "descricao": {
+                "sigla": {
                     "type": "string"
                 },
-                "sigla": {
+                "descricao": {
                     "type": "string"
                 }
             },
             "required": [
-                "descricao",
                 "id",
-                "sigla"
+                "sigla",
+                "descricao"
             ],
             "title": "Campus"
-        },
-        "Componente": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "sigla": {
-                    "type": "string"
-                },
-                "descricao": {
-                    "type": "string"
-                },
-                "descricao_historico": {
-                    "type": "string"
-                },
-                "periodo": {
-                    "type": [
-                        "integer",
-                        "null"
-                    ]
-                },
-                "tipo": {
-                    "type": "integer"
-                },
-                "optativo": {
-                    "type": "boolean"
-                },
-                "qtd_avaliacoes": {
-                    "type": "integer"
-                }
-            },
-            "required": [
-                "descricao",
-                "descricao_historico",
-                "id",
-                "optativo",
-                "periodo",
-                "qtd_avaliacoes",
-                "sigla",
-                "tipo"
-            ],
-            "title": "Componente"
         },
         "Curso": {
             "type": "object",
@@ -190,15 +95,240 @@
                 },
                 "descricao": {
                     "type": "string"
+                },
+                "descricao_historico": {
+                    "type": "string"
+                },
+                "titulo_certificado_masculino": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "titulo_certificado_feminino": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "ch_total": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "ch_aula": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "conteudo": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ConteudoCurso"
+                    }
+                },
+                "autoinstrucional": {
+                    "type": "boolean"
+                },
+                "modalidade": {
+                    "$ref": "#/definitions/Modalidade"
+                },
+                "auto_inscricao": {
+                    "type": "boolean"
+                },
+                "restricoes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RestricaoCurso"
+                    }
+                },
+                "programa": {
+                    "type": "string"
                 }
             },
             "required": [
-                "codigo",
-                "descricao",
                 "id",
+                "codigo",
                 "nome"
             ],
             "title": "Curso"
+        },
+        "ConteudoCurso": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "descricao": {
+                    "type": "string"
+                },
+                "ch": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "ch",
+                "descricao"
+            ],
+            "title": "ConteudoCurso"
+        },
+        "Modalidade": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "descricao": {
+                    "type": "string"
+                },
+                "nivel_ensino": {
+                    "$ref": "#/definitions/NivelEnsino"
+                }
+            },
+            "required": [
+                "descricao",
+                "id"
+            ],
+            "title": "Modalidade"
+        },
+        "NivelEnsino": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "descricao": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "descricao",
+                "id"
+            ],
+            "title": "NivelEnsino"
+        },
+        "RestricaoCurso": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "descricao": {
+                    "type": "string"
+                },
+                "chave": {
+                    "type": "string"
+                },
+                "restricao": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "chave",
+                "descricao",
+                "restricao"
+            ],
+            "title": "RestricaoCurso"
+        },
+        "Turma": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "data_inicio": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "data_fim": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "gerar_matricula": {
+                    "type": "boolean"
+                },
+                "modelo_padrao": {
+                    "type": "boolean"
+                },
+                "nota_minima": {
+                    "type": "number"
+                },
+                "completude_minima": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "id",
+                "codigo"
+            ],
+            "title": "Turma"
+        },
+        "Componente": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "tipo": {
+                    "type": "integer"
+                },
+                "sigla": {
+                    "type": "string"
+                },
+                "periodo": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "optativo": {
+                    "type": "boolean"
+                },
+                "descricao": {
+                    "type": "string"
+                },
+                "qtd_avaliacoes": {
+                    "type": "integer"
+                },
+                "descricao_historico": {
+                    "type": "string"
+                },
+                "is_seminario_estagio_docente": {
+                    "type": "boolean"
+                },
+                "ch_presencial": {
+                    "type": "number"
+                },
+                "ch_pratica": {
+                    "type": "number"
+                },
+                "ch_extensao": {
+                    "type": "number"
+                },
+                "ch_pcc": {
+                    "type": "number"
+                },
+                "ch_visita_tecnica": {
+                    "type": "number"
+                },
+                "ch_semanal_1s": {
+                    "type": "number"
+                },
+                "ch_semanal_2s": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "id",
+                "sigla",
+                "descricao"
+            ],
+            "title": "Componente"
         },
         "Diario": {
             "type": "object",
@@ -206,6 +336,12 @@
             "properties": {
                 "id": {
                     "type": "integer"
+                },
+                "tipo": {
+                    "type": "string"
+                },
+                "sigla": {
+                    "type": "string"
                 },
                 "situacao": {
                     "type": "string"
@@ -215,33 +351,21 @@
                 },
                 "descricao_historico": {
                     "type": "string"
-                },
-                "sigla": {
-                    "type": "string"
-                },
-                "tipo": {
-                    "type": "string"
                 }
             },
             "required": [
-                "descricao",
-                "descricao_historico",
                 "id",
                 "sigla",
                 "situacao"
             ],
             "title": "Diario"
         },
-        "Professor": {
+        "Aluno": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "id": {
                     "type": "integer"
-                },
-                "login": {
-                    "type": "string",
-                    "format": "integer"
                 },
                 "nome": {
                     "type": "string"
@@ -252,11 +376,182 @@
                 "email_secundario": {
                     "type": "string"
                 },
-                "status": {
+                "programa": {
+                    "type": "string"
+                },
+                "situacao_diario": {
+                    "type": "string",
+                    "enum": [
+                        "ativo",
+                        "inativo",
+                        "Ativo",
+                        "Inativo"
+                    ]
+                },
+                "polo": {
+                    "$ref": "#/definitions/PoloBasico"
+                },
+                "situacao": {
+                    "type": "string"
+                },
+                "matricula": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "ativo": {
+                    "type": "boolean"
+                },
+                "nome_usual": {
+                    "type": "string"
+                },
+                "nome_social": {
+                    "type": "string"
+                },
+                "nome_registro": {
+                    "type": "string"
+                },
+                "cpf": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "outras_matriculas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/OutraMatricula"
+                    }
+                },
+                "passaporte": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "email",
+                "email_secundario",
+                "id",
+                "matricula",
+                "nome",
+                "polo",
+                "situacao"
+            ],
+            "title": "Aluno"
+        },
+        "OutraMatricula": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "identificacao": {
+                    "type": "string"
+                },
+                "curso": {
+                    "$ref": "#/definitions/CursoResumo"
+                }
+            },
+            "required": [
+                "curso",
+                "identificacao"
+            ],
+            "title": "OutraMatricula"
+        },
+        "CursoResumo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "nome": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "codigo",
+                "id",
+                "nome"
+            ],
+            "title": "CursoResumo"
+        },
+        "Professor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "nome": {
                     "type": "string"
                 },
                 "tipo": {
                     "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "email_secundario": {
+                    "type": "string"
+                },
+                "login": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "ativo": {
+                    "type": "boolean"
+                },
+                "nome_usual": {
+                    "type": "string"
+                },
+                "nome_social": {
+                    "type": "string"
+                },
+                "nome_registro": {
+                    "type": "string"
+                },
+                "eh_servidor": {
+                    "type": "boolean"
+                },
+                "eh_aluno": {
+                    "type": "boolean"
+                },
+                "eh_prestador": {
+                    "type": "boolean"
+                },
+                "eh_usuarioexterno": {
+                    "type": "boolean"
+                },
+                "eh_docente": {
+                    "type": "boolean"
+                },
+                "eh_tecnico_administrativo": {
+                    "type": "boolean"
+                },
+                "eh_estrangeiro": {
+                    "type": "boolean"
+                },
+                "cpf": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "passaporte": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 }
             },
             "required": [
@@ -270,22 +565,144 @@
             ],
             "title": "Professor"
         },
-        "Turma": {
+        "MembroEquipe": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "username": {
+                    "type": "string"
+                },
+                "ativo": {
+                    "type": "boolean"
+                },
+                "eh_servidor": {
+                    "type": "boolean"
+                },
+                "eh_aluno": {
+                    "type": "boolean"
+                },
+                "eh_prestador": {
+                    "type": "boolean"
+                },
+                "eh_usuarioexterno": {
+                    "type": "boolean"
+                },
+                "eh_docente": {
+                    "type": "boolean"
+                },
+                "eh_tecnico_administrativo": {
+                    "type": "boolean"
+                },
+                "eh_estrangeiro": {
+                    "type": "boolean"
+                },
+                "nome": {
+                    "type": "string"
+                },
+                "nome_usual": {
+                    "type": "string"
+                },
+                "nome_social": {
+                    "type": "string"
+                },
+                "nome_registro": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "email_secundario": {
+                    "type": "string"
+                },
+                "cpf": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "passaporte": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "papeis": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PapelEquipe"
+                    }
+                }
+            },
+            "required": [
+                "ativo",
+                "email",
+                "nome",
+                "papeis",
+                "username"
+            ],
+            "title": "MembroEquipe"
+        },
+        "PapelEquipe": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "id": {
                     "type": "integer"
                 },
-                "codigo": {
+                "descricao": {
+                    "type": "string"
+                },
+                "polo": {
+                    "$ref": "#/definitions/PoloCompleto"
+                }
+            },
+            "required": [
+                "descricao",
+                "id",
+                "polo"
+            ],
+            "title": "PapelEquipe"
+        },
+        "PoloBasico": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "descricao": {
+                    "type": "string"
+                },
+                "sigla": {
                     "type": "string"
                 }
             },
             "required": [
-                "codigo",
+                "descricao",
                 "id"
             ],
-            "title": "Turma"
+            "title": "PoloBasico"
+        },
+        "PoloCompleto": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "sigla": {
+                    "type": "string"
+                },
+                "descricao": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "descricao",
+                "id",
+                "sigla"
+            ],
+            "title": "PoloCompleto"
         }
     }
 }
