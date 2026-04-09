@@ -1,14 +1,13 @@
-ARG BASEIMAGE=1.0.2
+ARG BASEIMAGE=6.0.4.3
 
 
 #########################
-# Development build stage
+# Development stage
 ########################################################################
 FROM ctezlifrn/avaintegrationbase:$BASEIMAGE AS development
 
 COPY requirements-dev.txt /
-RUN    useradd -ms /usr/sbin/nologin app \
-    && pip uninstall dsgovbr \
+RUN    pip uninstall dsgovbr \
     && pip install -r /requirements-dev.txt
 
 USER app
@@ -18,7 +17,7 @@ CMD  ["runserver_plus"]
 
 
 #########################
-# Production build stage
+# Production stage
 ########################################################################
 FROM ctezlifrn/avaintegrationbase:$BASEIMAGE AS production
 
