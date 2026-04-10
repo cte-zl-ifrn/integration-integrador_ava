@@ -8,6 +8,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1] in ["runserver", "runserver_plus", "test"]:
         import boot
+
         boot.boot()
         boot.start_debug()
 

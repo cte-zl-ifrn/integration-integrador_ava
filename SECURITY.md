@@ -39,12 +39,12 @@ Nossa política é seguir divulgação responsável:
 2. Preparamos um patch e, se necessário, uma nova versão.
 3. Comunicamos mantenedores de dependências relevantes, se aplicável.
 4. Combinamos com você uma data de divulgação, levando em conta:
-   - Gravidade do problema.
-   - Tempo necessário para os usuários aplicarem correções.
+    - Gravidade do problema.
+    - Tempo necessário para os usuários aplicarem correções.
 5. Publicamos:
-   - Release com correção.
-   - Notas de versão destacando o impacto de segurança.
-   - Aviso público (issue, página do projeto ou changelog).
+    - Release com correção.
+    - Notas de versão destacando o impacto de segurança.
+    - Aviso público (issue, página do projeto ou changelog).
 
 Pedimos, se possível, um prazo de 14 a 30 dias entre o relato e a divulgação pública.
 
@@ -87,7 +87,6 @@ Se você identificar qualquer ponto da documentação ou configuração padrão 
 
 Agradecemos a todos os pesquisadores e usuários que dedicam tempo para relatar vulnerabilidades de forma responsável. Seu esforço ajuda a manter o ecossistema de software livre mais **resiliente** e confiável.
 
-
 ## Reporting a Vulnerability
 
 Use this section to tell people how to report a vulnerability.
@@ -102,20 +101,20 @@ declined, etc.
 
 **Resumo:**
 
-1. **Dependência afetada**: Django  
-2. **Versão vulnerável**: >= 5.2, < 5.2.12  
-3. **Versão corrigida**: 5.2.12  
+1. **Dependência afetada**: Django
+2. **Versão vulnerável**: >= 5.2, < 5.2.12
+3. **Versão corrigida**: 5.2.12
 4. **Ação tomada**: Atualização de `Django==5.2.11` para `Django==5.2.12` em `setup.py`
 
 **Correções:**
 
 1. **Vulnerabilidade 1** — Consumo Descontrolado de Recursos (Denial of Service)
-   1. **Severidade**: Alta  
-   2. **Descrição**: Foi descoberto que `URLField.to_python()` chama `urllib.parse.urlsplit()`, que realiza normalização NFKC no Windows de forma desproporcionalmente lenta para determinados caracteres Unicode. Isso permite que um atacante remoto cause negação de serviço (DoS) fornecendo grandes entradas de URL contendo esses caracteres especiais.
-   3. **Impacto**: Negação de serviço via entradas maliciosas em campos de URL.
-   4. **Crédito**: Seokchan Yoon.
+    1. **Severidade**: Alta
+    2. **Descrição**: Foi descoberto que `URLField.to_python()` chama `urllib.parse.urlsplit()`, que realiza normalização NFKC no Windows de forma desproporcionalmente lenta para determinados caracteres Unicode. Isso permite que um atacante remoto cause negação de serviço (DoS) fornecendo grandes entradas de URL contendo esses caracteres especiais.
+    3. **Impacto**: Negação de serviço via entradas maliciosas em campos de URL.
+    4. **Crédito**: Seokchan Yoon.
 2. **Vulnerabilidade 2** — Condição de Corrida (Race Condition)
-   1. **Severidade**: Média  
-   2. **Descrição**: Foi descoberta uma condição de corrida nos backends de armazenamento em sistema de arquivos e de cache baseado em arquivos do Django. Em ambientes multi-thread, a mudança temporária de umask feita por uma thread pode afetar outras threads, resultando na criação de objetos no sistema de arquivos com permissões incorretas durante requisições concorrentes.
-   3. **Impacto**: Criação de arquivos com permissões incorretas em ambientes multi-thread.  
-   4. **Crédito**: Tarek Nakkouch.
+    1. **Severidade**: Média
+    2. **Descrição**: Foi descoberta uma condição de corrida nos backends de armazenamento em sistema de arquivos e de cache baseado em arquivos do Django. Em ambientes multi-thread, a mudança temporária de umask feita por uma thread pode afetar outras threads, resultando na criação de objetos no sistema de arquivos com permissões incorretas durante requisições concorrentes.
+    3. **Impacto**: Criação de arquivos com permissões incorretas em ambientes multi-thread.
+    4. **Crédito**: Tarek Nakkouch.

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from sc4py.env import env_as_bool
 
 # Integrador
 MIDDLEWARE = [
@@ -13,4 +12,3 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
 ]
-

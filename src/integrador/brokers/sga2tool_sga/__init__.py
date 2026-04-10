@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class Sga2ToolSgaBroker(BaseBroker):
-
     def sync_up_enrolments(self, solicitacao: Solicitacao) -> dict:
         raise NotImplementedError("Ainda não implementado.")
 

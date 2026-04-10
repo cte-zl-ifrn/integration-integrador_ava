@@ -3,10 +3,9 @@ import logging
 import requests
 from functools import update_wrapper
 from django.conf import settings
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, HttpResponseRedirect
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect
+from django.utils.html import format_html, format_html_join
 from django.utils.timezone import localtime
 from django.db import transaction
 from django.urls import path, reverse
@@ -52,14 +51,14 @@ class AmbienteAdmin(BaseModelAdmin):
 
     @display(description="URL")
     def checked_url(self, obj):
-        validation_error = '<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>'
-        validation_success = '<span title="A URL deste AVA foi validada com sucesso."> ✅</span>'
+        validation_error = format_html('<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>')
+        validation_success = format_html('<span title="A URL deste AVA foi validada com sucesso."> ✅</span>')
         try:
             response = requests.get(f"{obj.url}/version.php", timeout=1)
             message = validation_success if response.status_code == 200 else validation_error
         except Exception:
             message = validation_error
-        return format_html('{message}<a href="{url}">{url}🔗</a>', url=obj.url, message=mark_safe(message))
+        return format_html('{}<a href="{}">{}🔗</a>', message, obj.url, obj.url)
 
     @display(description="Expressão Seletora")
     def checked_expressao_seletora(self, obj):
@@ -79,7 +78,7 @@ class AmbienteAdmin(BaseModelAdmin):
         es = obj.expressao_seletora or ""
         return format_html(
             '<span title="{title}"> {status}</span><span style="color: {color};">{expressao_seletora}</span>',
-            expressao_seletora=(es if es.strip() != "" else f""),
+            expressao_seletora=(es if es.strip() != "" else ""),
             title=title,
             status=status,
             color=color,
@@ -168,7 +167,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
             if not professores:
                 return "-"
 
-            return format_html("<ul>{}</ul>", mark_safe("".join(professores)))
+            return format_html("<ul>{}</ul>", format_html_join("", "{}", ((p,) for p in professores)))
         except Exception:
             return "-"
 
@@ -217,7 +216,12 @@ class SolicitacaoAdmin(BaseModelAdmin):
                 raise Exception("Erro desconhecido.")
             return HttpResponseRedirect(reverse("admin:integrador_solicitacao_change", args=[solicitacao.id]))
         except Exception as e:
-            logger.exception(f"Error while syncing Moodle for Solicitacao {s.id}. ERROR: {e}")
-            return HttpResponse(
-                _("An internal error has occurred while syncing. Please contact the administrator.") + f" {e}"
+            logger.exception(f"Error while syncing Moodle for Solicitacao {getattr(s, 'id', '-')}. ERROR: {e}")
+            return render(
+                request,
+                "security/authorization_error.html",
+                context={
+                    "error_cause": _("An internal error has occurred while syncing. Please contact the administrator.")
+                },
+                status=500,
             )

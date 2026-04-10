@@ -7,7 +7,7 @@ def health(request):
     try:
         connection.connect()
         connection_result = "OK"
-    except:
+    except Exception:
         connection_result = "FAIL"
 
     return JsonResponse(

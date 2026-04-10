@@ -28,7 +28,7 @@ logging.config.dictConfig(
         "formatters": {
             "longformat": {
                 # "format": f"{Color.GREEN}%(asctime)s {Color.YELLOW}%(levelname)s {Color.MAGENTA}%(name)s:%(lineno)s {Color.CYANO}pid:%(process)d {Color.NONE}%(message)s"  # noqa
-                "format": f"%(message)s"
+                "format": "%(message)s"
             },
         },
         "handlers": {

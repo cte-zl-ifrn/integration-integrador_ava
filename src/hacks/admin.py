@@ -1,13 +1,11 @@
 from django.utils.translation import gettext as _
-from django.utils.safestring import mark_safe
-from django.db.models import Model
-from django.contrib.admin import register, display, site, StackedInline
+from django.utils.html import format_html, format_html_join
+from django.contrib.admin import register, display, site
 from django.contrib.auth.models import User, Group, Permission
 from import_export.resources import ModelResource
 from import_export.widgets import ManyToManyWidget
 from import_export.fields import Field
 from base.admin import BaseModelAdmin
-from cohort.models import Enrolment
 
 
 ####
@@ -22,16 +20,17 @@ site.unregister(User)
 # Admins
 ####
 
+
 @register(Group)
 class GroupAdmin(BaseModelAdmin):
     class GroupResource(ModelResource):
         permissions = Field(
-            attribute='permissions',
-            widget=ManyToManyWidget(Permission, field='codename', separator='|')
+            attribute="permissions", widget=ManyToManyWidget(Permission, field="codename", separator="|")
         )
+
         class Meta:
             model = Group
-            export_order = ["name","permissions"]
+            export_order = ["name", "permissions"]
             import_id_fields = ("name",)
             fields = export_order
             skip_unchanged = True
@@ -44,10 +43,8 @@ class GroupAdmin(BaseModelAdmin):
 @register(User)
 class UserAdmin(BaseModelAdmin):
     class UserResource(ModelResource):
-        groups = Field(
-            attribute='groups',
-            widget=ManyToManyWidget(Permission, field='name', separator='|')
-        )
+        groups = Field(attribute="groups", widget=ManyToManyWidget(Permission, field="name", separator="|"))
+
         class Meta:
             model = User
             export_order = [
@@ -101,23 +98,36 @@ class UserAdmin(BaseModelAdmin):
         ),
     ]
     readonly_fields = ["date_joined", "last_login"]
-    autocomplete_fields: list[str] = ['groups']
+    autocomplete_fields: list[str] = ["groups"]
     resource_classes = [UserResource]
 
     @display
     def auth(self, obj):
-        result = "<span title='Ativo'>✅</span>" if obj.is_active else "<span title='Inativo'>❌</span>"
+        badges = [
+            (
+                format_html("<span title='Ativo'>✅</span>")
+                if obj.is_active
+                else format_html("<span title='Inativo'>❌</span>")
+            )
+        ]
         if obj.is_staff and obj.is_superuser:
-            result += "<span title='Super usuário'>👮‍♂️</span>"
+            badges.append(format_html("<span title='Super usuário'>👮‍♂️</span>"))
         elif obj.is_superuser and not obj.is_staff:
-            result += "<span title='Super usuário sem permissão de operar o admin? Você configurou certo?'>🕵️‍♂️</span>"
+            badges.append(
+                format_html(
+                    "<span title='Super usuário sem permissão de operar o admin? Você configurou certo?'>🕵️‍♂️</span>"
+                )
+            )
         elif obj.is_staff and not obj.is_superuser:
-            result += "<span title='Pode operar o admin'>👷‍♂️</span>"
+            badges.append(format_html("<span title='Pode operar o admin'>👷‍♂️</span>"))
         elif not obj.is_staff and not obj.is_superuser:
-            result += "<span title='É um simples colaborador, sem acesso ao admin.'>👨</span>"
+            badges.append(format_html("<span title='É um simples colaborador, sem acesso ao admin.'>👨</span>"))
         if obj.groups.count() > 0:
             plural = "nos grupos" if obj.groups.count() > 1 else "no grupo"
             grupos = ", ".join([f"'{g.name}'" for g in obj.groups.all()])
-            result += f"<span title=\"Está {plural} {grupos}.\">👥</span>"
-            
-        return mark_safe(f"<span style='font-size: 150%'>{result}</span>")
+            badges.append(format_html('<span title="Está {} {}.">👥</span>', plural, grupos))
+
+        return format_html(
+            "<span style='font-size: 150%'>{}</span>",
+            format_html_join("", "{}", ((b,) for b in badges)),
+        )

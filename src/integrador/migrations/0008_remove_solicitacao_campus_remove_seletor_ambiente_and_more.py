@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("integrador", "0007_seletor"),
     ]
@@ -44,23 +43,17 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="solicitacao",
             name="campus_sigla",
-            field=models.CharField(
-                blank=True, max_length=256, null=True, verbose_name="sigla do campus"
-            ),
+            field=models.CharField(blank=True, max_length=256, null=True, verbose_name="sigla do campus"),
         ),
         migrations.AddField(
             model_name="solicitacao",
             name="diario_codigo",
-            field=models.CharField(
-                blank=True, max_length=256, null=True, verbose_name="código do diário"
-            ),
+            field=models.CharField(blank=True, max_length=256, null=True, verbose_name="código do diário"),
         ),
         migrations.AddField(
             model_name="solicitacao",
             name="diario_id",
-            field=models.CharField(
-                blank=True, max_length=256, null=True, verbose_name="ID do diário"
-            ),
+            field=models.CharField(blank=True, max_length=256, null=True, verbose_name="ID do diário"),
         ),
         migrations.DeleteModel(
             name="Campus",

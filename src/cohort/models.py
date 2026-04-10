@@ -1,7 +1,6 @@
 from django.utils.translation import gettext as _
 from django.db.models import CharField, BooleanField, ForeignKey, PROTECT, TextField
 from django.db.models import Model
-from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 from django_rule_engine.fields import RuleField
 from base.models import ActiveMixin
@@ -12,7 +11,12 @@ class MoodleUser(ActiveMixin, Model):
     fullname = CharField(_("nome completo do usuário"), max_length=2560)
     email = CharField(_("email do usuário"), max_length=2560)
     login = CharField(_("login do usuário"), max_length=2560, unique=True)
-    active = BooleanField(_("sincronizar com o Moodle"), help_text=_("Indica se a sincronização do usuário com o Moodle está ativa. Inativar aqui não remove o usuário do Moodle nem o inativa no Moodle, apenas indica que ele não deve ser sincronizado."))
+    active = BooleanField(
+        _("sincronizar com o Moodle"),
+        help_text=_(
+            "Indica se a sincronização do usuário com o Moodle está ativa. Inativar aqui não remove o usuário do Moodle nem o inativa no Moodle, apenas indica que ele não deve ser sincronizado."
+        ),
+    )
 
     class Meta:
         verbose_name = _("usuário")
@@ -24,7 +28,6 @@ class MoodleUser(ActiveMixin, Model):
 
 
 class Role(ActiveMixin, Model):
-
     name = CharField(
         _("nome da role"),
         max_length=256,
@@ -48,7 +51,6 @@ class Role(ActiveMixin, Model):
         verbose_name_plural = _("roles")
         ordering = ["name"]
 
-
     def __str__(self):
         return f"{self.name} {self.active_icon}"
 
@@ -63,7 +65,7 @@ class Cohort(ActiveMixin, Model):
         blank=True,
         null=True,
         example_data=JSON_DE_EXEMPLO,
-        help_text="Exemplos: <ul><li>curso.codigo == '132456'</li></ul>"
+        help_text="Exemplos: <ul><li>curso.codigo == '132456'</li></ul>",
     )
     rule_coordenacao = RuleField(
         _("regra de validação para sala de coordenação"),

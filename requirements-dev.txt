@@ -2,6 +2,7 @@
 # -e /app/src/dsgovbr
 black
 debugpy
+django-coverage-plugin
 django-debug-toolbar
 django-extensions
 djlint
@@ -11,10 +12,12 @@ ipython
 lxml
 mypy
 pdoc3
+pre-commit
 pytest
 pytest-cov
 pytest-profiling
 ruff
+semgrep
 types-libsass
 types-requests
 Werkzeug

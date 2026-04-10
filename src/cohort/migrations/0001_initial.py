@@ -12,30 +12,35 @@ def aplicar_novo_modelo(apps, schema_editor):
     # Verificar se a tabela coorte_papel existe antes de executar
     if schema_editor.connection.introspection.table_names():
         cursor = schema_editor.connection.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT EXISTS (
-                SELECT 1 FROM information_schema.tables 
+                SELECT 1 FROM information_schema.tables
                 WHERE table_name = 'coorte_papel'
             )
-        """)
+        """
+        )
         if not cursor.fetchone()[0]:
             return
 
     # Inserir Cohorts a partir de CoorteCurso
-    schema_editor.execute("""
+    schema_editor.execute(
+        """
         INSERT INTO cohort_role (name, shortname, active)
-        SELECT  
+        SELECT
                 nome,
                 papel,
                 active
         FROM    coorte_papel
         ON CONFLICT DO NOTHING
-    """)
+    """
+    )
 
     # Inserir Cohorts a partir de CoorteCurso
-    schema_editor.execute("""
+    schema_editor.execute(
+        """
         INSERT INTO cohort_cohort (name, idnumber, active, role_id, rule_diario, rule_coordenacao, description)
-        SELECT  
+        SELECT
                 c.name,
                 c.idnumber,
                 c.active,
@@ -45,37 +50,42 @@ def aplicar_novo_modelo(apps, schema_editor):
                 c.description
         FROM    coorte_cohort c INNER JOIN coorte_papel p ON (c.papel_id = p.id)
         ON CONFLICT DO NOTHING
-    """)
+    """
+    )
 
     # Inserir MoodleUser a partir de User vinculados a CoorteEnrolment
-    schema_editor.execute("""
+    schema_editor.execute(
+        """
         INSERT INTO cohort_moodleuser (fullname, email, login, active)
-        SELECT  
+        SELECT
                 u.first_name || ' ' || u.last_name,
                 u.email,
                 u.username,
                 is_active
         FROM    coorte_enrolment e INNER JOIN auth_user u ON (e.colaborador_id = u.id)
         ON CONFLICT DO NOTHING
-    """)
-    
+    """
+    )
+
     # Inserir Enrolments a partir de CoorteCurso
-    schema_editor.execute("""
+    schema_editor.execute(
+        """
         INSERT INTO cohort_enrolment (cohort_id, user_id)
         SELECT  (SELECT c.id FROM cohort_cohort c WHERE idnumber=cc.idnumber LIMIT 1) cohort_id,
                 (SELECT m.id FROM cohort_moodleuser m WHERE m.login=u.username LIMIT 1) user_id
         FROM    coorte_enrolment ce
-                   INNER JOIN coorte_cohort cc ON (ce.cohort_id = cc.id) 
+                   INNER JOIN coorte_cohort cc ON (ce.cohort_id = cc.id)
                    INNER JOIN auth_user u ON (ce.colaborador_id = u.id)
         ON CONFLICT DO NOTHING
-    """)
+    """
+    )
+
 
 def reverter_novo_modelo(apps, schema_editor):
     pass
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -97,15 +107,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "name",
-                    models.CharField(
-                        max_length=2560, unique=True, verbose_name="nome da coorte"
-                    ),
+                    models.CharField(max_length=2560, unique=True, verbose_name="nome da coorte"),
                 ),
                 (
                     "idnumber",
-                    models.CharField(
-                        max_length=2560, unique=True, verbose_name="idnumber"
-                    ),
+                    models.CharField(max_length=2560, unique=True, verbose_name="idnumber"),
                 ),
                 ("active", models.BooleanField(default=True, verbose_name="visível")),
                 (
@@ -319,9 +325,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "fullname",
-                    models.CharField(
-                        max_length=2560, verbose_name="nome completo do usuário"
-                    ),
+                    models.CharField(max_length=2560, verbose_name="nome completo do usuário"),
                 ),
                 (
                     "email",
@@ -394,9 +398,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.BigIntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.BigIntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "name",

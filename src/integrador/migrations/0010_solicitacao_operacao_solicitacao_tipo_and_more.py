@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("integrador", "0009_alter_ambiente_options_solicitacao_ambiente"),
     ]
@@ -40,8 +39,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="solicitacao",
             name="timestamp",
-            field=models.DateTimeField(
-                auto_now_add=True, db_index=True, verbose_name="quando ocorreu"
-            ),
+            field=models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="quando ocorreu"),
         ),
     ]

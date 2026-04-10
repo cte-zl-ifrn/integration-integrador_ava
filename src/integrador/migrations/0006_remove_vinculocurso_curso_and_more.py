@@ -4,155 +4,159 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('integrador', '0005_remove_campus_descricao'),
+        ("integrador", "0005_remove_campus_descricao"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='vinculocurso',
-            name='curso',
+            model_name="vinculocurso",
+            name="curso",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculocurso',
-            name='curso',
+            model_name="historicalvinculocurso",
+            name="curso",
         ),
         migrations.RemoveField(
-            model_name='historicalcursopolo',
-            name='curso',
+            model_name="historicalcursopolo",
+            name="curso",
         ),
         migrations.RemoveField(
-            model_name='cursopolo',
-            name='curso',
+            model_name="cursopolo",
+            name="curso",
         ),
         migrations.RemoveField(
-            model_name='cursopolo',
-            name='campus',
+            model_name="cursopolo",
+            name="campus",
         ),
         migrations.RemoveField(
-            model_name='cursopolo',
-            name='polo',
+            model_name="cursopolo",
+            name="polo",
         ),
         migrations.RemoveField(
-            model_name='historicalcurso',
-            name='history_user',
+            model_name="historicalcurso",
+            name="history_user",
         ),
         migrations.RemoveField(
-            model_name='historicalcursopolo',
-            name='campus',
+            model_name="historicalcursopolo",
+            name="campus",
         ),
         migrations.RemoveField(
-            model_name='historicalcursopolo',
-            name='history_user',
+            model_name="historicalcursopolo",
+            name="history_user",
         ),
         migrations.RemoveField(
-            model_name='historicalcursopolo',
-            name='polo',
+            model_name="historicalcursopolo",
+            name="polo",
         ),
         migrations.RemoveField(
-            model_name='historicalpapel',
-            name='history_user',
+            model_name="historicalpapel",
+            name="history_user",
         ),
         migrations.RemoveField(
-            model_name='historicalpolo',
-            name='history_user',
+            model_name="historicalpolo",
+            name="history_user",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculocurso',
-            name='campus',
+            model_name="historicalvinculocurso",
+            name="campus",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculocurso',
-            name='colaborador',
+            model_name="historicalvinculocurso",
+            name="colaborador",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculocurso',
-            name='history_user',
+            model_name="historicalvinculocurso",
+            name="history_user",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculocurso',
-            name='papel',
+            model_name="historicalvinculocurso",
+            name="papel",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculopolo',
-            name='colaborador',
+            model_name="historicalvinculopolo",
+            name="colaborador",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculopolo',
-            name='history_user',
+            model_name="historicalvinculopolo",
+            name="history_user",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculopolo',
-            name='papel',
+            model_name="historicalvinculopolo",
+            name="papel",
         ),
         migrations.RemoveField(
-            model_name='historicalvinculopolo',
-            name='polo',
+            model_name="historicalvinculopolo",
+            name="polo",
         ),
         migrations.RemoveField(
-            model_name='vinculopolo',
-            name='papel',
+            model_name="vinculopolo",
+            name="papel",
         ),
         migrations.RemoveField(
-            model_name='vinculocurso',
-            name='papel',
+            model_name="vinculocurso",
+            name="papel",
         ),
         migrations.RemoveField(
-            model_name='vinculopolo',
-            name='polo',
+            model_name="vinculopolo",
+            name="polo",
         ),
         migrations.RemoveField(
-            model_name='vinculocurso',
-            name='campus',
+            model_name="vinculocurso",
+            name="campus",
         ),
         migrations.RemoveField(
-            model_name='vinculocurso',
-            name='colaborador',
+            model_name="vinculocurso",
+            name="colaborador",
         ),
         migrations.RemoveField(
-            model_name='vinculopolo',
-            name='colaborador',
+            model_name="vinculopolo",
+            name="colaborador",
         ),
         migrations.AlterField(
-            model_name='solicitacao',
-            name='status',
-            field=models.CharField(choices=[('nao_definido', 'Não Definido'), ('S', 'Sucesso'), ('F', 'Falha'), ('P', 'Processando')], max_length=256, null=True, verbose_name='status'),
+            model_name="solicitacao",
+            name="status",
+            field=models.CharField(
+                choices=[("nao_definido", "Não Definido"), ("S", "Sucesso"), ("F", "Falha"), ("P", "Processando")],
+                max_length=256,
+                null=True,
+                verbose_name="status",
+            ),
         ),
         migrations.DeleteModel(
-            name='Curso',
+            name="Curso",
         ),
         migrations.DeleteModel(
-            name='CursoPolo',
+            name="CursoPolo",
         ),
         migrations.DeleteModel(
-            name='HistoricalCurso',
+            name="HistoricalCurso",
         ),
         migrations.DeleteModel(
-            name='HistoricalCursoPolo',
+            name="HistoricalCursoPolo",
         ),
         migrations.DeleteModel(
-            name='HistoricalPapel',
+            name="HistoricalPapel",
         ),
         migrations.DeleteModel(
-            name='HistoricalPolo',
+            name="HistoricalPolo",
         ),
         migrations.DeleteModel(
-            name='HistoricalVinculoCurso',
+            name="HistoricalVinculoCurso",
         ),
         migrations.DeleteModel(
-            name='HistoricalVinculoPolo',
+            name="HistoricalVinculoPolo",
         ),
         migrations.DeleteModel(
-            name='Papel',
+            name="Papel",
         ),
         migrations.DeleteModel(
-            name='Polo',
+            name="Polo",
         ),
         migrations.DeleteModel(
-            name='VinculoCurso',
+            name="VinculoCurso",
         ),
         migrations.DeleteModel(
-            name='VinculoPolo',
+            name="VinculoPolo",
         ),
     ]

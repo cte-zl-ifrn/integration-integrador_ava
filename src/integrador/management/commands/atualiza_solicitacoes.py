@@ -1,7 +1,7 @@
 # painel/management/commands/init_local_data.py
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from integrador.models import Solicitacao
+
 
 class Command(BaseCommand):
     help = "Atualiza os registros de Solicitação para definir campos novos como nulos."

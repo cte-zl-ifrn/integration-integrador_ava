@@ -2,6 +2,7 @@
 View personalizada para o dashboard de administração.
 Integra dados de múltiplos modelos do integrador.
 """
+
 import logging
 
 from django.contrib import admin
@@ -25,14 +26,14 @@ def admin_index_dashboard(request):
 
     # Adicionar histórico de ações do usuário
     try:
-        log_entries = LogEntry.objects.filter(user=request.user).select_related('user').order_by('-action_time')
+        log_entries = LogEntry.objects.filter(user=request.user).select_related("user").order_by("-action_time")
     except Exception:
         log_entries = []
 
-    context['log_entries'] = log_entries
-    
+    context["log_entries"] = log_entries
+
     # Adicionar available_apps ao contexto (necessário para o menu lateral)
     app_list = admin.site.get_app_list(request)
-    context['available_apps'] = app_list
+    context["available_apps"] = app_list
 
-    return render(request, 'admin/index.html', context)
+    return render(request, "admin/index.html", context)

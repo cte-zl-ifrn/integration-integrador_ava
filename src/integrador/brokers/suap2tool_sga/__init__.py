@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 class Suap2ToolSgaBroker(BaseBroker):
-
     def sync_up_enrolments(self):
         raise NotImplementedError("Ainda não implementado.")
 

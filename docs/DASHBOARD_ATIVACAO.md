@@ -10,6 +10,7 @@
 ## Como Ativar
 
 ### Opção 1: Automática (Recomendado)
+
 O arquivo `admin.py` já está criado. Você só precisa garantir que ele seja importado. Adicione ao arquivo `__init__.py` do app:
 
 ```python
@@ -21,6 +22,7 @@ from . import admin  # noqa
 ```
 
 ### Opção 2: Manual (via URLs)
+
 Se preferir registrar via URLs, edite o `urls.py` principal:
 
 ```python
@@ -36,6 +38,7 @@ admin.site.index = admin_index_dashboard
 ```
 
 ### Opção 3: Via Settings
+
 Adicione ao `settings.py`:
 
 ```python
@@ -50,7 +53,7 @@ class DSGovBRConfig(AppConfig):
     name = "dsgovbr"
     verbose_name = "DSGovBR"
     icon = "fa fa-edit"
-    
+
     def ready(self):
         # Registrar dashboard customizado
         from django.contrib import admin
@@ -61,39 +64,40 @@ class DSGovBRConfig(AppConfig):
 ## Dados Exibidos
 
 ### Cards
+
 1. **Ambientes de Integração**
-   - Total de ambientes
-   - Ativos
-   - Com erros (expressão seletora inválida)
+    - Total de ambientes
+    - Ativos
+    - Com erros (expressão seletora inválida)
 
 2. **Solicitações de Integração**
-   - Últimas 24 horas
-   - Sucesso
-   - Falhas
-   - Processando
+    - Últimas 24 horas
+    - Sucesso
+    - Falhas
+    - Processando
 
 3. **Coortes**
-   - Total de coortes
-   - Ativas
-   - Inativas
-   - Vínculos de enrolment
+    - Total de coortes
+    - Ativas
+    - Inativas
+    - Vínculos de enrolment
 
 4. **Papéis**
-   - Total de papéis
-   - Ativos
-   - Inativos
+    - Total de papéis
+    - Ativos
+    - Inativos
 
 5. **Usuários e Grupos**
-   - Total de usuários
-   - Usuários ativos
-   - Total de grupos
+    - Total de usuários
+    - Usuários ativos
+    - Total de grupos
 
 6. **Taxa de Sucesso**
-   - Percentual de integrações bem-sucedidas
-   - Total de solicitações processadas
+    - Percentual de integrações bem-sucedidas
+    - Total de solicitações processadas
 
 7. **Ações Rápidas**
-   - Links diretos para administração
+    - Links diretos para administração
 
 ## Cache
 
@@ -102,6 +106,7 @@ class DSGovBRConfig(AppConfig):
 - **Benefício**: Reduz carga no banco de dados durante picos
 
 ### Limpar Cache Manualmente
+
 ```bash
 python manage.py shell
 ```
@@ -121,20 +126,24 @@ cache.clear()
 ## Troubleshooting
 
 ### Dashboard não aparece?
+
 - Verifique se `admin.py` está sendo importado
 - Confira se a view está registrada: `print(admin.site.index)`
 
 ### Dados não atualizam?
+
 - O cache está funcionando (aguarde 5 minutos ou limpe)
 - Verifique se há erros no console Django
 
 ### Erro ao carregar modelos?
+
 - Verifique se os apps `integrador` e `coorte` estão em `INSTALLED_APPS`
 - Confira permissões de staff_member
 
 ## Arquivo de Referência
 
 Estrutura criada:
+
 ```
 dsgovbr/
 ├── admin.py          ← Novo (registra dashboard)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from sc4py.env import env, env_as_bool, env_as_int
+
 SESSION_ENGINE = env("DJANGO_SESSION_ENGINE", "django.contrib.sessions.backends.cache")
 SESSION_CACHE_ALIAS = env("DJANGO_SESSION_CACHE_ALIAS", "default")
 SESSION_COOKIE_AGE = env_as_int("DJANGO_SESSION_COOKIE_AGE", 1209600)  # 2 semanas

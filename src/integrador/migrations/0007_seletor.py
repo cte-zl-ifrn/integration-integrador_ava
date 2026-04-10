@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("integrador", "0006_remove_vinculocurso_curso_and_more"),
     ]

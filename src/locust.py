@@ -25,6 +25,21 @@ class EnviarDiariosUser(HttpUser):
 
 
 if __name__ == "__main__":
-    import os
+    import subprocess  # nosec B404
+    import sys
 
-    os.system("locust -f locust.py --host=http://integrador --users 300 --spawn-rate 50")
+    subprocess.run(  # nosec B603
+        [
+            sys.executable,
+            "-m",
+            "locust",
+            "-f",
+            "locust.py",
+            "--host=http://integrador",
+            "--users",
+            "300",
+            "--spawn-rate",
+            "50",
+        ],
+        check=False,
+    )

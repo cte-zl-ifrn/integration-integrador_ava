@@ -8,7 +8,6 @@ Este módulo contém testes para:
 - Admin: Configurações do admin (RoleAdmin, CohortAdmin)
 """
 
-import unittest
 from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
@@ -105,7 +104,7 @@ class CohortModelTestCase(TestCase):
 
     def test_cohort_ordering(self):
         """Testa ordenação de cohorts."""
-        cohort2 = Cohort.objects.create(name="Another Cohort", idnumber="ANOTHER001", role=self.role)
+        Cohort.objects.create(name="Another Cohort", idnumber="ANOTHER001", role=self.role)
 
         cohorts = list(Cohort.objects.all())
         # Ordenação por name

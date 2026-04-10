@@ -7,9 +7,8 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
-from django.utils.timezone import now
 from django.http import HttpRequest, HttpResponse
-from django.core.exceptions import ValidationError
+from django.utils.http import url_has_allowed_host_and_scheme
 from sentry_sdk import capture_exception
 
 
@@ -17,28 +16,34 @@ logger = logging.getLogger(__name__)
 
 
 OAUTH = settings.OAUTH
+REQUEST_TIMEOUT_SECONDS = 10
 
 
 def _get_tokens(request):
     if "code" not in request.GET:
         raise Exception(_("O SUAP não informou o código de autenticação."))
+    redirect_uri = OAUTH.get("REDIRECT_URI")
+    if not redirect_uri:
+        raise ValueError("Configure OAUTH['REDIRECT_URI'] para autenticação OAuth.")
     response = requests.post(
-        OAUTH.get('TOKEN_URL', ""),
+        OAUTH.get("TOKEN_URL", ""),
         data={
             "grant_type": "authorization_code",
             "code": request.GET.get("code"),
-            "redirect_uri": request.build_absolute_uri('/authenticate/'),
+            "redirect_uri": redirect_uri,
             "client_id": OAUTH["CLIENT_ID"],
             "client_secret": OAUTH["CLIENT_SECRET"],
         },
+        timeout=REQUEST_TIMEOUT_SECONDS,
     )
-    logger.info("_get_tokens response received with status %s", response.status_code)
+    logger.info("OAuth endpoint response status %s", response.status_code)
     data = json.loads(response.text)
     if data.get("error_description") == "Mismatching redirect URI.":
         raise ValueError(
             "O administrador do sistema configurou errado o 'Redirect uris' no SUAP-Login ou no OAUTH_REDIRECT_URI."
         )
     return data
+
 
 def _get_userinfo(request_data):
     response = requests.get(
@@ -47,9 +52,11 @@ def _get_userinfo(request_data):
             "Authorization": f"Bearer {request_data.get('access_token')}",
             "x-api-key": OAUTH["CLIENT_SECRET"],
         },
+        timeout=REQUEST_TIMEOUT_SECONDS,
     )
     logger.info("_get_userinfo response received with status %s", response.status_code)
     return json.loads(response.text)
+
 
 def _save_user(userinfo):
     username = userinfo["identificacao"]
@@ -78,18 +85,18 @@ def _save_user(userinfo):
 def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
-    redirect_uri = request.build_absolute_uri('/authenticate/')
-    suap_url = f"{OAUTH["BASE_URL"]}/o/authorize/?response_type=code&client_id={OAUTH["CLIENT_ID"]}&redirect_uri={redirect_uri}"
-    return redirect(suap_url)
+    redirect_uri = OAUTH.get("REDIRECT_URI")
+    if not redirect_uri:
+        raise ValueError("Configure OAUTH['REDIRECT_URI'] para autenticação OAuth.")
+    suap_url = f"{OAUTH['BASE_URL']}/o/authorize/?response_type=code&client_id={OAUTH['CLIENT_ID']}&redirect_uri={redirect_uri}"
+    return redirect(suap_url)  # nosemgrep: python.django.security.injection.open-redirect.open-redirect
 
 
 def authenticate(request: HttpRequest) -> HttpResponse:
-
     if request.GET.get("error") == "access_denied":
         return render(request, "security/not_authorized.html")
 
     try:
-
         request_data = _get_tokens(request)
         userinfo = _get_userinfo(request_data)
         user = _save_user(userinfo)
@@ -104,5 +111,20 @@ def logout(request: HttpRequest) -> HttpResponse:
     auth.logout(request)
 
     logout_token = request.session.get("logout_token", "")
-    next = urllib.parse.quote_plus(settings.LOGIN_REDIRECT_URL)
-    return redirect(f"{settings.LOGOUT_REDIRECT_URL}?token={logout_token}&next={next}")
+    logout_url = settings.LOGOUT_REDIRECT_URL
+    allowed_hosts = {
+        request.get_host(),
+        urllib.parse.urlsplit(OAUTH["BASE_URL"]).netloc,
+    }
+    require_https = request.is_secure()
+
+    if not url_has_allowed_host_and_scheme(
+        logout_url,
+        allowed_hosts=allowed_hosts,
+        require_https=require_https,
+    ):
+        logout_url = settings.LOGIN_REDIRECT_URL
+
+    next_url = urllib.parse.quote_plus(settings.LOGIN_REDIRECT_URL)
+    separator = "&" if urllib.parse.urlsplit(logout_url).query else "?"
+    return redirect(f"{logout_url}{separator}token={logout_token}&next={next_url}")

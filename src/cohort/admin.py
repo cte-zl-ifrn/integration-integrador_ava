@@ -1,6 +1,6 @@
 from django.utils.translation import gettext as _
 from django.db.models import Model
-from django.contrib.admin import register, StackedInline, SimpleListFilter
+from django.contrib.admin import register, StackedInline
 from import_export.resources import ModelResource
 from base.admin import BasicModelAdmin, BaseModelAdmin
 from cohort.models import MoodleUser, Role, Cohort, Enrolment

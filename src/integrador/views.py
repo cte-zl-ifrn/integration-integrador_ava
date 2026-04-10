@@ -1,9 +1,7 @@
 import logging
-from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.http import HttpRequest
 from integrador.models import Solicitacao
-from integrador.utils import SyncError
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 from integrador.decorators import (
     json_response,

@@ -22,8 +22,8 @@ def _wait_db(db):
             connected = not connection.closed
             logging.info(f"ERROR: Aguardando por 3s o banco {db['HOST']:db['PORT']/db['NAME']} subir")
             time.sleep(3)
-        except Exception: # pragma: no cover
-            pass
+        except Exception:  # pragma: no cover
+            logging.debug("Banco ainda indisponivel, aguardando nova tentativa")
         finally:
             if connection and not connection.closed:
                 connection.close()
@@ -37,16 +37,16 @@ def start_debug():
             from django.core.management import execute_from_command_line
 
             execute_from_command_line([sys.argv[0], "show_urls"])
-            debugpy.listen(("0.0.0.0", 12345))
-        except Exception as e: # pragma: no cover
-            pass
+            debugpy.listen(("0.0.0.0", 12345))  # nosec B104
+        except Exception:  # pragma: no cover
+            logging.debug("Nao foi possivel iniciar debugpy")
 
 
 def boot():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
     try:
         from django.core.management import execute_from_command_line
-    except ImportError as exc: # pragma: no cover
+    except ImportError as exc:  # pragma: no cover
         raise ImportError("ops!") from exc
 
     _wait_db(DATABASES["default"])

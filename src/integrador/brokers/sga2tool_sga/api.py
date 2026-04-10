@@ -1,6 +1,7 @@
 from ninja import NinjaAPI, Router, Schema
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 
+
 class SincronizacaoIn(Schema):
     pass
 
@@ -17,7 +18,7 @@ class NotasOut(Schema):
 router = Router()
 
 
-@router.path('/suap')
+@router.path("/suap")
 class Suap2LocalSuapApi:
     def __init__(self, request):
         # user_projects = request.user.project_set
@@ -25,13 +26,14 @@ class Suap2LocalSuapApi:
         # self.tasks = self.project.task_set.all()
         self.broker = Suap2LocalSuapBroker()
 
-    @router.get('/enviar_diarios/', response=SincronizacaoOut)
+    @router.get("/enviar_diarios/", response=SincronizacaoOut)
     def enviar_diarios(self, request) -> SincronizacaoOut:
         request.solicitacao
         return SincronizacaoOut(self.broker.enviar_diarios())
 
-    @router.get('/baixar_notas/', response=NotasOut)
+    @router.get("/baixar_notas/", response=NotasOut)
     def baixar_notas(self, request) -> NotasOut:
         return NotasOut(self.broker.baixar_notas())
+
 
 api = NinjaAPI()

@@ -1,6 +1,5 @@
 import json
 import sentry_sdk
-import jsonschema
 from functools import wraps
 from django.http import HttpRequest, JsonResponse
 from django.conf import settings
@@ -12,18 +11,22 @@ def json_response(func):
     def inner(request: HttpRequest, *args, **kwargs):
         result = func(request, *args, **kwargs)
         return result if isinstance(result, JsonResponse) else JsonResponse(result, safe=False)
+
     return inner
 
 
 def detect_ambiente(func):
     def inner(request: HttpRequest, *args, **kwargs):
-        request.json_recebido = getattr(request, "json_recebido", {"campus": {"sigla": request.GET.get("campus_sigla")}})
+        request.json_recebido = getattr(
+            request, "json_recebido", {"campus": {"sigla": request.GET.get("campus_sigla")}}
+        )
         request.ambiente = Ambiente.objects.seleciona_ambiente(request.json_recebido)
 
         if getattr(request, "ambiente") is None:
             raise SyncError(f"Não encontramos um Ambiente ativo para o campus {request.GET.get('campus_sigla')}", 404)
 
         return JsonResponse(func(request, *args, **kwargs), safe=False)
+
     return inner
 
 
@@ -112,15 +115,17 @@ def check_json(operacao: str):
                 except Exception as e2:
                     request.json_recebido = {
                         "error": {"code": 512, "message": f"Foi enviado um JSON mal formado ou nem é JSON ({e2})."},
-                        "request_message": message
+                        "request_message": message,
                     }
             except Exception as e1:
                 request.json_recebido = {
                     "error": {"code": 405, "message": f"Erro ao decodificar o body em utf-8 ({e1})."},
-                    "request_message": message
+                    "request_message": message,
                 }
             return func(request, *args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -129,7 +134,9 @@ def try_solicitacao(operacao: str):
         @wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
             solicitacao = None
-            request.json_recebido = getattr(request, "json_recebido", {"error": {"code": 400, "message": f"Não consegui ler o JSON."}})
+            request.json_recebido = getattr(
+                request, "json_recebido", {"error": {"code": 400, "message": "Não consegui ler o JSON."}}
+            )
 
             if "error" in request.json_recebido:
                 raise SyncError(
@@ -141,30 +148,30 @@ def try_solicitacao(operacao: str):
                 campus_sigla = request.json_recebido.get("campus", {}).get("sigla", "-")
                 codigo_turma = request.json_recebido.get("turma", {}).get("codigo", "-")
                 sigla_componente = request.json_recebido.get("componente", {}).get("sigla", ".")
-                if request.GET.get('diario_id') is not None:
+                if request.GET.get("diario_id") is not None:
                     request.json_recebido["diario"] = {"id": int(request.GET["diario_id"])}
                 id_diario = str(request.json_recebido.get("diario", {}).get("id", "#-"))
-                diario_codigo=f"{campus_sigla}:{codigo_turma}.{sigla_componente}#{id_diario}"
+                diario_codigo = f"{campus_sigla}:{codigo_turma}.{sigla_componente}#{id_diario}"
 
                 solicitacao = Solicitacao.objects.create(
                     ambiente=request.ambiente,
                     campus_sigla=campus_sigla,
                     diario_id=id_diario,
                     diario_codigo=diario_codigo,
-                    recebido=request.json_recebido, 
+                    recebido=request.json_recebido,
                     status=Solicitacao.Status.PROCESSANDO,
                     operacao=operacao,
-                    tipo=request.json_recebido.get("tipo_diario", 'diario'),
+                    tipo=request.json_recebido.get("tipo_diario", "diario"),
                 )
-                
+
                 if request.ambiente is None:
                     raise SyncError("Ambiente não encontrado ou não ativo.", 404)
-                
+
                 request.solicitacao = solicitacao
-                
+
                 # Tudo validado
                 solicitacao.respondido = func(request, *args, **kwargs)
-            
+
                 solicitacao.status = Solicitacao.Status.SUCESSO
                 solicitacao.status_code = 200
                 solicitacao.save()
@@ -181,5 +188,7 @@ def try_solicitacao(operacao: str):
                     solicitacao.save()
                     raise SyncError(error_text, solicitacao.status_code)
                 raise SyncError(error_text, 500)
+
         return wrapper
+
     return decorator

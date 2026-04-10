@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from sc4py.env import env
 from settings.project import *  # noqa
 from settings.apps import *  # noqa
 from settings.caches import *  # noqa

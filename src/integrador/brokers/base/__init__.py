@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class BaseBroker:
-
     def __init__(self, solicitacao):
         self.solicitacao = solicitacao
 

@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("integrador", "0012_alter_solicitacao_campus_sigla_and_more"),
     ]
@@ -14,9 +13,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="ambiente",
             name="url",
-            field=integrador.models.PermissiveURLField(
-                max_length=255, verbose_name="URL"
-            ),
+            field=integrador.models.PermissiveURLField(max_length=255, verbose_name="URL"),
         ),
         migrations.AlterField(
             model_name="solicitacao",

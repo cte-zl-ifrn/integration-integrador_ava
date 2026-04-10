@@ -1,9 +1,8 @@
-from django.contrib.admin.helpers import AdminForm, AdminErrorList, InlineAdminFormSet
+from django.contrib.admin.helpers import AdminForm, AdminErrorList
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR
 from django.contrib.admin.utils import flatten_fieldsets, quote, unquote
 from django.core.exceptions import PermissionDenied
 from django.forms.widgets import Media
-from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.text import capfirst

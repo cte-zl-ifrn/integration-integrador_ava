@@ -5,6 +5,7 @@ from http.client import HTTPException
 
 
 logger = logging.getLogger(__name__)
+REQUEST_TIMEOUT_SECONDS = 10
 
 
 class SyncError(Exception):
@@ -30,13 +31,16 @@ def validate_http_response(url, encoding, decode, response):
 
 
 def http_get(url, headers: dict | None = None, encoding="utf-8", decode=True, **kwargs):
-    response: requests.Response = requests.get(url, headers=headers or {}, **kwargs)
+    timeout = kwargs.pop("timeout", REQUEST_TIMEOUT_SECONDS)
+    response: requests.Response = requests.get(url, headers=headers or {}, timeout=timeout, **kwargs)
     return validate_http_response(url, encoding, decode, response)
 
 
-
 def http_post(url, jsonbody: dict | None = None, headers: dict | None = None, encoding="utf-8", decode=True, **kwargs):
-    response: requests.Response = requests.post(url=url, json=jsonbody or {}, headers=headers or {}, **kwargs)
+    timeout = kwargs.pop("timeout", REQUEST_TIMEOUT_SECONDS)
+    response: requests.Response = requests.post(
+        url=url, json=jsonbody or {}, headers=headers or {}, timeout=timeout, **kwargs
+    )
     return validate_http_response(url, encoding, decode, response)
 
 
@@ -45,6 +49,8 @@ def http_get_json(url, headers={}, encoding="utf-8", json_kwargs=None, **kwargs)
     return json.loads(content, **(json_kwargs or {}))
 
 
-def http_post_json(url, jsonbody: dict | None = None, headers: dict | None = None, encoding="utf-8", json_kwargs=None, **kwargs):
+def http_post_json(
+    url, jsonbody: dict | None = None, headers: dict | None = None, encoding="utf-8", json_kwargs=None, **kwargs
+):
     content = http_post(url, jsonbody=jsonbody, headers=headers or {}, encoding=encoding, **kwargs)
     return json.loads(content, **(json_kwargs or {}))

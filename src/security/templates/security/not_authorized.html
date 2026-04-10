@@ -30,17 +30,18 @@
                 float: right;
             }
         </style>
-    </head> 
-    <body> 
+    </head>
+    <body>
         <header>
-            <img alt="Logo do IFRN" src="{% static 'img/logo_ifrn_zl.png' %}" width="132" height="40" />
+            <img alt="Logo do IFRN"
+                 src="{% static 'img/logo_ifrn_zl.png' %}"
+                 width="132"
+                 height="40" />
             <div class="title">Integrador AVA</div>
         </header>
         <main>
             <h1>Você não autorizou!</h1>
-            <p>
-                Você não pôde processeguir pois não autorizou o compartilhamento de dados com o SUAP!
-            </p>
+            <p>Você não pôde processeguir pois não autorizou o compartilhamento de dados com o SUAP!</p>
             <div class="buttons">
                 <a class="btn btn-primary" href='{% url "admin:index" %}'>Tentar novamente</a>
             </div>

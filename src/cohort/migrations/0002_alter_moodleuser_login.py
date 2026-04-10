@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("cohort", "0001_initial"),
     ]
@@ -13,8 +12,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="moodleuser",
             name="login",
-            field=models.CharField(
-                max_length=2560, unique=True, verbose_name="login do usuário"
-            ),
+            field=models.CharField(max_length=2560, unique=True, verbose_name="login do usuário"),
         ),
     ]

@@ -18,8 +18,8 @@
                                        href="{{ header.url_remove }}"
                                        title="{% translate "Remove from sorting" %}"></a>
                                     {% if num_sorted_fields > 1 %}
-                                        <span class="sortpriority"
-                                              title="{% blocktranslate with priority_number=header.sort_priority %}Sorting priority: {{ priority_number }}{% endblocktranslate %}">{{ header.sort_priority }}</span>
+                                            <span class="sortpriority"
+                                                title="{% translate "Sorting priority" %}: {{ header.sort_priority|force_escape }}">{{ header.sort_priority }}</span>
                                     {% endif %}
                                     <a href="{{ header.url_toggle }}"
                                        class="toggle {{ header.ascending|yesno:'ascending,descending' }}"

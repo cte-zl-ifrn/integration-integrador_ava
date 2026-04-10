@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("integrador", "0002_alter_solicitacao_campus"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("integrador", "0010_solicitacao_operacao_solicitacao_tipo_and_more"),
     ]
@@ -13,8 +12,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="solicitacao",
             name="tipo",
-            field=models.CharField(
-                blank=True, default=None, max_length=256, null=True, verbose_name="tipo"
-            ),
+            field=models.CharField(blank=True, default=None, max_length=256, null=True, verbose_name="tipo"),
         ),
     ]

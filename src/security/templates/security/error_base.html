@@ -50,17 +50,32 @@
                 border-radius: 10px;
             }
         </style>
-    </head> 
-    <body> 
+    </head>
+    <body>
         <header>
-            <img src="{% static 'img/logo_ifrn_zl.png' %}" width="132" height="40" />
+            <img alt="Logo do IFRN"
+                 src="{% static 'img/logo_ifrn_zl.png' %}"
+                 width="132"
+                 height="40" />
             <div class="title">Integrador AVA</div>
         </header>
         <main>
-            <h1>{% block error_title %}Ocorreu um erro!{% endblock error_title %}</h1>
-            <p>{% block error_description %}Ocorreu um erro ao tentar realizar esta operação. Por favor, tente novamente.{% endblock error_description %}</p>
-            {% block error_cause %}{% if error_cause %}<p class="error">Causa: {{ error_cause }}.</p>{% endif %}{% endblock error_cause %}
-            <div class="buttons"><a class="btn btn-primary" href='{% url "admin:index" %}'>Tentar novamente</a></div>
+            <h1>
+                {% block error_title %}
+                    Ocorreu um erro!
+                {% endblock error_title %}
+            </h1>
+            <p>
+                {% block error_description %}
+                    Ocorreu um erro ao tentar realizar esta operação. Por favor, tente novamente.
+                {% endblock error_description %}
+            </p>
+            {% block error_cause %}
+                {% if error_cause %}<p class="error">Causa: {{ error_cause }}.</p>{% endif %}
+            {% endblock error_cause %}
+            <div class="buttons">
+                <a class="btn btn-primary" href='{% url "admin:index" %}'>Tentar novamente</a>
+            </div>
         </main>
     </body>
 </html>

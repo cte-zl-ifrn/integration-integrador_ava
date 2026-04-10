@@ -89,10 +89,10 @@ class Solicitacao(Model):
 
     class Operacao(Choices):
         SYNC_UP_DIARIO = Choices.Value(
-            _("Sync UP: Diário"), value="SUDiario", schema=json.load(open(f"integrador/static/SUDiario.schema.json"))
+            _("Sync UP: Diário"), value="SUDiario", schema=json.load(open("integrador/static/SUDiario.schema.json"))
         )
         SYNC_DOWN_NOTAS = Choices.Value(
-            _("Sync DOWN: Notas"), value="SDNotas", schema=json.load(open(f"integrador/static/SDNotas.schema.json"))
+            _("Sync DOWN: Notas"), value="SDNotas", schema=json.load(open("integrador/static/SDNotas.schema.json"))
         )
 
     ambiente = ForeignKey(Ambiente, verbose_name=_("ambiente"), on_delete=PROTECT, null=True, blank=False)
