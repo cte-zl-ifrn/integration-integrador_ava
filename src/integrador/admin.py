@@ -51,8 +51,16 @@ class AmbienteAdmin(BaseModelAdmin):
 
     @display(description="URL")
     def checked_url(self, obj):
-        validation_error = format_html('<span title="Erro ao tentar validar a URL deste AVA."> 🚫</span>')
-        validation_success = format_html('<span title="A URL deste AVA foi validada com sucesso."> ✅</span>')
+        validation_error = format_html(
+            '<span title="{}"> {}</span>',
+            "Erro ao tentar validar a URL deste AVA.",
+            "🚫",
+        )
+        validation_success = format_html(
+            '<span title="{}"> {}</span>',
+            "A URL deste AVA foi validada com sucesso.",
+            "✅",
+        )
         try:
             response = requests.get(f"{obj.url}/version.php", timeout=1)
             message = validation_success if response.status_code == 200 else validation_error
@@ -220,8 +228,6 @@ class SolicitacaoAdmin(BaseModelAdmin):
             return render(
                 request,
                 "security/authorization_error.html",
-                context={
-                    "error_cause": _("An internal error has occurred while syncing. Please contact the administrator.")
-                },
-                status=500,
+                context={"error_cause": str(e)},
+                status=200,
             )

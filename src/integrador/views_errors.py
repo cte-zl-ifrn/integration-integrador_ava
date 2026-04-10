@@ -113,6 +113,6 @@ def csrf_failure(request, reason=""):
         return render(
             request,
             "security/authorization_error.html",
-            context={"error_cause": "CSRF verification failed."},
+            context={"error_cause": "403 CSRF verification failed."},
             status=403,
         )
