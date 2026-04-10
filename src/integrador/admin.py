@@ -125,12 +125,13 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
     @display(description="Status")
     def status_merged(self, obj):
-        return format_html(f"""{Solicitacao.Status[obj.status].display}<br>{obj.status_code}""")
+        return format_html("{}<br>{}", obj.get_status_display(), obj.status_code or "")
 
     @display(description="Ações")
     def acoes(self, obj):
         return format_html(
-            f"""<a class="export_link" href="{reverse("admin:integrador_solicitacao_sync", args=[obj.id])}">Reenviar</a>"""
+            '<a class="export_link" href="{}">Reenviar</a>',
+            reverse("admin:integrador_solicitacao_sync", args=[obj.id]),
         )
 
     @display(description="Quando", ordering="timestamp")
@@ -143,7 +144,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
     @display(description="Professores", ordering="timestamp")
     def professores(self, obj):
         try:
-            profs = ""
+            professores = []
             for p in (obj.recebido or {}).get("professores", []):
                 username = p.get("login", None)
                 urlpath = (
@@ -152,8 +153,22 @@ class SolicitacaoAdmin(BaseModelAdmin):
                     else "/admin/rh/servidor/?ativo__exact=1&q="
                 )
                 vinculo = "externo" if username and len(username) > 10 else "servidor"
-                profs += f'<li><a href="{settings.SUAP_BASE_URL}{urlpath}{username}">{p.get("nome")} ({p.get("tipo")}:{vinculo})</a></li>'
-            return format_html(f"<ul>{profs}</ul>")
+                professores.append(
+                    format_html(
+                        '<li><a href="{}{}{}">{} ({}:{})</a></li>',
+                        settings.SUAP_BASE_URL,
+                        urlpath,
+                        username or "",
+                        p.get("nome", "-"),
+                        p.get("tipo", "-"),
+                        vinculo,
+                    ),
+                )
+
+            if not professores:
+                return "-"
+
+            return format_html("<ul>{}</ul>", mark_safe("".join(professores)))
         except Exception:
             return "-"
 
@@ -162,9 +177,16 @@ class SolicitacaoAdmin(BaseModelAdmin):
         respondido = obj.respondido or {}
         try:
             return format_html(
-                f"""<ul><li><a href='{respondido.get('url', '#')}'>{obj.diario_codigo}</a></li>
-                    <li><a href='{respondido.get('url_sala_coordenacao', '#')}'>Sala de coordenação</a></li>
-                    <li><a href='{settings.SUAP_BASE_URL}/edu/meu_diario/{obj.diario_id}/1/'>Diário no SUAP</a></li></ul>"""
+                "<ul>"
+                '<li><a href="{}">{}</a></li>'
+                '<li><a href="{}">Sala de coordenação</a></li>'
+                '<li><a href="{}/edu/meu_diario/{}/1/">Diário no SUAP</a></li>'
+                "</ul>",
+                respondido.get("url", "#"),
+                obj.diario_codigo or "-",
+                respondido.get("url_sala_coordenacao", "#"),
+                settings.SUAP_BASE_URL,
+                obj.diario_id or "-",
             )
         except Exception:
             return "-"
@@ -190,10 +212,12 @@ class SolicitacaoAdmin(BaseModelAdmin):
     def sync_moodle_view(self, request, object_id, form_url="", extra_context=None):
         s = get_object_or_404(Solicitacao, pk=object_id)
         try:
-            solicitacao = Suap2LocalSuapBroker(s.recebido).sync_up_enrolments()
+            solicitacao = Suap2LocalSuapBroker(s).sync_up_enrolments()
             if solicitacao is None:
                 raise Exception("Erro desconhecido.")
-            return HttpResponseRedirect(reverse("admin:integrador_solicitacao_view", args=[solicitacao.id]))
+            return HttpResponseRedirect(reverse("admin:integrador_solicitacao_change", args=[solicitacao.id]))
         except Exception as e:
             logger.exception(f"Error while syncing Moodle for Solicitacao {s.id}. ERROR: {e}")
-            return HttpResponse(_("An internal error has occurred while syncing. Please contact the administrator."))
+            return HttpResponse(
+                _("An internal error has occurred while syncing. Please contact the administrator.") + f" {e}"
+            )

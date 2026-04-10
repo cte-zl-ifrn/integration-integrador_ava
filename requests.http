@@ -12,7 +12,7 @@ Authentication: Token changeme
     "curso":      {"id": 1,     "codigo": "15806",              "nome":         "Sistemas Operacionais Abertos"     },
     "turma":      {"id": 2,     "codigo": "20261.6.15806.1E"                                                        },
     "componente": {"id": 1,     "sigla":  "TEC.1023",           "descricao":    "Bancos de Dados"                   },
-    "diario":     {"id": 2,     "sigla":  "TEC.1023",           "situacao":     "Aberto"                            },
+    "diario":     {"id": 2,     "sigla":  "TEC.1023",           "situacao":     "Aberto"                            }
 }
 
 ### Matricula alguns alunos

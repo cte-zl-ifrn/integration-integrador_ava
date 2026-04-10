@@ -1,4 +1,11 @@
 from sc4py.env import env, env_as_list, env_as_bool
+from settings.project import (
+	PROJECT_LAST_STARTUP,
+	PROJECT_TITLE,
+	PROJECT_VERSION,
+	SHOW_SUPPORT_CHAT,
+	SHOW_SUPPORT_FORM,
+)
 
 THIRD_APPS = env_as_list("THIRD_APPS", ["import_export", "simple_history", "sass_processor", "django_json_widget", "django_extensions", "django_rule_engine"])
 DJANGO_APPS = [f"django.contrib.{x}" for x in ["admin", "auth", "contenttypes", "sessions", "messages", "staticfiles", "humanize"]]

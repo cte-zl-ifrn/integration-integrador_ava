@@ -273,6 +273,17 @@ class SolicitacaoModelTestCase(TestCase):
         solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
         self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
 
+    def test_solicitacao_save_accepts_django_keyword_arguments(self):
+        """Testa que save() delega corretamente para o Model.save do Django."""
+        self.solicitacao.status = Solicitacao.Status.SUCESSO
+        self.solicitacao.status_code = "200"
+
+        self.solicitacao.save(update_fields=["status", "status_code"])
+
+        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
+        self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
+        self.assertEqual(solicitacao.status_code, "200")
+
     def test_solicitacao_operacao_choices(self):
         """Testa choices de operação."""
         self.assertEqual(

@@ -7,11 +7,12 @@ Este módulo contém testes para:
 - Enrolment: Vínculos entre users e cohorts
 - Admin: Configurações do admin (RoleAdmin, CohortAdmin)
 """
+
 import unittest
 from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
-from cohort.models import Role, Cohort, Enrolment
+from cohort.models import Role, Cohort, Enrolment, MoodleUser
 from cohort.admin import RoleAdmin, CohortAdmin, EnrolmentInline
 from cohort.apps import CohortConfig
 
@@ -21,18 +22,15 @@ class IntegradorConfigTestCase(TestCase):
 
     def test_app_config_name(self):
         """Testa se o name da app está correto."""
-        self.assertEqual(CohortConfig.name, 'cohort')
+        self.assertEqual(CohortConfig.name, "cohort")
 
     def test_app_config_icon(self):
         """Testa se o ícone está definido."""
-        self.assertEqual(CohortConfig.icon, 'fa fa-home')
+        self.assertEqual(CohortConfig.icon, "fa fa-home")
 
     def test_app_config_default_auto_field(self):
         """Testa se default_auto_field está configurado."""
-        self.assertEqual(
-            CohortConfig.default_auto_field,
-            'django.db.models.BigAutoField'
-        )
+        self.assertEqual(CohortConfig.default_auto_field, "django.db.models.BigAutoField")
 
 
 class CohortModelTestCase(TestCase):
@@ -40,28 +38,14 @@ class CohortModelTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.role = Role.objects.create(
-            name="Coordenador de Curso",
-            shortname="teachercoordenadorcurso",
-            active=True
-        )
-        
-        self.cohort = Cohort.objects.create(
-            name="Test Cohort",
-            idnumber="TEST001",
-            active=True,
-            role=self.role
-        )
+        self.role = Role.objects.create(name="Coordenador de Curso", shortname="teachercoordenadorcurso", active=True)
+
+        self.cohort = Cohort.objects.create(name="Test Cohort", idnumber="TEST001", active=True, role=self.role)
 
     def test_create_cohort(self):
         """Testa criação de cohort."""
-        cohort = Cohort.objects.create(
-            name="New Cohort",
-            idnumber="NEW001",
-            active=True,
-            role=self.role
-        )
-        
+        cohort = Cohort.objects.create(name="New Cohort", idnumber="NEW001", active=True, role=self.role)
+
         self.assertIsNotNone(cohort.pk)
         self.assertEqual(cohort.name, "New Cohort")
         self.assertEqual(cohort.idnumber, "NEW001")
@@ -73,28 +57,20 @@ class CohortModelTestCase(TestCase):
     def test_cohort_name_unique(self):
         """Testa que name deve ser único."""
         with self.assertRaises(IntegrityError):
-            Cohort.objects.create(
-                name="Test Cohort",  # Name duplicado
-                idnumber="DIFF001",
-                role=self.role
-            )
+            Cohort.objects.create(name="Test Cohort", idnumber="DIFF001", role=self.role)  # Name duplicado
 
     def test_cohort_idnumber_unique(self):
         """Testa que idnumber deve ser único."""
         with self.assertRaises(IntegrityError):
-            Cohort.objects.create(
-                name="Different Cohort",
-                idnumber="TEST001",  # IDNumber duplicado
-                role=self.role
-            )
+            Cohort.objects.create(name="Different Cohort", idnumber="TEST001", role=self.role)  # IDNumber duplicado
 
     def test_cohort_active_field(self):
         """Testa campo active."""
         self.assertTrue(self.cohort.active)
-        
+
         self.cohort.active = False
         self.cohort.save()
-        
+
         cohort = Cohort.objects.get(pk=self.cohort.pk)
         self.assertFalse(cohort.active)
 
@@ -102,7 +78,7 @@ class CohortModelTestCase(TestCase):
         """Testa campo rule_diario (RuleField)."""
         self.cohort.rule_diario = "curso.codigo == '132456'"
         self.cohort.save()
-        
+
         cohort = Cohort.objects.get(pk=self.cohort.pk)
         self.assertEqual(cohort.rule_diario, "curso.codigo == '132456'")
 
@@ -110,7 +86,7 @@ class CohortModelTestCase(TestCase):
         """Testa campo rule_coordenacao (RuleField)."""
         self.cohort.rule_coordenacao = "programa.sigla == 'UAB'"
         self.cohort.save()
-        
+
         cohort = Cohort.objects.get(pk=self.cohort.pk)
         self.assertEqual(cohort.rule_coordenacao, "programa.sigla == 'UAB'")
 
@@ -118,7 +94,7 @@ class CohortModelTestCase(TestCase):
         """Testa campo description."""
         self.cohort.description = "Test description"
         self.cohort.save()
-        
+
         cohort = Cohort.objects.get(pk=self.cohort.pk)
         self.assertEqual(cohort.description, "Test description")
 
@@ -129,12 +105,8 @@ class CohortModelTestCase(TestCase):
 
     def test_cohort_ordering(self):
         """Testa ordenação de cohorts."""
-        cohort2 = Cohort.objects.create(
-            name="Another Cohort",
-            idnumber="ANOTHER001",
-            role=self.role
-        )
-        
+        cohort2 = Cohort.objects.create(name="Another Cohort", idnumber="ANOTHER001", role=self.role)
+
         cohorts = list(Cohort.objects.all())
         # Ordenação por name
         self.assertEqual(cohorts[0].name, "Another Cohort")
@@ -151,40 +123,30 @@ class EnrolmentModelTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='password123'
+        self.user = MoodleUser.objects.create(
+            fullname="Test User",
+            email="testuser@example.com",
+            login="testuser",
+            active=True,
         )
-        
-        self.role = Role.objects.create(
-            name="Coordenador",
-            shortname="COORD",
-            active=True
-        )
-        
-        self.cohort = Cohort.objects.create(
-            name="Test Cohort",
-            idnumber="TEST001",
-            role=self.role
-        )
-        
-        self.enrolment = Enrolment.objects.create(
-            user=self.user,
-            cohort=self.cohort
-        )
+
+        self.role = Role.objects.create(name="Coordenador", shortname="COORD", active=True)
+
+        self.cohort = Cohort.objects.create(name="Test Cohort", idnumber="TEST001", role=self.role)
+
+        self.enrolment = Enrolment.objects.create(user=self.user, cohort=self.cohort)
 
     def test_create_enrolment(self):
         """Testa criação de enrolment."""
-        user2 = User.objects.create_user(
-            username='testuser2',
-            password='password123'
+        user2 = MoodleUser.objects.create(
+            fullname="Test User 2",
+            email="testuser2@example.com",
+            login="testuser2",
+            active=True,
         )
-        
-        enrolment = Enrolment.objects.create(
-            user=user2,
-            cohort=self.cohort
-        )
-        
+
+        enrolment = Enrolment.objects.create(user=user2, cohort=self.cohort)
+
         self.assertIsNotNone(enrolment.pk)
         self.assertEqual(enrolment.user, user2)
         self.assertEqual(enrolment.cohort, self.cohort)
@@ -192,7 +154,7 @@ class EnrolmentModelTestCase(TestCase):
     def test_enrolment_str_representation(self):
         """Testa representação em string do enrolment."""
         string_repr = str(self.enrolment)
-        
+
         self.assertIn("testuser", string_repr)
         self.assertIn("Test Cohort", string_repr)
 
@@ -207,19 +169,24 @@ class EnrolmentModelTestCase(TestCase):
 
     def test_multiple_enrolments_same_cohort(self):
         """Testa múltiplos enrolments no mesmo cohort."""
-        user2 = User.objects.create_user(username='user2', password='pass')
-        user3 = User.objects.create_user(username='user3', password='pass')
-        
+        user2 = MoodleUser.objects.create(fullname="User 2", email="user2@example.com", login="user2", active=True)
+        user3 = MoodleUser.objects.create(fullname="User 3", email="user3@example.com", login="user3", active=True)
+
         Enrolment.objects.create(user=user2, cohort=self.cohort)
         Enrolment.objects.create(user=user3, cohort=self.cohort)
-        
+
         self.assertEqual(self.cohort.enrolments.count(), 3)
 
     def test_enrolment_ordering(self):
         """Testa ordenação de enrolments."""
-        user2 = User.objects.create_user(username='anotheruser', password='pass')
+        user2 = MoodleUser.objects.create(
+            fullname="Another User",
+            email="anotheruser@example.com",
+            login="anotheruser",
+            active=True,
+        )
         Enrolment.objects.create(user=user2, cohort=self.cohort)
-        
+
         enrolments = list(Enrolment.objects.all())
         # Ordenação: cohort, user
         self.assertEqual(len(enrolments), 2)
@@ -237,9 +204,7 @@ class RoleAdminTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.admin_user = User.objects.create_superuser(
-            username='admin',
-            email='admin@test.com',
-            password='password123'
+            username="admin", email="admin@test.com", password="password123"
         )
         self.role_admin = RoleAdmin(Role, None)
 
@@ -260,14 +225,14 @@ class RoleAdminTestCase(TestCase):
     def test_role_admin_resource_classes(self):
         """Testa configuração de resource_classes."""
         self.assertEqual(len(self.role_admin.resource_classes), 1)
-        
+
         resource = self.role_admin.resource_classes[0]()
         self.assertEqual(resource._meta.model, Role)
 
     def test_role_resource_export_order(self):
         """Testa ordem de exportação do resource."""
         resource = self.role_admin.resource_classes[0]()
-        expected = ["name", "shortname", "active"]
+        expected = ("name", "shortname", "active")
         self.assertEqual(resource._meta.export_order, expected)
 
     def test_role_resource_import_id_fields(self):
@@ -283,9 +248,7 @@ class CohortAdminTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.admin_user = User.objects.create_superuser(
-            username='admin',
-            email='admin@test.com',
-            password='password123'
+            username="admin", email="admin@test.com", password="password123"
         )
         self.cohort_admin = CohortAdmin(Cohort, None)
 
@@ -306,7 +269,7 @@ class CohortAdminTestCase(TestCase):
     def test_cohort_admin_fieldsets(self):
         """Testa configuração de fieldsets."""
         fieldsets = self.cohort_admin.fieldsets
-        
+
         # CohortAdmin tem 3 fieldsets (Informações Básicas, Regras de Validação, Status)
         self.assertGreaterEqual(len(fieldsets), 2)
         self.assertEqual(fieldsets[0][0], "Informações Básicas")
@@ -324,29 +287,24 @@ class IntegrationTestCase(TestCase):
     def test_complete_cohort_workflow(self):
         """Testa fluxo completo: Role -> Cohort -> Enrolment."""
         # 1. Cria role
-        role = Role.objects.create(
-            name="Coordenador",
-            shortname="COORD",
-            active=True
-        )
-        
+        role = Role.objects.create(name="Coordenador", shortname="COORD", active=True)
+
         # 2. Cria cohort
         cohort = Cohort.objects.create(
-            name="Integration Cohort",
-            idnumber="INT001",
-            role=role,
-            rule_diario="curso.codigo == '123456'"
+            name="Integration Cohort", idnumber="INT001", role=role, rule_diario="curso.codigo == '123456'"
         )
-        
+
         # 3. Cria usuário
-        user = User.objects.create_user(username='integrationuser', password='pass')
-        
-        # 4. Cria enrolment
-        enrolment = Enrolment.objects.create(
-            user=user,
-            cohort=cohort
+        user = MoodleUser.objects.create(
+            fullname="Integration User",
+            email="integrationuser@example.com",
+            login="integrationuser",
+            active=True,
         )
-        
+
+        # 4. Cria enrolment
+        enrolment = Enrolment.objects.create(user=user, cohort=cohort)
+
         # Verifica relacionamentos
         self.assertEqual(cohort.role, role)
         self.assertEqual(enrolment.cohort, cohort)
@@ -358,28 +316,15 @@ class EdgeCasesTestCase(TestCase):
 
     def test_cohort_with_null_description(self):
         """Testa cohort com descrição nula."""
-        role = Role.objects.create(
-            name="Test",
-            shortname="T",
-            active=True
-        )
-        
-        cohort = Cohort.objects.create(
-            name="Test",
-            idnumber="T001",
-            role=role,
-            description=None
-        )
-        
+        role = Role.objects.create(name="Test", shortname="T", active=True)
+
+        cohort = Cohort.objects.create(name="Test", idnumber="T001", role=role, description=None)
+
         self.assertIsNone(cohort.description)
 
     def test_role_inactive_icon(self):
         """Testa ícone de role inativo."""
-        role = Role.objects.create(
-            name="Inactive",
-            shortname="INAC",
-            active=False
-        )
-        
+        role = Role.objects.create(name="Inactive", shortname="INAC", active=False)
+
         string_repr = str(role)
         self.assertIn("⛔", string_repr)

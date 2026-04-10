@@ -2,6 +2,7 @@
 from sc4py.env import env
 import logging.config
 from .apps import INSTALLED_APPS
+from .developments import IS_RUNNING_TESTS
 
 # Get loglevel from env
 LOGLEVEL = env("DJANGO_LOGLEVEL", "DEBUG").upper()
@@ -40,6 +41,15 @@ logging.config.dictConfig(
         "loggers": dict(
             **{"": {"level": "INFO", "handlers": ["console"]}},
             **{app: {"level": LOGLEVEL} for app in INSTALLED_APPS},
+            **(
+                {
+                    "integrador.views_errors": {"level": "ERROR"},
+                    "dashboard.storage": {"level": "CRITICAL"},
+                    "integrador.admin": {"level": "CRITICAL"},
+                }
+                if IS_RUNNING_TESTS
+                else {}
+            ),
         ),
     }
 )

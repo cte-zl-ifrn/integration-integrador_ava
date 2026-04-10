@@ -126,7 +126,7 @@ class Solicitacao(Model):
 
     @property
     def status_merged(self):
-        return format_html(f"""{Solicitacao.Status[self.status].display}<br>{self.status_code}""")
+        return format_html("{}<br>{}", self.get_status_display(), self.status_code or "")
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if self.recebido:
@@ -141,4 +141,9 @@ class Solicitacao(Model):
             self.tipo = self.recebido.get("diario", {}).get(
                 "tipo", "regular" if self.operacao == Solicitacao.Operacao.SYNC_UP_DIARIO else None
             )
-        return super().save(force_insert, force_update, using, update_fields)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
