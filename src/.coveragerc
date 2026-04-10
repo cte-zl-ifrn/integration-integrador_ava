@@ -1,0 +1,15 @@
+[run]
+omit =
+	*/settings/developments.py
+	settings/developments.py
+	*/dsgovbr/*
+	dsgovbr/*
+	cohort/migrations/*
+
+[report]
+omit =
+	*/settings/developments.py
+	settings/developments.py
+	*/dsgovbr/*
+	dsgovbr/*
+	cohort/migrations/*

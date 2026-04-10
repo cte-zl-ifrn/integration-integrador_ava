@@ -91,11 +91,11 @@ python -m djlint --profile=django --check --lint src
 
 ### 3) Política de cobertura
 
-- Mínimo obrigatório: **80%**
+- Mínimo obrigatório: **91%**
 - Meta ideal: **95%**
 - Não regressão (se possível): comparação com baseline em `.coverage-baseline`
 
-O gate de cobertura é aplicado por `scripts/check_coverage_gate.py`.
+O gate de cobertura é aplicado por `src/check_coverage_gate.py`.
 
 Importante: o runner de testes usa Django com PostgreSQL (`POSTGRES_HOST=db`).
 Em ambiente local, execute com banco disponível (ex.: Docker Compose do projeto).
@@ -103,10 +103,10 @@ Em ambiente local, execute com banco disponível (ex.: Docker Compose do projeto
 Para criar/atualizar baseline local:
 
 ```bash
-coverage run --rcfile=.coveragerc src/manage.py test --verbosity 1
-coverage report --fail-under=80
+coverage run --rcfile=src/.coveragerc src/manage.py test --verbosity 1
+coverage report --fail-under=91
 coverage xml -o coverage.xml
-python scripts/check_coverage_gate.py --coverage-xml coverage.xml --baseline-file .coverage-baseline --min 80 --ideal 95 --write-baseline
+python src/check_coverage_gate.py --coverage-xml coverage.xml --baseline-file .coverage-baseline --min 91 --ideal 95 --write-baseline
 ```
 
 ## CI/CD e Codecov
@@ -114,7 +114,7 @@ python scripts/check_coverage_gate.py --coverage-xml coverage.xml --baseline-fil
 O workflow em `.github/workflows/docker-deploy.yml` executa:
 
 1. Qualidade em diff (lint e SAST nos arquivos alterados)
-2. Testes unitários com cobertura (80% mínimo) em ambiente com PostgreSQL de serviço
+2. Testes unitários com cobertura (91% mínimo) em ambiente com PostgreSQL de serviço
 3. Upload da cobertura para o Codecov
 4. Build/push Docker somente em tags
 5. Deploy somente em tags (apenas após qualidade aprovada)

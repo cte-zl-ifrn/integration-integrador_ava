@@ -13,6 +13,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import models
+from django.forms.widgets import Media
 from unittest.mock import Mock, patch, MagicMock
 from base.models import ActiveMixin
 from base.admin import BasicModelAdmin, BaseModelAdmin, BaseChangeList
@@ -153,6 +154,19 @@ class BasicModelAdminTestCase(TestCase):
         view_url_exists = any(url.pattern.name and url.pattern.name.endswith("_view") for url in urls)
         self.assertTrue(view_url_exists)
 
+    @patch("base.admin.redirect")
+    def test_redirect_view_redirects_to_default_view(self, mock_redirect):
+        """Testa se redirect_view redireciona para a view padrão."""
+        request = self.factory.get("/admin/base/mockmodel/1/")
+        request.user = self.user
+
+        self.admin.redirect_view(request, "1")
+
+        mock_redirect.assert_called_once_with(
+            "admin:base_mockmodel_view",
+            object_id="1",
+        )
+
     @patch.object(MockModelAdmin, "has_view_or_change_permission")
     @patch.object(MockModelAdmin, "get_object")
     def test_preview_view_renders_readonly_form(self, mock_get_object, mock_has_perm):
@@ -197,7 +211,7 @@ class BasicModelAdminTestCase(TestCase):
         """Testa se preview_view define request.in_view_mode."""
         obj = MockModel(id=1, name="Test Object")
         mock_get_object.return_value = obj
-        mock_has_perm.return_return_value = True
+        mock_has_perm.return_value = True
 
         request = self.factory.get("/admin/base/mockmodel/1/")
         request.user = self.user
@@ -209,6 +223,39 @@ class BasicModelAdminTestCase(TestCase):
             # Verifica se request.in_view_mode foi definido
             self.assertTrue(hasattr(request, "in_view_mode"))
             self.assertTrue(request.in_view_mode)
+
+    def test_preview_view_denies_disallowed_to_field(self):
+        """Testa se preview_view nega acesso quando to_field não é permitido."""
+        request = self.factory.get("/admin/base/mockmodel/1/?_to_field=id")
+        request.user = self.user
+
+        with patch.object(self.admin, "to_field_allowed", return_value=False):
+            with self.assertRaises(PermissionDenied):
+                self.admin.preview_view(request, "1")
+
+    @patch.object(MockModelAdmin, "has_view_or_change_permission")
+    @patch.object(MockModelAdmin, "get_object")
+    def test_preview_view_updates_inline_readonly_fields_and_media(self, mock_get_object, mock_has_perm):
+        """Testa se preview_view atualiza media e readonly_fields dos inline formsets."""
+        obj = MockModel(id=1, name="Test Object")
+        mock_get_object.return_value = obj
+        mock_has_perm.return_value = True
+
+        request = self.factory.get("/admin/base/mockmodel/1/")
+        request.user = self.user
+
+        inline_formset = Mock()
+        inline_formset.media = Media(js=["inline.js"])
+        inline_formset.fieldsets = ((None, {"fields": ("name", "description")}),)
+
+        with patch.object(self.admin, "get_inline_formsets", return_value=[inline_formset]):
+            with patch.object(self.admin, "render_change_form") as mock_render:
+                mock_render.return_value = Mock()
+                self.admin.preview_view(request, "1")
+
+                context = mock_render.call_args[0][1]
+                self.assertIn("inline.js", context["media"]._js)
+                self.assertEqual(inline_formset.readonly_fields, ["name", "description"])
 
     def test_get_inline_formsets_disables_edit_in_view_mode(self):
         """Testa se get_inline_formsets desabilita edição em modo visualização."""

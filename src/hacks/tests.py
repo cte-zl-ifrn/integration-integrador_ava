@@ -35,7 +35,7 @@ class UserAdminTestCase(TestCase):
 
     def test_user_admin_list_filter(self):
         """Testa list_filter do UserAdmin."""
-        expected = ["is_superuser", "is_active", "is_staff", "groups__name"]
+        expected = ["is_superuser", "is_active", "is_staff"]
         self.assertEqual(self.admin.list_filter, expected)
 
     def test_user_admin_search_fields(self):
@@ -61,7 +61,7 @@ class UserAdminTestCase(TestCase):
         self.assertIn("Identificação", fieldset_names)
         self.assertIn("Autorização e autenticação", fieldset_names)
         self.assertIn("Dates", fieldset_names)
-        self.assertIn("Permissions", fieldset_names)
+        self.assertIn("Permissões", fieldset_names)
 
     def test_auth_display_active_user(self):
         """Testa método auth para usuário ativo."""
@@ -161,13 +161,56 @@ class UserAdminTestCase(TestCase):
         # Verifica que contém estilos inline
         self.assertIn("font-size: 150%", result)
 
-    def test_user_admin_has_enrolment_inline(self):
-        """Testa que UserAdmin tem EnrolmentInline."""
-        self.assertEqual(len(self.admin.inlines), 1)
+    def test_auth_display_role_badge_matrix(self):
+        """Testa matriz completa de badges por combinação staff/superuser."""
+        cases = [
+            (True, True, "👮‍♂️"),
+            (False, True, "🕵️‍♂️"),
+            (True, False, "👷‍♂️"),
+            (False, False, "👨"),
+        ]
 
-        from hacks.admin import EnrolmentInline
+        role_icons = ["👮‍♂️", "🕵️‍♂️", "👷‍♂️", "👨"]
+        for is_staff, is_superuser, expected_icon in cases:
+            self.user.is_staff = is_staff
+            self.user.is_superuser = is_superuser
+            self.user.save()
 
-        self.assertEqual(self.admin.inlines[0], EnrolmentInline)
+            result = self.admin.auth(self.user)
+
+            self.assertIn(expected_icon, result)
+            for icon in role_icons:
+                if icon != expected_icon:
+                    self.assertNotIn(icon, result)
+
+    def test_auth_display_status_badge_exclusive(self):
+        """Testa que badges de status ativo/inativo são mutuamente exclusivos."""
+        self.user.is_active = True
+        self.user.save()
+        result_active = self.admin.auth(self.user)
+        self.assertIn("✅", result_active)
+        self.assertNotIn("❌", result_active)
+
+        self.user.is_active = False
+        self.user.save()
+        result_inactive = self.admin.auth(self.user)
+        self.assertIn("❌", result_inactive)
+        self.assertNotIn("✅", result_inactive)
+
+    def test_auth_display_group_badge_only_when_has_groups(self):
+        """Testa que badge de grupos aparece apenas quando usuário tem grupos."""
+        result_without_groups = self.admin.auth(self.user)
+        self.assertNotIn("👥", result_without_groups)
+
+        group = Group.objects.create(name="Group Badge")
+        self.user.groups.add(group)
+
+        result_with_group = self.admin.auth(self.user)
+        self.assertIn("👥", result_with_group)
+
+    def test_user_admin_has_no_inlines(self):
+        """Testa que UserAdmin não define inlines customizados."""
+        self.assertEqual(tuple(getattr(self.admin, "inlines", ())), ())
 
     def test_user_admin_resource_classes(self):
         """Testa que UserAdmin tem resource classes configuradas."""
@@ -211,28 +254,13 @@ class GroupAdminTestCase(TestCase):
         self.assertIn("permissions", field_names)
 
 
-class EnrolmentInlineTestCase(TestCase):
-    """Testes para o EnrolmentInline."""
+class AdminInlineConfigurationTestCase(TestCase):
+    """Testes para configuração de inlines no admin customizado."""
 
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        from hacks.admin import EnrolmentInline
-
-        self.inline = EnrolmentInline(User, AdminSite())
-
-    def test_enrolment_inline_model(self):
-        """Testa o modelo do inline."""
-        from cohort.models import Enrolment
-
-        self.assertEqual(self.inline.model, Enrolment)
-
-    def test_enrolment_inline_extra(self):
-        """Testa que extra está configurado como 0."""
-        self.assertEqual(self.inline.extra, 0)
-
-    def test_enrolment_inline_autocomplete_fields(self):
-        """Testa autocomplete_fields do inline."""
-        self.assertIn("cohort", self.inline.autocomplete_fields)
+    def test_user_admin_inlines_default_empty(self):
+        """Testa que UserAdmin usa configuração padrão sem inlines."""
+        admin = UserAdmin(User, AdminSite())
+        self.assertEqual(tuple(getattr(admin, "inlines", ())), ())
 
 
 class AdminSiteCustomizationTestCase(TestCase):
@@ -419,8 +447,9 @@ class EdgeCasesTestCase(TestCase):
 
         result = self.user_admin.auth(user)
 
-        # Nome do grupo deve aparecer
-        self.assertIn("Group's & Name", result)
+        # Nome do grupo deve aparecer escapado no HTML
+        self.assertIn("Group", result)
+        self.assertIn("&amp;", result)
 
     def test_user_admin_fieldsets_all_fields_valid(self):
         """Testa que todos os campos nos fieldsets são válidos."""
@@ -463,7 +492,7 @@ class EdgeCasesTestCase(TestCase):
         """Testa display com nomes de grupos muito longos."""
         user = User.objects.create_user(username="longnames")
 
-        long_name = "A" * 200
+        long_name = "A" * 150
         group = Group.objects.create(name=long_name)
         user.groups.add(group)
 

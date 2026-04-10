@@ -17,7 +17,7 @@ if settings.DEBUG:
             import debug_toolbar
 
             urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
-    except ModuleNotFoundError:
+    except ModuleNotFoundError:  # pragma: no cover
         pass
 
 urlpatterns += [

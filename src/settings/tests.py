@@ -15,6 +15,9 @@ from django.conf import settings
 from unittest.mock import patch
 import importlib
 import os
+import sys
+import builtins
+from types import SimpleNamespace
 
 
 class SettingsAppsTestCase(TestCase):
@@ -348,6 +351,60 @@ class SettingsIntegrationTestCase(TestCase):
 
         # Limpa
         cache.delete(test_key)
+
+
+class RootUrlsTestCase(TestCase):
+    """Testes para configurações de urls.py na raiz do projeto."""
+
+    def test_admin_titles_are_configured_from_settings(self):
+        """Testa títulos do admin configurados a partir de settings."""
+        urls_module = importlib.import_module("urls")
+        urls_module = importlib.reload(urls_module)
+
+        self.assertEqual(
+            urls_module.admin.site.site_title,
+            f"{settings.PROJECT_TITLE} (v{settings.PROJECT_VERSION})",
+        )
+        self.assertEqual(urls_module.admin.site.index_title, settings.PROJECT_TITLE)
+
+    @override_settings(DEBUG=False)
+    def test_root_urls_include_static_serve_routes_when_debug_false(self):
+        """Testa se urls de static/media por serve existem em produção."""
+        urls_module = importlib.import_module("urls")
+        urls_module = importlib.reload(urls_module)
+
+        patterns = [str(p.pattern) for p in urls_module.urlpatterns]
+        self.assertTrue(any("media/(?P<path>.*)$" in p for p in patterns))
+        self.assertTrue(any("static/(?P<path>.*)$" in p for p in patterns))
+
+    @override_settings(DEBUG=True, INSTALLED_APPS=[*settings.INSTALLED_APPS, "debug_toolbar"])
+    def test_root_urls_include_debug_toolbar_when_installed(self):
+        """Testa se rota do debug toolbar é adicionada quando disponível."""
+        debug_toolbar_mock = SimpleNamespace(urls=([], "debug_toolbar"))
+
+        with patch.dict(sys.modules, {"debug_toolbar": debug_toolbar_mock}):
+            urls_module = importlib.import_module("urls")
+            urls_module = importlib.reload(urls_module)
+
+        patterns = [str(p.pattern) for p in urls_module.urlpatterns]
+        self.assertTrue(any("__debug__/" in p for p in patterns))
+
+    @override_settings(DEBUG=True, INSTALLED_APPS=[*settings.INSTALLED_APPS, "debug_toolbar"])
+    def test_root_urls_skip_debug_toolbar_when_module_missing(self):
+        """Testa fallback quando debug_toolbar está instalado, mas módulo não é importável."""
+        real_import = builtins.__import__
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "debug_toolbar":
+                raise ModuleNotFoundError("No module named 'debug_toolbar'")
+            return real_import(name, globals, locals, fromlist, level)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            urls_module = importlib.import_module("urls")
+            urls_module = importlib.reload(urls_module)
+
+        patterns = [str(p.pattern) for p in urls_module.urlpatterns]
+        self.assertFalse(any("__debug__/" in p for p in patterns))
 
 
 class SettingsSecurityTestCase(TestCase):

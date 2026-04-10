@@ -12,7 +12,10 @@ Este módulo contém testes para:
 """
 
 from django.test import TestCase, RequestFactory, override_settings
+from django import forms
 from django.contrib.auth.models import User
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.http import JsonResponse
 from unittest.mock import patch, Mock
@@ -20,6 +23,7 @@ from http.client import HTTPException
 import json
 import io
 import logging
+from types import SimpleNamespace
 
 from integrador.models import Ambiente, Solicitacao
 from integrador.apps import IntegradorConfig
@@ -163,10 +167,62 @@ class AmbienteModelTestCase(TestCase):
 
         self.assertIsNone(ambiente_selecionado)
 
+    @patch("integrador.models.Rule")
+    def test_ambiente_manager_seleciona_ambiente_raises_detailed_error(self, mock_rule):
+        """Testa tratamento de erro ao processar expressao_seletora no manager."""
+        self.ambiente.expressao_seletora = "invalid"
+        self.ambiente.save()
+        mock_rule.side_effect = Exception("rule parse error")
+
+        with self.assertRaises(Exception) as context:
+            Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "TEST"}})
+
+        self.assertIn("Erro ao processar o ambiente", str(context.exception))
+        self.assertIn("rule parse error", str(context.exception))
+
+    def test_ambiente_color_helper_renders_expected_html(self):
+        """Testa helper interno _c para renderização de cor."""
+        html = Ambiente._c("#ff0000")
+        self.assertIn("#ff0000", html)
+        self.assertIn("background", html)
+
     def test_ambiente_verbose_names(self):
         """Testa verbose_name e verbose_name_plural."""
         self.assertEqual(Ambiente._meta.verbose_name, "ambiente")
         self.assertEqual(Ambiente._meta.verbose_name_plural, "ambientes")
+
+    def test_permissive_url_field_accepts_http_and_https(self):
+        """Testa que PermissiveURLField aceita URLs http e https válidas."""
+        for url in ["http://localhost:8000/path", "https://example.com"]:
+            ambiente = Ambiente(
+                nome=f"Ambiente {url}",
+                url=url,
+                token="token",
+                expressao_seletora="1 == 1",
+                ordem=1,
+                active=True,
+            )
+            ambiente.full_clean()
+
+    def test_permissive_url_field_rejects_invalid_url(self):
+        """Testa que PermissiveURLField rejeita valores sem protocolo HTTP/HTTPS."""
+        ambiente = Ambiente(
+            nome="Ambiente inválido",
+            url="ftp://example.com",
+            token="token",
+            expressao_seletora="1 == 1",
+            ordem=1,
+            active=True,
+        )
+
+        with self.assertRaises(ValidationError):
+            ambiente.full_clean()
+
+    def test_permissive_url_field_formfield_is_charfield(self):
+        """Testa que o formfield do PermissiveURLField usa forms.CharField."""
+        field = Ambiente._meta.get_field("url")
+        form_field = field.formfield()
+        self.assertIsInstance(form_field, forms.CharField)
 
 
 class SolicitacaoModelTestCase(TestCase):
@@ -780,6 +836,58 @@ class BaseBrokerTestCase(TestCase):
         with self.assertRaises(NotImplementedError):
             self.broker.sync_down_grades()
 
+    def test_base_broker_cast_cohort_maps_expected_payload(self):
+        """Testa cast_cohort com mapeamento completo de dados."""
+        user = Mock(fullname="User Name", email="user@test.com", login="user_login", active=True)
+        enrolment = Mock(user=user)
+        enrolments = Mock()
+        enrolments.select_related.return_value.all.return_value = [enrolment]
+        cohort = SimpleNamespace(
+            name="Cohort Test",
+            role=SimpleNamespace(name="Professor"),
+            active=True,
+            idnumber="COHORT-1",
+            description="Desc",
+            enrolments=enrolments,
+        )
+
+        payload = self.broker.cast_cohort(cohort)
+
+        self.assertEqual(payload["nome"], "Cohort Test")
+        self.assertEqual(payload["role"], "Professor")
+        self.assertEqual(payload["idnumber"], "COHORT-1")
+        self.assertEqual(payload["colaboradores"][0]["email"], "user@test.com")
+
+    @patch("integrador.brokers.base.logger.warning")
+    @patch("integrador.brokers.base.rule_engine.Rule")
+    def test_base_broker_cohort_matches_handles_rule_error(self, mock_rule, mock_warning):
+        """Testa cohort_matches quando a avaliação da regra falha."""
+        cohort = Mock(id=10, name="Cohort Error", rule_diario="invalid")
+        mock_rule.side_effect = Exception("invalid rule")
+
+        result = self.broker.cohort_matches(cohort, "rule_diario")
+
+        self.assertFalse(result)
+        mock_warning.assert_called_once()
+
+    @patch("integrador.brokers.base.Cohort.objects.filter")
+    def test_base_broker_get_cohort_combines_diario_and_coordenacao(self, mock_filter):
+        """Testa get_cohort combinando cohorts elegíveis por regras diferentes."""
+        cohort_a = SimpleNamespace(name="A")
+        cohort_b = SimpleNamespace(name="B")
+        mock_filter.return_value = [cohort_a, cohort_b]
+
+        with patch.object(self.broker, "cohort_matches") as mock_matches:
+            mock_matches.side_effect = lambda cohort, field: (cohort is cohort_a and field == "rule_diario") or (
+                cohort is cohort_b and field == "rule_coordenacao"
+            )
+            with patch.object(self.broker, "cast_cohort") as mock_cast:
+                mock_cast.side_effect = lambda cohort: {"nome": cohort.name}
+
+                cohorts = self.broker.get_cohort()
+
+        self.assertEqual(cohorts, [{"nome": "A"}, {"nome": "B"}])
+
 
 class Suap2LocalSuapBrokerTestCase(TestCase):
     """Testes para Suap2LocalSuapBroker."""
@@ -822,6 +930,15 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
         self.assertEqual(result, {"status": "success"})
         mock_http_post_json.assert_called_once()
 
+    @patch("integrador.brokers.suap2local_suap.http_post_json")
+    def test_broker_sync_up_enrolments_raises_sync_error_when_get_cohort_fails(self, mock_http_post_json):
+        """Testa sync_up_enrolments levantando SyncError quando preparação falha."""
+        with patch.object(self.broker, "get_cohort", side_effect=Exception("erro interno")):
+            with self.assertRaises(SyncError):
+                self.broker.sync_up_enrolments()
+
+        mock_http_post_json.assert_not_called()
+
     @patch("integrador.brokers.suap2local_suap.http_get_json")
     def test_broker_sync_down_grades_success(self, mock_http_get_json):
         """Testa sync_down_grades com sucesso."""
@@ -845,27 +962,25 @@ class ManagementCommandTestCase(TestCase):
         """Testa que o comando atualiza_solicitacoes existe."""
         # Cria solicitações com diario_codigo nulo
         for i in range(3):
-            sol = Solicitacao(
+            sol = Solicitacao.objects.create(
                 ambiente=self.ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": i}}
             )
-            sol.diario_codigo = None
-            sol.save()
+            Solicitacao.objects.filter(pk=sol.pk).update(diario_codigo=None)
 
         # Chama o comando
         out = io.StringIO()
         call_command("atualiza_solicitacoes", stdout=out)
 
-        # Verifica que comando executou
-        self.assertTrue(True)
+        # Verifica que comando executou e não deixou registros com diário nulo
+        self.assertEqual(Solicitacao.objects.filter(diario_codigo__isnull=True).count(), 0)
 
     def test_atualiza_solicitacoes_updates_records(self):
         """Testa que o comando atualiza registros."""
         # Cria solicitação com diario_codigo nulo
-        sol = Solicitacao(
+        sol = Solicitacao.objects.create(
             ambiente=self.ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": 999}}
         )
-        sol.diario_codigo = None
-        sol.save()
+        Solicitacao.objects.filter(pk=sol.pk).update(diario_codigo=None)
 
         # Chama o comando
         call_command("atualiza_solicitacoes")
@@ -875,6 +990,271 @@ class ManagementCommandTestCase(TestCase):
 
         # Verifica que ambiente foi selecionado corretamente
         self.assertIsNotNone(sol.ambiente)
+
+
+class SecurityViewsCoverageTestCase(TestCase):
+    """Testes direcionados para ampliar cobertura de security.views."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def _add_session(self, request):
+        middleware = SessionMiddleware(lambda x: None)
+        middleware.process_request(request)
+        request.session.save()
+
+    @patch("security.views.requests.post")
+    @patch("security.views.requests.get")
+    def test_security_helpers_success_flow(self, mock_get, mock_post):
+        """Cobre _get_tokens, _get_userinfo e _save_user com dados válidos."""
+        from security import views as security_views
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "BASE_URL": "https://suap.test.com",
+                "TOKEN_URL": "https://suap.test.com/o/token/",
+                "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
+                "CLIENT_ID": "test_client",
+                "CLIENT_SECRET": "test_secret",
+                "REDIRECT_URI": "http://testserver/authenticate/",
+            },
+            clear=True,
+        ):
+            mock_post.return_value = Mock(
+                status_code=200,
+                text=json.dumps({"access_token": "token123", "scope": "read"}),
+            )
+            request = self.factory.get("/authenticate/?code=abc")
+            tokens = security_views._get_tokens(request)
+
+            self.assertEqual(tokens["access_token"], "token123")
+
+            mock_get.return_value = Mock(
+                status_code=200,
+                text=json.dumps(
+                    {
+                        "identificacao": "user.security",
+                        "primeiro_nome": "User",
+                        "ultimo_nome": "Security",
+                        "email_preferencial": "user.security@ifrn.edu.br",
+                    }
+                ),
+            )
+            userinfo = security_views._get_userinfo(tokens)
+            user = security_views._save_user(userinfo)
+
+            self.assertEqual(user.username, "user.security")
+            self.assertEqual(user.email, "user.security@ifrn.edu.br")
+
+    def test_get_tokens_missing_code_raises(self):
+        """Cobre erro quando o código OAuth não é enviado."""
+        from security import views as security_views
+
+        request = self.factory.get("/authenticate/")
+
+        with self.assertRaises(Exception):
+            security_views._get_tokens(request)
+
+    def test_get_tokens_missing_redirect_uri_raises(self):
+        """Cobre erro quando REDIRECT_URI não está configurado."""
+        from security import views as security_views
+
+        request = self.factory.get("/authenticate/?code=abc")
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "TOKEN_URL": "https://suap.test.com/o/token/",
+                "CLIENT_ID": "test_client",
+                "CLIENT_SECRET": "test_secret",
+            },
+            clear=True,
+        ):
+            with self.assertRaises(ValueError):
+                security_views._get_tokens(request)
+
+    @patch("security.views.requests.post")
+    def test_get_tokens_mismatching_redirect_uri_raises(self, mock_post):
+        """Cobre erro de redirect URI incompatível retornado pelo OAuth."""
+        from security import views as security_views
+
+        request = self.factory.get("/authenticate/?code=abc")
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "TOKEN_URL": "https://suap.test.com/o/token/",
+                "CLIENT_ID": "test_client",
+                "CLIENT_SECRET": "test_secret",
+                "REDIRECT_URI": "http://testserver/authenticate/",
+            },
+            clear=True,
+        ):
+            mock_post.return_value = Mock(
+                status_code=400,
+                text=json.dumps({"error_description": "Mismatching redirect URI."}),
+            )
+
+            with self.assertRaises(ValueError):
+                security_views._get_tokens(request)
+
+    def test_save_user_updates_existing_user_branch(self):
+        """Cobre branch de atualização de usuário existente."""
+        from security import views as security_views
+
+        User.objects.create_user(username="existing.user", first_name="Old", email="old@ifrn.edu.br")
+
+        user = security_views._save_user(
+            {
+                "identificacao": "existing.user",
+                "primeiro_nome": "New",
+                "ultimo_nome": "User",
+                "email_preferencial": "new@ifrn.edu.br",
+            }
+        )
+
+        self.assertEqual(user.username, "existing.user")
+        refreshed_user = User.objects.get(username="existing.user")
+        self.assertEqual(refreshed_user.first_name, "New")
+        self.assertEqual(refreshed_user.email, "new@ifrn.edu.br")
+
+    def test_login_missing_redirect_uri_raises(self):
+        """Cobre validação de REDIRECT_URI no login."""
+        from security import views as security_views
+
+        request = self.factory.get("/login/")
+        self._add_session(request)
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "BASE_URL": "https://suap.test.com",
+                "CLIENT_ID": "test_client",
+            },
+            clear=True,
+        ):
+            with self.assertRaises(ValueError):
+                security_views.login(request)
+
+    def test_login_redirects_to_configured_oauth(self):
+        """Cobre retorno de redirect no fluxo nominal de login."""
+        from security import views as security_views
+
+        request = self.factory.get("/login/?next=/admin/")
+        self._add_session(request)
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "BASE_URL": "https://suap.test.com",
+                "CLIENT_ID": "test_client",
+                "REDIRECT_URI": "http://testserver/authenticate/",
+            },
+            clear=True,
+        ):
+            response = security_views.login(request)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("https://suap.test.com/o/authorize/", response.url)
+        self.assertIn("client_id=test_client", response.url)
+
+    @patch("security.views.auth.login")
+    @patch("security.views._save_user")
+    @patch("security.views._get_userinfo")
+    @patch("security.views._get_tokens")
+    def test_authenticate_success_redirects_next(
+        self, mock_get_tokens, mock_get_userinfo, mock_save_user, mock_auth_login
+    ):
+        """Cobre fluxo de sucesso da authenticate com redirect para next."""
+        from security import views as security_views
+
+        mock_get_tokens.return_value = {"access_token": "token123", "scope": "read"}
+        mock_get_userinfo.return_value = {"identificacao": "auth.user"}
+        user = User.objects.create_user(username="auth.user")
+        mock_save_user.return_value = user
+
+        request = self.factory.get("/authenticate/?code=abc")
+        self._add_session(request)
+        request.session["next"] = "/admin/"
+
+        response = security_views.authenticate(request)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/admin/")
+        mock_auth_login.assert_called_once_with(request, user)
+
+    def test_authenticate_access_denied_renders_not_authorized(self):
+        """Cobre retorno imediato quando OAuth responde access_denied."""
+        from security import views as security_views
+
+        request = self.factory.get("/authenticate/?error=access_denied")
+        self._add_session(request)
+
+        response = security_views.authenticate(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Você não autorizou!".encode("utf-8"), response.content)
+
+    @patch("security.views.capture_exception")
+    @patch("security.views._get_tokens")
+    def test_authenticate_exception_branch_renders_error(self, mock_get_tokens, mock_capture_exception):
+        """Cobre captura de exceção e renderização de erro na authenticate."""
+        from security import views as security_views
+
+        mock_get_tokens.side_effect = RuntimeError("oauth failure")
+
+        request = self.factory.get("/authenticate/?code=abc")
+        self._add_session(request)
+
+        response = security_views.authenticate(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"oauth failure", response.content)
+        mock_capture_exception.assert_called_once()
+
+    @override_settings(LOGOUT_REDIRECT_URL="https://malicious.example/logout", LOGIN_REDIRECT_URL="/admin/")
+    def test_logout_falls_back_to_login_redirect_for_untrusted_host(self):
+        """Cobre branch de fallback quando LOGOUT_REDIRECT_URL não é host permitido."""
+        from security import views as security_views
+
+        request = self.factory.get("/logout/")
+        self._add_session(request)
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "BASE_URL": "https://suap.test.com",
+            },
+            clear=True,
+        ):
+            response = security_views.logout(request)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith("/admin/?token="))
+
+    @override_settings(
+        LOGOUT_REDIRECT_URL="https://suap.test.com/logout?origin=integrador", LOGIN_REDIRECT_URL="/admin/"
+    )
+    def test_logout_uses_ampersand_when_query_exists(self):
+        """Cobre branch de separador '&' quando a URL já possui querystring."""
+        from security import views as security_views
+
+        request = self.factory.get("/logout/")
+        self._add_session(request)
+        request.session["logout_token"] = "abc123"
+
+        with patch.dict(
+            security_views.OAUTH,
+            {
+                "BASE_URL": "https://suap.test.com",
+            },
+            clear=True,
+        ):
+            response = security_views.logout(request)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("origin=integrador&token=", response.url)
 
 
 class IntegrationTestCase(TestCase):
@@ -1225,6 +1605,21 @@ class AmbienteAdminTestCase(TestCase):
         result = self.admin.checked_expressao_seletora(self.ambiente)
         self.assertIn("⚠️", result)
 
+    @patch("base.admin.BaseModelAdmin.get_queryset")
+    def test_get_queryset_calls_all(self, mock_get_queryset):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        request = RequestFactory().get("/admin/integrador/ambiente/")
+        request.user = User.objects.create_superuser("admin_amb", "admin_amb@test.com", "pass123")
+
+        mock_qs = Mock()
+        mock_qs.all.return_value = "ALL_QS"
+        mock_get_queryset.return_value = mock_qs
+
+        result = self.admin.get_queryset(request)
+
+        self.assertEqual(result, "ALL_QS")
+        mock_qs.all.assert_called_once()
+
 
 class SolicitacaoAdminTestCase(TestCase):
     """Testes para SolicitacaoAdmin."""
@@ -1261,17 +1656,53 @@ class SolicitacaoAdminTestCase(TestCase):
         result = self.admin.quando(self.solicitacao)
         self.assertIsInstance(result, str)
 
+    def test_quando_without_timestamp_returns_dash(self):
+        """Testa quando sem timestamp."""
+        self.solicitacao.timestamp = None
+        result = self.admin.quando(self.solicitacao)
+        self.assertEqual(result, "-")
+
     def test_professores(self):
         """Testa professores."""
         self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": "prof123", "tipo": "servidor"}]}
         result = self.admin.professores(self.solicitacao)
         self.assertIn("Prof Test", result)
 
+    def test_professores_returns_dash_when_empty(self):
+        """Testa professores sem entradas."""
+        self.solicitacao.recebido = {"professores": []}
+        result = self.admin.professores(self.solicitacao)
+        self.assertEqual(result, "-")
+
+    def test_professores_returns_dash_on_exception(self):
+        """Testa professores retornando '-' em erro inesperado."""
+        self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": object(), "tipo": "servidor"}]}
+        result = self.admin.professores(self.solicitacao)
+        self.assertEqual(result, "-")
+
     def test_codigo_diario(self):
         """Testa codigo_diario."""
         self.solicitacao.respondido = {"url": "https://test.com/diario"}
         result = self.admin.codigo_diario(self.solicitacao)
         self.assertIn("https://test.com/diario", result)
+
+    def test_codigo_diario_returns_dash_on_exception(self):
+        """Testa codigo_diario retornando '-' em erro inesperado."""
+        self.solicitacao.respondido = object()
+        result = self.admin.codigo_diario(self.solicitacao)
+        self.assertEqual(result, "-")
+
+    def test_get_urls_wrap_executes_admin_view_wrapper(self):
+        """Testa wrapper de get_urls delegando para admin_site.admin_view."""
+        with patch.object(self.admin.admin_site, "admin_view", return_value=lambda *args, **kwargs: "ok") as mock_admin_view:
+            urls = self.admin.get_urls()
+            callback = urls[0].callback
+            result = callback(Mock(), object_id=str(self.solicitacao.id))
+
+        self.assertEqual(result, "ok")
+        self.assertTrue(mock_admin_view.called)
+        called_views = [call.args[0] for call in mock_admin_view.call_args_list]
+        self.assertIn(self.admin.sync_moodle_view, called_views)
 
     @patch("integrador.admin.Suap2LocalSuapBroker")
     def test_sync_moodle_view_success(self, mock_broker):
@@ -1301,3 +1732,34 @@ class SolicitacaoAdminTestCase(TestCase):
         response = self.admin.sync_moodle_view(request, self.solicitacao.id)
         self.assertEqual(response.status_code, 200)
         self.assertIn("Test error", response.content.decode())
+
+    @patch("integrador.admin.Suap2LocalSuapBroker")
+    def test_sync_moodle_view_handles_none_response(self, mock_broker):
+        """Testa sync_moodle_view quando broker retorna None."""
+        from django.test import RequestFactory
+
+        factory = RequestFactory()
+        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
+
+        mock_instance = Mock()
+        mock_instance.sync_up_enrolments.return_value = None
+        mock_broker.return_value = mock_instance
+
+        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Erro desconhecido", response.content.decode())
+
+    @patch("base.admin.BaseModelAdmin.get_queryset")
+    def test_get_queryset_select_related_ambiente(self, mock_get_queryset):
+        """Testa que SolicitacaoAdmin.get_queryset aplica select_related em ambiente."""
+        request = RequestFactory().get("/admin/integrador/solicitacao/")
+        request.user = User.objects.create_superuser("admin_sol", "admin_sol@test.com", "pass123")
+
+        mock_qs = Mock()
+        mock_qs.select_related.return_value = "SELECT_RELATED_QS"
+        mock_get_queryset.return_value = mock_qs
+
+        result = self.admin.get_queryset(request)
+
+        self.assertEqual(result, "SELECT_RELATED_QS")
+        mock_qs.select_related.assert_called_once_with("ambiente")

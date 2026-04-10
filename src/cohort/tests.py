@@ -11,6 +11,7 @@ Este módulo contém testes para:
 from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
+from unittest.mock import patch
 from cohort.models import Role, Cohort, Enrolment, MoodleUser
 from cohort.admin import RoleAdmin, CohortAdmin, EnrolmentInline
 from cohort.apps import CohortConfig
@@ -195,6 +196,13 @@ class EnrolmentModelTestCase(TestCase):
         self.assertEqual(Enrolment._meta.verbose_name, "vínculo")
         self.assertEqual(Enrolment._meta.verbose_name_plural, "vínculos")
 
+    def test_moodle_user_str_representation(self):
+        """Testa __str__ de MoodleUser com nome, email e ícone de ativo."""
+        string_repr = str(self.user)
+        self.assertIn("Test User", string_repr)
+        self.assertIn("testuser@example.com", string_repr)
+        self.assertIn("✅", string_repr)
+
 
 class RoleAdminTestCase(TestCase):
     """Testes para RoleAdmin."""
@@ -239,6 +247,12 @@ class RoleAdminTestCase(TestCase):
         resource = self.role_admin.resource_classes[0]()
         self.assertEqual(resource._meta.import_id_fields, ("shortname",))
 
+    def test_role_str_representation(self):
+        """Testa representação em string de Role."""
+        role = Role.objects.create(name="Role Str", shortname="ROLESTR", active=True)
+        self.assertIn("Role Str", str(role))
+        self.assertIn("✅", str(role))
+
 
 class CohortAdminTestCase(TestCase):
     """Testes para CohortAdmin."""
@@ -278,6 +292,35 @@ class CohortAdminTestCase(TestCase):
         """Testa configuração de inlines."""
         self.assertEqual(len(self.cohort_admin.inlines), 1)
         self.assertEqual(self.cohort_admin.inlines[0], EnrolmentInline)
+
+    def test_cohort_resource_dehydrate_enrolments(self):
+        """Testa dehydrate_enrolments exportando logins dos vinculados."""
+        role = Role.objects.create(name="Role Test", shortname="ROLE_TEST", active=True)
+        cohort = Cohort.objects.create(name="Cohort Export", idnumber="CEXP001", role=role)
+        user_a = MoodleUser.objects.create(fullname="User A", email="a@test.com", login="login_a", active=True)
+        user_b = MoodleUser.objects.create(fullname="User B", email="b@test.com", login="login_b", active=True)
+
+        Enrolment.objects.create(user=user_a, cohort=cohort)
+        Enrolment.objects.create(user=user_b, cohort=cohort)
+
+        resource = CohortAdmin.Resource()
+        value = resource.dehydrate_enrolments(cohort)
+
+        self.assertIn("login_a", value)
+        self.assertIn("login_b", value)
+
+    @patch("base.admin.BasicModelAdmin.formfield_for_dbfield")
+    def test_formfield_for_dbfield_pass_through(self, mock_super_formfield):
+        """Testa formfield_for_dbfield retornando exatamente o valor do super."""
+        request = RequestFactory().get("/admin/cohort/cohort/add/")
+        db_field = Cohort._meta.get_field("name")
+        sentinel = object()
+        mock_super_formfield.return_value = sentinel
+
+        result = self.cohort_admin.formfield_for_dbfield(db_field, request)
+
+        self.assertIs(result, sentinel)
+        mock_super_formfield.assert_called_once()
 
 
 class IntegrationTestCase(TestCase):

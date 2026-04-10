@@ -65,10 +65,10 @@ jobs:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres
       run: |
-        coverage run --rcfile=.coveragerc src/manage.py test --verbosity 1
-        coverage report --fail-under=80
-        coverage xml -o coverage.xml
-        python scripts/check_coverage_gate.py --coverage-xml coverage.xml --baseline-file .coverage-baseline --min 80 --ideal 95
+        COVERAGE_RCFILE=src/.coveragerc coverage run src/manage.py test --verbosity 1
+        COVERAGE_RCFILE=src/.coveragerc coverage report --fail-under=91
+        COVERAGE_RCFILE=src/.coveragerc coverage xml -o coverage.xml
+        python src/check_coverage_gate.py --coverage-xml coverage.xml --baseline-file .coverage-baseline --min 91 --ideal 95
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

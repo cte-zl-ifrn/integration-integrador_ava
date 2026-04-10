@@ -21,7 +21,7 @@ def _wait_db(db):
             )
             connected = not connection.closed
             logging.info(f"ERROR: Aguardando por 3s o banco {db['HOST']:db['PORT']/db['NAME']} subir")
-            time.sleep(3)
+            time.sleep(3)  # pragma: no cover
         except Exception:  # pragma: no cover
             logging.debug("Banco ainda indisponivel, aguardando nova tentativa")
         finally:

@@ -29,7 +29,7 @@ class Suap2LocalSuapBroker(BaseBroker):
             self.solicitacao.enviado = dict(**self.solicitacao.recebido, **{"coortes": self.get_cohort()})
             self.solicitacao.save()
         except Exception as e:
-            SyncError(
+            raise SyncError(
                 f"Erro ao tentar obter as coortes antes de iniciar a integração com o AVA. Contacte um administrador. Erro: {e}.",
                 getattr(e, "code", 525),
             )

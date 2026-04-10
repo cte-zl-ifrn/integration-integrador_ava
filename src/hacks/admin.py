@@ -92,7 +92,7 @@ class UserAdmin(BaseModelAdmin):
         (
             _("Permissions"),
             {
-                "fields": [("groups")],
+                "fields": ["groups"],
                 "description": _("Permissões e grupos aos quais o usuário pertence."),
             },
         ),
@@ -105,23 +105,27 @@ class UserAdmin(BaseModelAdmin):
     def auth(self, obj):
         badges = [
             (
-                format_html("<span title='Ativo'>✅</span>")
+                format_html("<span title='{}'>{}</span>", "Ativo", "✅")
                 if obj.is_active
-                else format_html("<span title='Inativo'>❌</span>")
+                else format_html("<span title='{}'>{}</span>", "Inativo", "❌")
             )
         ]
         if obj.is_staff and obj.is_superuser:
-            badges.append(format_html("<span title='Super usuário'>👮‍♂️</span>"))
+            badges.append(format_html("<span title='{}'>{}</span>", "Super usuário", "👮‍♂️"))
         elif obj.is_superuser and not obj.is_staff:
             badges.append(
                 format_html(
-                    "<span title='Super usuário sem permissão de operar o admin? Você configurou certo?'>🕵️‍♂️</span>"
+                    "<span title='{}'>{}</span>",
+                    "Super usuário sem permissão de operar o admin? Você configurou certo?",
+                    "🕵️‍♂️",
                 )
             )
         elif obj.is_staff and not obj.is_superuser:
-            badges.append(format_html("<span title='Pode operar o admin'>👷‍♂️</span>"))
+            badges.append(format_html("<span title='{}'>{}</span>", "Pode operar o admin", "👷‍♂️"))
         elif not obj.is_staff and not obj.is_superuser:
-            badges.append(format_html("<span title='É um simples colaborador, sem acesso ao admin.'>👨</span>"))
+            badges.append(
+                format_html("<span title='{}'>{}</span>", "É um simples colaborador, sem acesso ao admin.", "👨")
+            )
         if obj.groups.count() > 0:
             plural = "nos grupos" if obj.groups.count() > 1 else "no grupo"
             grupos = ", ".join([f"'{g.name}'" for g in obj.groups.all()])

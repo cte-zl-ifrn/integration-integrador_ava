@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
         default=".coverage-baseline",
         help="Optional file containing previous coverage percentage (single float line).",
     )
-    parser.add_argument("--min", type=float, default=80.0, help="Minimum required total coverage percentage.")
+    parser.add_argument("--min", type=float, default=91.0, help="Minimum required total coverage percentage.")
     parser.add_argument("--ideal", type=float, default=95.0, help="Ideal target total coverage percentage.")
     parser.add_argument(
         "--write-baseline",
