@@ -43,6 +43,7 @@ src/htmlcov/
 .tox/
 src/.coverage
 .coverage.*
+.coverage
 .cache
 nosetests.xml
 src/coverage.xml
