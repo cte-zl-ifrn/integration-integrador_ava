@@ -69,6 +69,29 @@ python -m pip install -r requirements-dev.txt
 pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
+### 1.1) Usar commits pela interface do VS Code
+
+Se o `pre-commit` funciona no terminal, mas falha ao fazer commit pela interface do VS Code, o problema costuma ser o ambiente do processo que abriu o VS Code.
+
+Importante: selecionar o interpretador em **Python: Select Interpreter** ajuda o editor, mas não muda o `PATH` usado pelo Git da interface do VS Code. Hooks com `language: system`, como o `semgrep-local`, dependem desse `PATH`.
+
+Fluxo recomendado:
+
+```bash
+cd ~/projetos/IFRN/ava/integration/integrador_ava
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+pre-commit install --hook-type pre-commit --hook-type pre-push
+code .
+```
+
+Depois, na janela aberta por esse comando:
+
+- selecione a interpreter `.venv` em **Python: Select Interpreter**;
+- faça os commits pela aba **Source Control** normalmente.
+
+Se o VS Code já estiver aberto por launcher/menu, feche essa janela do projeto e reabra com `code .` a partir da shell com a `.venv` ativa.
+
 Para validar manualmente todos os arquivos:
 
 ```bash

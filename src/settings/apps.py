@@ -1,11 +1,4 @@
 from sc4py.env import env_as_list
-from settings.project import (
-    PROJECT_LAST_STARTUP,
-    PROJECT_TITLE,
-    PROJECT_VERSION,
-    SHOW_SUPPORT_CHAT,
-    SHOW_SUPPORT_FORM,
-)
 
 THIRD_APPS = env_as_list(
     "THIRD_APPS",
