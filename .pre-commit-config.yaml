@@ -58,15 +58,14 @@ repos:
         - id: djhtml
           files: ^templates/
           args: [--profile=strict]
+    - repo: https://github.com/semgrep/pre-commit
+      rev: v1.159.0  # Ou rode pre-commit autoupdate
+      hooks:
+        - id: semgrep
+          args: [--config=auto]  # Ou p/django: r/python,django
 
     - repo: local
       hooks:
-          - id: semgrep-local
-            name: semgrep (py/js/css/md/html)
-            entry: >-
-                bash -c '.venv/bin/semgrep --error --config auto .'
-            language: system
-            pass_filenames: false
 
           # - id: djlint-html
           #   name: djlint (html)
