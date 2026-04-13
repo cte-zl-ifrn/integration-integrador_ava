@@ -52,15 +52,15 @@ repos:
             args: [-r, src, -x, "src/base/tests.py,src/cohort/tests.py,src/dashboard/tests.py,src/hacks/tests.py,src/health/tests.py,src/integrador/tests.py,src/security/tests.py,src/settings/tests.py"]
             pass_filenames: false
 
+    - repo: https://github.com/rtts/djhtml
+      rev: 3.0.11
+      hooks:
+        - id: djhtml
+          files: ^templates/
+          args: [--profile=strict]
+
     - repo: local
       hooks:
-          - id: prettier-container
-            name: prettier (container)
-            language: docker_image
-            entry: node:25-alpine npx --yes prettier@3.8.2 --check --ignore-unknown
-            # entry: node:25-alpine npx --yes prettier@3.8.2 --write
-            files: \.(js|css|md)$
-
           - id: semgrep-local
             name: semgrep (py/js/css/md/html)
             entry: >-
