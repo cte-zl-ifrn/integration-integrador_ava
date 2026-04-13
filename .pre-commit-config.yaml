@@ -57,8 +57,8 @@ repos:
           - id: prettier-container
             name: prettier (container)
             language: docker_image
-            # entry: node:25-alpine npx --yes prettier@3.8.2 --check --ignore-unknown
-            entry: node:25-alpine npx --yes prettier@3.8.2 --write
+            entry: node:25-alpine npx --yes prettier@3.8.2 --check --ignore-unknown
+            # entry: node:25-alpine npx --yes prettier@3.8.2 --write
             files: \.(js|css|md)$
 
           - id: semgrep-local
