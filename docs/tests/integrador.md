@@ -32,3 +32,72 @@
 - EdgeCasesTestCase: Múltiplas regras correspondentes, JSON incompleto, expressões complexas, URLs com barra final
 
 Os testes cobrem todos os aspectos críticos da integração entre SUAP e Moodle, incluindo autenticação via token, validação de JSON, seleção de ambiente baseada em regras, tratamento de erros, e comunicação HTTP com o AVA.
+
+# Receitas rápidas (QA)
+
+## 1) Rodar suíte completa (fluxo padrão)
+
+No workspace:
+
+```bash
+cd ~/projetos/IFRN/ava/workspace
+./ava test integrador
+```
+
+## 2) Rodar apenas os testes do mock de Moodle
+
+```bash
+cd ~/projetos/IFRN/ava/workspace
+./ava test integrador \
+	integrador.tests.MoodleHTTPMockTestCase \
+	integrador.tests.MoodleHTTPMockBackgroundServerTestCase \
+	integrador.tests.Suap2LocalSuapBrokerTestCase
+```
+
+## 3) Rodar integração sem Moodle real (forçando mock)
+
+Quando quiser garantir execução sem dependência externa:
+
+```bash
+cd ~/projetos/IFRN/ava/workspace
+docker compose run --rm \
+	-e MOODLE_HTTP_MOCK_ENABLED=true \
+	integrador \
+	coverage run manage.py test --verbosity 1 integrador.tests
+```
+
+## 4) Subir ambiente para teste de interface com mock em background
+
+No `docker-compose.yml` do workspace, manter no serviço `integrador`:
+
+- `MOODLE_HTTP_MOCK_ENABLED=true`
+- `MOODLE_HTTP_MOCK_BACKGROUND=true`
+- `MOODLE_HTTP_MOCK_HOST=0.0.0.0`
+- `MOODLE_HTTP_MOCK_PORT=18091`
+
+Depois subir normalmente:
+
+```bash
+cd ~/projetos/IFRN/ava/workspace
+./ava launch integrador
+```
+
+Assim, chamadas para `/local/suap/api/index.php` são atendidas pelo mock, facilitando teste de tela e fluxo sem carga de dados no Moodle.
+
+## 5) Quando desabilitar o mock
+
+Use Moodle real para validar contrato fim a fim:
+
+```bash
+cd ~/projetos/IFRN/ava/workspace
+docker compose run --rm \
+	-e MOODLE_HTTP_MOCK_ENABLED=false \
+	integrador \
+	python manage.py test --verbosity 1 integrador.tests.Suap2LocalSuapBrokerTestCase
+```
+
+## Referência
+
+Detalhes completos de arquitetura e troubleshooting do mock em:
+
+- [MOODLE_HTTP_MOCK](MOODLE_HTTP_MOCK)

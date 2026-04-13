@@ -57,6 +57,10 @@ docker build -t ctezlifrn/avaintegrador:producao .
 
 Veja o `ava_workspace` para o desenvolvimento.
 
+Para integração local sem depender de Moodle com dados reais, veja também:
+
+- [MOODLE_HTTP_MOCK](docs/tests/MOODLE_HTTP_MOCK)
+
 ## Qualidade de código e cobertura
 
 O projeto usa gates de qualidade locais (pre-commit/pre-push) e no CI.

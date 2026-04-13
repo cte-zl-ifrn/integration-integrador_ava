@@ -1,3 +1,8 @@
+## Índice rápido de testes
+
+- [Guia da app Integrador](integrador)
+- Guia do Moodle HTTP Mock: `docs/MOODLE_HTTP_MOCK.md`
+
 📋 Cobertura dos Testes
 
 1. ActiveMixinTestCase
