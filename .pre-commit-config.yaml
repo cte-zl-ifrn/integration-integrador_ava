@@ -8,49 +8,49 @@ repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v5.0.0
       hooks:
-          - id: check-added-large-files
-          - id: check-ast
-          - id: check-builtin-literals
-          - id: check-case-conflict
-          - id: check-docstring-first
-          - id: check-executables-have-shebangs
-          - id: check-merge-conflict
-          - id: check-shebang-scripts-are-executable
-          - id: check-symlinks
-          - id: check-toml
-          - id: check-vcs-permalinks
-          - id: check-xml
-          - id: check-yaml
-          - id: debug-statements
-          - id: destroyed-symlinks
-          - id: detect-private-key
-          - id: end-of-file-fixer
-          - id: fix-byte-order-marker
-          - id: mixed-line-ending
-          - id: name-tests-test
-            args: [--pytest-test-first]
-          - id: requirements-txt-fixer
-          - id: trailing-whitespace
-            args: [--markdown-linebreak-ext=md]
+        - id: check-added-large-files
+        - id: check-ast
+        - id: check-builtin-literals
+        - id: check-case-conflict
+        - id: check-docstring-first
+        - id: check-executables-have-shebangs
+        - id: check-merge-conflict
+        - id: check-shebang-scripts-are-executable
+        - id: check-symlinks
+        - id: check-toml
+        - id: check-vcs-permalinks
+        - id: check-xml
+        - id: check-yaml
+        - id: debug-statements
+        - id: destroyed-symlinks
+        - id: detect-private-key
+        - id: end-of-file-fixer
+        - id: fix-byte-order-marker
+        - id: mixed-line-ending
+        - id: name-tests-test
+          args: [--pytest-test-first]
+        - id: requirements-txt-fixer
+        - id: trailing-whitespace
+          args: [--markdown-linebreak-ext=md]
 
     - repo: https://github.com/psf/black
       rev: 24.10.0
       hooks:
-          - id: black
+        - id: black
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
       rev: v0.11.8
       hooks:
-          - id: ruff
-            args: [--fix]
-          - id: ruff-format
+        - id: ruff
+          args: [--fix]
+        - id: ruff-format
 
     - repo: https://github.com/PyCQA/bandit
       rev: 1.8.3
       hooks:
-          - id: bandit
-            args: [-r, src, -x, "src/base/tests.py,src/cohort/tests.py,src/dashboard/tests.py,src/hacks/tests.py,src/health/tests.py,src/integrador/tests.py,src/security/tests.py,src/settings/tests.py"]
-            pass_filenames: false
+        - id: bandit
+          args: [-r, src, -x, "src/base/tests.py,src/cohort/tests.py,src/dashboard/tests.py,src/hacks/tests.py,src/health/tests.py,src/integrador/tests.py,src/security/tests.py,src/settings/tests.py"]
+          pass_filenames: false
 
     - repo: https://github.com/rtts/djhtml
       rev: 3.0.11
@@ -67,19 +67,11 @@ repos:
 
     - repo: local
       hooks:
-
-          # - id: djlint-html
-          #   name: djlint (html)
-          #   entry: bash -c 'python -m djlint --profile=django --check --lint src'
-          #   language: system
-          #   pass_filenames: false
-          #   files: \.(html)$
-
-          - id: pytest-coverage-gate
-            name: pytest + cobertura (min 98, ideal 100)
-            entry: >-
-              bash -c 'ava test integrador'
-            language: system
-            pass_filenames: false
-            always_run: true
-            stages: [pre-push, manual]
+        - id: pytest-coverage-gate
+          name: pytest + cobertura (min 98, ideal 100)
+          entry: >-
+            bash -c 'ava test integrador'
+          language: system
+          pass_filenames: false
+          always_run: true
+          stages: [pre-push, manual]
