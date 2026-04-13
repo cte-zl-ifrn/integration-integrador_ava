@@ -1694,7 +1694,9 @@ class SolicitacaoAdminTestCase(TestCase):
 
     def test_get_urls_wrap_executes_admin_view_wrapper(self):
         """Testa wrapper de get_urls delegando para admin_site.admin_view."""
-        with patch.object(self.admin.admin_site, "admin_view", return_value=lambda *args, **kwargs: "ok") as mock_admin_view:
+        with patch.object(
+            self.admin.admin_site, "admin_view", return_value=lambda *args, **kwargs: "ok"
+        ) as mock_admin_view:
             urls = self.admin.get_urls()
             callback = urls[0].callback
             result = callback(Mock(), object_id=str(self.solicitacao.id))
