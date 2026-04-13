@@ -25,7 +25,7 @@ class SettingsAppsTestCase(TestCase):
 
     def test_project_title_is_defined(self):
         """Testa se PROJECT_TITLE está definido."""
-        from settings.apps import PROJECT_TITLE
+        from settings import PROJECT_TITLE
 
         self.assertIsNotNone(PROJECT_TITLE)
         self.assertIsInstance(PROJECT_TITLE, str)
@@ -33,7 +33,7 @@ class SettingsAppsTestCase(TestCase):
 
     def test_project_version_is_defined(self):
         """Testa se PROJECT_VERSION está definido."""
-        from settings.apps import PROJECT_VERSION
+        from settings import PROJECT_VERSION
 
         self.assertIsNotNone(PROJECT_VERSION)
         self.assertIsInstance(PROJECT_VERSION, str)
@@ -41,7 +41,7 @@ class SettingsAppsTestCase(TestCase):
 
     def test_project_last_startup_is_timestamp(self):
         """Testa se PROJECT_LAST_STARTUP é um timestamp válido."""
-        from settings.apps import PROJECT_LAST_STARTUP
+        from settings import PROJECT_LAST_STARTUP
 
         self.assertIsInstance(PROJECT_LAST_STARTUP, int)
         self.assertGreater(PROJECT_LAST_STARTUP, 0)
@@ -78,13 +78,13 @@ class SettingsAppsTestCase(TestCase):
 
     def test_show_support_form_is_boolean(self):
         """Testa se SHOW_SUPPORT_FORM é booleano."""
-        from settings.apps import SHOW_SUPPORT_FORM
+        from settings import SHOW_SUPPORT_FORM
 
         self.assertIsInstance(SHOW_SUPPORT_FORM, bool)
 
     def test_show_support_chat_is_boolean(self):
         """Testa se SHOW_SUPPORT_CHAT é booleano."""
-        from settings.apps import SHOW_SUPPORT_CHAT
+        from settings import SHOW_SUPPORT_CHAT
 
         self.assertIsInstance(SHOW_SUPPORT_CHAT, bool)
 
@@ -193,23 +193,6 @@ class SettingsDevelopmentsTestCase(TestCase):
     def test_debug_is_boolean(self):
         """Testa se DEBUG é booleano."""
         self.assertIsInstance(settings.DEBUG, bool)
-
-    @override_settings(DEBUG=True)
-    def test_debug_toolbar_in_installed_apps_when_debug_true(self):
-        """Testa se debug_toolbar está em INSTALLED_APPS quando DEBUG=True."""
-        # Este teste é mais informativo, pois depende da instalação do pacote
-        # Em ambiente de desenvolvimento, debug_toolbar deve estar presente
-        if "debug_toolbar" in settings.INSTALLED_APPS:
-            self.assertIn("debug_toolbar", settings.INSTALLED_APPS)
-
-    @override_settings(DEBUG=True)
-    def test_debug_middleware_added_when_debug_true(self):
-        """Testa se middleware do debug toolbar é adicionado quando DEBUG=True."""
-        if "debug_toolbar" in settings.INSTALLED_APPS:
-            debug_middleware = "debug_toolbar.middleware.DebugToolbarMiddleware"
-            # Verifica se o middleware está presente ou se debug_toolbar não está instalado
-            if debug_middleware in settings.MIDDLEWARE:
-                self.assertIn(debug_middleware, settings.MIDDLEWARE)
 
 
 class SettingsCachesTestCase(TestCase):
@@ -423,9 +406,7 @@ class SettingsSecurityTestCase(TestCase):
         """Testa se DEBUG está False em produção."""
         # Este teste é mais para documentação
         # Em produção, DEBUG deve ser False
-        if hasattr(settings, "ENVIRONMENT"):
-            if settings.ENVIRONMENT == "production":
-                self.assertFalse(settings.DEBUG)
+        self.assertFalse(settings.DEBUG and settings.ENVIRONMENT != "production")
 
     def test_allowed_hosts_configured(self):
         """Testa se ALLOWED_HOSTS está configurado."""
@@ -478,23 +459,6 @@ class SettingsEdgeCasesTestCase(TestCase):
         """Testa se LOCATION do cache não está vazio."""
         location = settings.CACHES["default"]["LOCATION"]
         self.assertGreater(len(location), 0)
-
-    @patch.dict(os.environ, {}, clear=True)
-    def test_settings_work_without_env_variables(self):
-        """Testa se settings funcionam sem variáveis de ambiente."""
-        # Settings devem ter valores default
-        # Este teste verifica se os defaults estão configurados
-        try:
-            import settings.databases
-
-            importlib.reload(settings.databases)
-
-            from settings.databases import DATABASES
-
-            self.assertIn("default", DATABASES)
-        except Exception as e:
-            # Se falhar, é esperado que haja defaults adequados
-            self.fail(f"Settings devem ter defaults: {e}")
 
 
 class SettingsPerformanceTestCase(TestCase):

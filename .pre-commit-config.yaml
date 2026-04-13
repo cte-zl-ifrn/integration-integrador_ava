@@ -64,8 +64,7 @@ repos:
           - id: semgrep-local
             name: semgrep (py/js/css/md/html)
             entry: >-
-                bash -c 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python semgrep --error --config auto
-                --include "**/*.py" --include "**/*.js" --include "**/*.css" --include "**/*.md" --include "**/*.html" .'
+                bash -c '.venv/bin/semgrep --error --config auto .'
             language: system
             pass_filenames: false
 

@@ -34,7 +34,6 @@ if DEBUG and not IS_RUNNING_TESTS:
         # https://github.com/orf/django-debug-toolbar-template-timings
         # https://github.com/orf/django-debug-toolbar-template-timings
         # https://github.com/node13h/django-debug-toolbar-template-profiler
-        # https://github.com/marceltschoppch/django-requests-debug-toolbar
         # https://github.com/djsutho/django-debug-toolbar-request-history
         # https://github.com/mikekeda/django-debug-toolbar-line-profiler
         # https://github.com/rkern/line_profiler

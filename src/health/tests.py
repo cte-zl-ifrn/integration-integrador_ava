@@ -243,15 +243,7 @@ class HealthEdgeCasesTestCase(TransactionTestCase):
     def test_health_check_json_is_valid(self):
         """Testa se o JSON retornado é válido."""
         response = self.client.get("/health/")
-
-        # Tenta parsear o JSON - deve funcionar sem exceções
-        try:
-            json.loads(response.content)
-            json_is_valid = True
-        except json.JSONDecodeError:
-            json_is_valid = False
-
-        self.assertTrue(json_is_valid)
+        json.loads(response.content)
 
     def test_health_check_with_query_parameters(self):
         """Testa health check com query parameters (devem ser ignorados)."""

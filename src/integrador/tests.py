@@ -366,54 +366,46 @@ class SyncErrorTestCase(TestCase):
 class UtilsFunctionsTestCase(TestCase):
     """Testes para funções utilitárias."""
 
-    @patch("integrador.utils.requests.get")
+    @patch("integrador.utils.sc4net.get")
     def test_http_get_success(self, mock_get):
         """Testa http_get com sucesso."""
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.content = b"Test content"
-        mock_get.return_value = mock_response
+        mock_get.return_value = "Test content"
 
         result = http_get("http://test.com")
 
         self.assertEqual(result, "Test content")
 
-    @patch("integrador.utils.requests.get")
+    @patch("integrador.utils.sc4net.get")
     def test_http_get_failure(self, mock_get):
         """Testa http_get com falha."""
-        mock_response = Mock()
-        mock_response.ok = False
-        mock_response.status_code = 404
-        mock_response.reason = "Not Found"
-        mock_response.content = b"Error"
-        mock_response.headers = {}
-        mock_get.return_value = mock_response
+        exc = HTTPException("404 - Not Found")
+        exc.status = 404
+        exc.reason = "Not Found"
+        exc.headers = {}
+        exc.url = "http://test.com"
+        mock_get.side_effect = exc
 
         with self.assertRaises(HTTPException):
             http_get("http://test.com")
 
-    @patch("integrador.utils.requests.post")
+    @patch("integrador.utils.sc4net.post")
     def test_http_post_success(self, mock_post):
         """Testa http_post com sucesso."""
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.content = b"Posted"
-        mock_post.return_value = mock_response
+        mock_post.return_value = "Posted"
 
         result = http_post("http://test.com", {"data": "value"})
 
         self.assertEqual(result, "Posted")
 
-    @patch("integrador.utils.requests.post")
+    @patch("integrador.utils.sc4net.post")
     def test_http_post_failure(self, mock_post):
         """Testa http_post com falha."""
-        mock_response = Mock()
-        mock_response.ok = False
-        mock_response.status_code = 500
-        mock_response.reason = "Server Error"
-        mock_response.content = b"Error"
-        mock_response.headers = {}
-        mock_post.return_value = mock_response
+        exc = HTTPException("500 - Server Error")
+        exc.status = 500
+        exc.reason = "Server Error"
+        exc.headers = {}
+        exc.url = "http://test.com"
+        mock_post.side_effect = exc
 
         with self.assertRaises(HTTPException):
             http_post("http://test.com", {"data": "value"})
