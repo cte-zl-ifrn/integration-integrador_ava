@@ -82,7 +82,7 @@ repos:
               bash -c 'COVERAGE_RCFILE=src/.coveragerc coverage run src/manage.py test --verbosity 1
               && COVERAGE_RCFILE=src/.coveragerc coverage report --fail-under=91
               && COVERAGE_RCFILE=src/.coveragerc coverage xml -o coverage.xml
-              && python src/check_coverage_gate.py --coverage-xml coverage.xml --baseline-file .coverage-baseline --min 91 --ideal 95'
+              && python src/check_coverage_gate.py --coverage-xml coverage.xml --baseline-file .coverage-baseline --min 98 --ideal 100'
             language: system
             pass_filenames: false
             always_run: true

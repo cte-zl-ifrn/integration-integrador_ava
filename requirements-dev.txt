@@ -2,6 +2,7 @@
 # -e /app/src/dsgovbr
 black
 debugpy
+defusedxml
 django-coverage-plugin
 django-debug-toolbar
 django-extensions

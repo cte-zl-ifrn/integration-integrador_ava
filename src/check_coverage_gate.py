@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import pathlib
 import sys
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 
 
 def parse_args() -> argparse.Namespace:
@@ -37,7 +37,7 @@ def read_current_coverage(coverage_xml_path: pathlib.Path) -> float:
     if not coverage_xml_path.exists():
         raise FileNotFoundError(f"Coverage report not found: {coverage_xml_path}")
 
-    tree = ET.parse(coverage_xml_path)  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    tree = ET.parse(coverage_xml_path)
     root = tree.getroot()
     line_rate = root.attrib.get("line-rate")
     if line_rate is None:
@@ -77,16 +77,16 @@ def main() -> int:
         return 1
 
     if baseline is not None and current + args.tolerance < baseline:
-        print("[coverage-gate] FAIL: cobertura regrediu " f"(atual {current:.2f}% < baseline {baseline:.2f}%)")
+        print(f"[coverage-gate] FAIL: cobertura regrediu (atual {current:.2f}% < baseline {baseline:.2f}%)")
         return 1
 
     if baseline is None:
-        print("[coverage-gate] INFO: baseline nao encontrado; " "comparacao de regressao foi ignorada.")
+        print("[coverage-gate] INFO: baseline nao encontrado; comparacao de regressao foi ignorada.")
     else:
         print(f"[coverage-gate] OK: cobertura nao regrediu (baseline {baseline:.2f}%).")
 
     if current + args.tolerance < args.ideal:
-        print("[coverage-gate] WARN: cobertura abaixo da meta ideal " f"de {args.ideal:.2f}%.")
+        print(f"[coverage-gate] WARN: cobertura abaixo da meta ideal de {args.ideal:.2f}%.")
     else:
         print(f"[coverage-gate] Excelente: cobertura na meta ideal ({args.ideal:.2f}%+).")
 
