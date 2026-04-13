@@ -22,10 +22,10 @@ if settings.DEBUG:
 
 urlpatterns += [
     path("api/", include("django_rule_engine.api.urls")),  # API precisa vir ANTES do admin
-    path("", include("integrador.urls")),  # URLs do integrador ANTES do admin
-    path("", include("health.urls")),
-    path("", include("security.urls")),
-    path("", admin.site.urls),
+    path("integrador/", include("integrador.urls")),  # URLs do integrador ANTES do admin
+    path("health/", include("health.urls")),
+    path("security/", include("security.urls")),
+    path("admin/", admin.site.urls),
 ]
 
 if settings.DEBUG:
