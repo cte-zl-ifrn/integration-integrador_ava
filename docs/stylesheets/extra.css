@@ -1,40 +1,8 @@
-/* docs/stylesheets/extra.css */
-
-/* CSS para tabelas */
-.slide-content table:not([class]) {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+blockquote {
+  background: yellow !important;
+  border-left: 4px solid red !important;
 }
 
-.slide-content table:not([class]) th,
-.slide-content table:not([class]) td {
-  padding: 0.75rem 0.9rem;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  text-align: left;
-  vertical-align: top;
-}
-
-.slide-content table:not([class]) thead th {
-  background: rgba(15, 118, 110, 0.08);
-  font-weight: 700;
-}
-
-.slide-content table:not([class]) tbody tr:nth-child(even) {
-  background: rgba(0, 0, 0, 0.025);
-}
-
-/* CSS para blockquote */
-.slide-content blockquote {
-  margin: 1.25rem 0;
-  padding: 0.9rem 1rem;
-  border-left: 4px solid #0f766e;
-  background: rgba(15, 118, 110, 0.06);
-  border-radius: 0.5rem;
-  color: inherit;
-}
-
-.slide-content blockquote p:last-child {
-  margin-bottom: 0;
+table, th, td {
+  border: 2px solid red !important;
 }
