@@ -164,5 +164,5 @@ Os Roles representam papéis no Moodle (ex.: `editingteacher`, `student`). Acess
 |-------------------|----------------------------------------------|
 | Admin integrador  | `src/integrador/admin.py`                    |
 | Admin coorte      | `src/coorte/admin.py`                        |
-| Modelos           | [docs/model/](../model/)                     |
-| Configuração completa | [docs/](../) → "Configuração"          |
+| Modelos           | [docs/model/](../model/index.md                     |
+| Configuração completa | [docs/](../index.md) → "Configuração"          |

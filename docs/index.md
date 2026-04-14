@@ -147,8 +147,7 @@ Para exemplos completos de payload, consulte `requests.http` na raiz do projeto.
 | [Broker suap2tool_sga](suap2tool_sga/index.md)     | Em elaboração                                         |
 | [Broker sga2tool_sga](sga2tool_sga/index.md)       | Em elaboração                                         |
 | [Guia de testes](tests/index.md)           | TestCases, receitas QA, cobertura, mock HTTP                  |
-| [Mock HTTP de Moodle](MOODLE_HTTP_MOCK.md) | `LocalSuapHTTPMock`, `ToolSgaHTTPMock` por broker    |
-| [Análise de cobertura](coverage-analysis.md) | Cobertura detalhada por módulo                      |
+| [Mock HTTP de Moodle](tests/moodle_mock.md) | `LocalSuapHTTPMock`, `ToolSgaHTTPMock` por broker    |
 
 ---
 

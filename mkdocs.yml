@@ -30,11 +30,10 @@ markdown_extensions:
 
 nav:
   - Início: index.md
-  - Coverage Analysis: coverage-analysis.md
   - CSRF Monitoring: CSRF_MONITORING.md
   - Dashboard Ativação: DASHBOARD_ATIVACAO.md
   - Dashboard Proposal: DASHBOARD_PROPOSAL.md
-  - Moodle HTTP Mock: MOODLE_HTTP_MOCK.md
+  - Moodle HTTP Mock: tests/moodle_http_mock.md
   - Admin:
       - Visão geral: admin/index.md
   - Model:
