@@ -9,6 +9,9 @@ theme:
   language: pt-BR
   color_mode: light  
 
+extra_css:
+  - stylesheets/extra.css
+
 plugins:
   - search
   - mermaid2
@@ -27,7 +30,7 @@ markdown_extensions:
 
 nav:
   - Início: index.md
-  - Apresentações: apresentacoes.md  
+  - Apresentações: apresentacoes.md
   - Administração:
       - Visão geral: admin/index.md
       - Dashboard Ativação: DASHBOARD_ATIVACAO.md
@@ -41,16 +44,13 @@ nav:
           - SGA para tool_sga: sga2tool_sga/index.md
           - Moodle HTTP Mock: tests/moodle_mock.md
           - CSRF Monitoring: CSRF_MONITORING.md
-      - Testes:
-          - Visão geral: tests/index.md
-          - Base: tests/base.md
-          - Coorte: tests/coorte.md
-          - Edu: tests/edu.md
-          - Hacks: tests/hacks.md
-          - Health: tests/health.md
-          - Integrador: tests/integrador.md
-          - Security: tests/security.md
-          - Settings: tests/settings.md
-
-extra_css:
-  - stylesheets/extra.css
+  - Testes:
+      - Visão geral: tests/index.md
+      - Base: tests/base.md
+      - Coorte: tests/coorte.md
+      - Edu: tests/edu.md
+      - Hacks: tests/hacks.md
+      - Health: tests/health.md
+      - Integrador: tests/integrador.md
+      - Security: tests/security.md
+      - Settings: tests/settings.md
