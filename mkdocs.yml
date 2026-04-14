@@ -1,5 +1,5 @@
-site_name: Integration Integrador AVA
-site_description: Documentação técnica do projeto integration-integrador_ava
+site_name: Integrador AVA
+site_description: Documentação técnica do projeto Integrador AVA
 site_url: https://cte-zl-ifrn.github.io/integration-integrador_ava/
 repo_url: https://github.com/cte-zl-ifrn/integration-integrador_ava
 repo_name: cte-zl-ifrn/integration-integrador_ava
@@ -8,12 +8,6 @@ theme:
   name: shadcn
   language: pt-BR
   color_mode: light  
-  features:
-    - navigation.tabs
-    - navigation.top
-    - content.code.copy
-    - search.suggest
-    - search.highlight
 
 plugins:
   - search
