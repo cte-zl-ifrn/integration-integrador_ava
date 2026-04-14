@@ -14,5 +14,8 @@ nav:
   - slides/integrador/04-3-codigo-diario.md
   - slides/integrador/04-4-equivalencia.md
   - slides/integrador/04-5-payload-suap.md
+  - slides/integrador/05-0-suap2tool_sga.md
+  - slides/integrador/06-0-sga2tool_sga.md
+  - slides/integrador/07-obrigado.md
 ```
 
