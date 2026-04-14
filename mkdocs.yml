@@ -57,3 +57,6 @@ nav:
           - Integrador: tests/integrador.md
           - Security: tests/security.md
           - Settings: tests/settings.md
+
+extra_css:
+  - stylesheets/extra.css
