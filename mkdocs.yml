@@ -1,0 +1,51 @@
+site_name: Integration Integrador AVA
+site_description: Documentação técnica do projeto integration-integrador_ava
+site_url: https://cte-zl-ifrn.github.io/integration-integrador_ava/
+repo_url: https://github.com/cte-zl-ifrn/integration-integrador_ava
+repo_name: cte-zl-ifrn/integration-integrador_ava
+
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+nav:
+  - Início: index.md
+  - Coverage Analysis: coverage-analysis.md
+  - CSRF Monitoring: CSRF_MONITORING.md
+  - Dashboard Ativação: DASHBOARD_ATIVACAO.md
+  - Dashboard Proposal: DASHBOARD_PROPOSAL.md
+  - Moodle HTTP Mock: MOODLE_HTTP_MOCK.md
+  - Admin:
+      - Visão geral: admin/index.md
+  - Model:
+      - Visão geral: model/index.md
+  - Integrações:
+      - sga2tool_sga: sga2tool_sga/index.md
+      - suap2local_suap: suap2local_suap/index.md
+      - suap2tool_sga: suap2tool_sga/index.md
+  - Testes:
+      - Visão geral: tests/index.md
+      - Base: tests/base.md
+      - Coorte: tests/coorte.md
+      - Edu: tests/edu.md
+      - Hacks: tests/hacks.md
+      - Health: tests/health.md
+      - Integrador: tests/integrador.md
+      - Security: tests/security.md
+      - Settings: tests/settings.md
