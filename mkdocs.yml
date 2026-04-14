@@ -18,6 +18,7 @@ theme:
 plugins:
   - search
   - mermaid2
+  - slides  
 #   - excalidraw
 
 markdown_extensions:
@@ -32,12 +33,11 @@ markdown_extensions:
 
 nav:
   - Início: index.md
-  - CSRF Monitoring: CSRF_MONITORING.md
-  - Dashboard Ativação: DASHBOARD_ATIVACAO.md
-  - Dashboard Proposal: DASHBOARD_PROPOSAL.md
-  - Moodle HTTP Mock: tests/moodle_mock.md
+  - Apresentações: apresentacoes.md  
   - Administração:
       - Visão geral: admin/index.md
+      - Dashboard Ativação: DASHBOARD_ATIVACAO.md
+      - Dashboard Proposal: DASHBOARD_PROPOSAL.md
   - Desenvolvimento:
       - Modelo:
           - Visão geral: model/index.md
@@ -45,6 +45,8 @@ nav:
           - Suap para local_suap: suap2local_suap/index.md
           - Suap para tool_sga: suap2tool_sga/index.md
           - SGA para tool_sga: sga2tool_sga/index.md
+          - Moodle HTTP Mock: tests/moodle_mock.md
+          - CSRF Monitoring: CSRF_MONITORING.md
       - Testes:
           - Visão geral: tests/index.md
           - Base: tests/base.md

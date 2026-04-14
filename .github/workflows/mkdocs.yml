@@ -37,7 +37,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install mkdocs mkdocs-shadcn mkdocs-mermaid2-plugin
+          pip install mkdocs mkdocs-shadcn mkdocs-mermaid2-plugin mkdocs-slides
 
       - name: Build site
         run: |
