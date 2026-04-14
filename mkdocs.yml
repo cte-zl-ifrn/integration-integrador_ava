@@ -5,7 +5,7 @@ repo_url: https://github.com/cte-zl-ifrn/integration-integrador_ava
 repo_name: cte-zl-ifrn/integration-integrador_ava
 
 theme:
-  name: shadcn
+  name: gitbook
   language: pt-BR
   features:
     - navigation.tabs
