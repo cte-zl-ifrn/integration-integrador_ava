@@ -15,7 +15,9 @@ extra_css:
 plugins:
   - search
   - mermaid2
-  - slides  
+  - slides:
+      font_size: "28px"
+      template: "layouts/slide_template.html"  
 #   - excalidraw
 
 markdown_extensions:
