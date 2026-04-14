@@ -112,7 +112,7 @@ docker compose run --rm \
 Para detalhes sobre os mocks HTTP (`LocalSuapHTTPMock`, `ToolSgaHTTPMock`) e como usá-los
 em testes de integração sem Moodle real, consulte:
 
-- [docs/MOODLE_HTTP_MOCK.md](../MOODLE_HTTP_MOCK.md)
+- [moodle_mock](moodle_mock.md)
 
 ---
 
@@ -127,5 +127,3 @@ Para gerar e verificar localmente:
 coverage run --rcfile=src/.coveragerc src/manage.py test --verbosity 1
 coverage report --fail-under=91
 ```
-
-Relatório de cobertura detalhado: [docs/coverage-analysis.md](../coverage-analysis.md)

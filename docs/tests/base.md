@@ -1,7 +1,7 @@
 ## Índice rápido de testes
 
-- [Guia da app Integrador](integrador)
-- Guia do Moodle HTTP Mock: `docs/MOODLE_HTTP_MOCK.md`
+- [Guia da app Integrador](https://github.com/cte-zl-ifrn/integration-integrador_ava/)
+- [Guia do Moodle HTTP Mock](moodle_mock.md)
 
 📋 Cobertura dos Testes
 
