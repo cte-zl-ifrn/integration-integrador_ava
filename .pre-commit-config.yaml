@@ -69,6 +69,8 @@ repos:
       rev: v1.0.1
       hooks:
         - id: pytest-coverage-gate
+          always_run: false
+          files: \.py$
           args:
             - --coverage-xml=src/coverage.xml
             - --baseline=src/.coverage-baseline
