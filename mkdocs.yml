@@ -40,18 +40,18 @@ nav:
       - Visão geral: admin/index.md
   - Desenvolvimento:
       - Modelo:
-        - Visão geral: model/index.md
-    - Integrações:
-        - Suap para local_suap: suap2local_suap/index.md
-        - Suap para tool_sga: suap2tool_sga/index.md
-        - SGA para tool_sga: sga2tool_sga/index.md
-    - Testes:
-        - Visão geral: tests/index.md
-        - Base: tests/base.md
-        - Coorte: tests/coorte.md
-        - Edu: tests/edu.md
-        - Hacks: tests/hacks.md
-        - Health: tests/health.md
-        - Integrador: tests/integrador.md
-        - Security: tests/security.md
-        - Settings: tests/settings.md
+          - Visão geral: model/index.md
+      - Integrações:
+          - Suap para local_suap: suap2local_suap/index.md
+          - Suap para tool_sga: suap2tool_sga/index.md
+          - SGA para tool_sga: sga2tool_sga/index.md
+      - Testes:
+          - Visão geral: tests/index.md
+          - Base: tests/base.md
+          - Coorte: tests/coorte.md
+          - Edu: tests/edu.md
+          - Hacks: tests/hacks.md
+          - Health: tests/health.md
+          - Integrador: tests/integrador.md
+          - Security: tests/security.md
+          - Settings: tests/settings.md
