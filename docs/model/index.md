@@ -152,4 +152,4 @@ Ambiente  1 ─── N  Solicitacao
 | Admin                 | `src/integrador/admin.py`                    |
 | Migrações             | `src/integrador/migrations/`                 |
 | Testes dos modelos    | `src/integrador/tests.py` → `AmbienteModelTestCase`, `SolicitacaoModelTestCase` |
-| Guia do admin         | [docs/admin/](../admin/)                     |
+| Guia do admin         | [docs/admin/](../admin/index.md)                     |

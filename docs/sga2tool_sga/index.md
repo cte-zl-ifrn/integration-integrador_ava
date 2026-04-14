@@ -47,4 +47,4 @@ response = mock.post(
 assert response.status_code == 501
 ```
 
-Documentação do mock: [docs/MOODLE_HTTP_MOCK.md](../MOODLE_HTTP_MOCK.md#broker-sga2tool_sga)
+Documentação do mock: [docs/tests/moodle_mock.md](../tests/moodle_mock.md#broker-sga2tool_sga)

@@ -281,7 +281,7 @@ response = mock.post(
 assert response.ok
 ```
 
-Documentação completa do mock: [docs/MOODLE_HTTP_MOCK.md](../MOODLE_HTTP_MOCK.md#broker-suap2local_suap)
+Documentação completa do mock: [docs/tests/moodle_mock.md](../tests/moodle_mock.md#broker-suap2local_suap)
 
 ---
 
