@@ -100,4 +100,4 @@ docker compose run --rm \
 
 Detalhes completos de arquitetura e troubleshooting do mock em:
 
-- [docs/MOODLE_HTTP_MOCK.md](../MOODLE_HTTP_MOCK.md)
+- [moodle_mock](moodle_mock.md)

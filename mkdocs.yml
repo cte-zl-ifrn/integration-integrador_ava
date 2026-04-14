@@ -33,7 +33,7 @@ nav:
   - CSRF Monitoring: CSRF_MONITORING.md
   - Dashboard Ativação: DASHBOARD_ATIVACAO.md
   - Dashboard Proposal: DASHBOARD_PROPOSAL.md
-  - Moodle HTTP Mock: tests/moodle_http_mock.md
+  - Moodle HTTP Mock: tests/moodle_mock.md
   - Admin:
       - Visão geral: admin/index.md
   - Model:
