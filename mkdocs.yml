@@ -7,6 +7,7 @@ repo_name: cte-zl-ifrn/integration-integrador_ava
 theme:
   name: shadcn
   language: pt-BR
+  color_mode: light  
   features:
     - navigation.tabs
     - navigation.top
@@ -16,6 +17,7 @@ theme:
 
 plugins:
   - search
+  - mermaid2
 #   - excalidraw
 
 markdown_extensions:
@@ -34,21 +36,22 @@ nav:
   - Dashboard Ativação: DASHBOARD_ATIVACAO.md
   - Dashboard Proposal: DASHBOARD_PROPOSAL.md
   - Moodle HTTP Mock: tests/moodle_mock.md
-  - Admin:
+  - Administração:
       - Visão geral: admin/index.md
-  - Model:
-      - Visão geral: model/index.md
-  - Integrações:
-      - sga2tool_sga: sga2tool_sga/index.md
-      - suap2local_suap: suap2local_suap/index.md
-      - suap2tool_sga: suap2tool_sga/index.md
-  - Testes:
-      - Visão geral: tests/index.md
-      - Base: tests/base.md
-      - Coorte: tests/coorte.md
-      - Edu: tests/edu.md
-      - Hacks: tests/hacks.md
-      - Health: tests/health.md
-      - Integrador: tests/integrador.md
-      - Security: tests/security.md
-      - Settings: tests/settings.md
+  - Desenvolvimento:
+      - Modelo:
+        - Visão geral: model/index.md
+    - Integrações:
+        - Suap para local_suap: suap2local_suap/index.md
+        - Suap para tool_sga: suap2tool_sga/index.md
+        - SGA para tool_sga: sga2tool_sga/index.md
+    - Testes:
+        - Visão geral: tests/index.md
+        - Base: tests/base.md
+        - Coorte: tests/coorte.md
+        - Edu: tests/edu.md
+        - Hacks: tests/hacks.md
+        - Health: tests/health.md
+        - Integrador: tests/integrador.md
+        - Security: tests/security.md
+        - Settings: tests/settings.md
