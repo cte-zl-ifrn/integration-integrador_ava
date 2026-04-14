@@ -1,101 +1,207 @@
 # Moodle HTTP Mock
 
-Este documento descreve o mock HTTP de Moodle da app `integrador`, criado para permitir:
+Este documento descreve os mocks HTTP de Moodle da app `integrador`, criados para permitir:
 
 - testes automatizados sem depender de Moodle real com dados;
 - desenvolvimento de interface com respostas previsíveis;
 - execução local mais estável em modo debug.
 
+Os mocks são implementados em `integrador/moodle_mock.py` e integrados no fluxo HTTP em `integrador/utils.py`.
+
+---
+
 ## Visão geral
 
-O mock foi implementado em `integrador/moodle_mock.py` e integrado no fluxo HTTP em `integrador/utils.py`.
+Existem **3 brokers** no integrador, cada um se comunicando com um plugin Moodle diferente.
+Cada broker possui um mock correspondente:
 
-Quando habilitado, chamadas para endpoints do plugin local do Moodle (`/local/suap/api/index.php`) deixam de usar rede externa e passam a responder localmente com payloads mockados.
+| Broker            | Plugin Moodle | Classe mock         | Endpoint simulado               | Status       |
+|-------------------|---------------|---------------------|---------------------------------|--------------|
+| `suap2local_suap` | `local_suap`  | `LocalSuapHTTPMock` | `/local/suap/api/index.php`     | Implementado |
+| `suap2tool_sga`   | `tool_sga`    | `ToolSgaHTTPMock`   | `/local/tool_sga/api/index.php` | Stub (501)   |
+| `sga2tool_sga`    | `tool_sga`    | `ToolSgaHTTPMock`   | `/local/tool_sga/api/index.php` | Stub (501)   |
 
-## Endpoints simulados
+> **Nota:** `MoodleHTTPMock` é um alias de `LocalSuapHTTPMock` mantido para compatibilidade.
+> Prefira usar `LocalSuapHTTPMock` diretamente em código novo.
 
-Atualmente o mock cobre os serviços usados no broker `Suap2LocalSuapBroker`:
+---
 
-- `sync_up_enrolments` (POST)
-- `sync_down_grades` (GET)
+## Broker `suap2local_suap`
 
-### Exemplo de retorno `sync_up_enrolments`
+**Mock:** `LocalSuapHTTPMock` — simula `/local/suap/api/index.php`
+**Classe de teste:** `LocalSuapHTTPMockTestCase`
+
+### Serviços conhecidos
+
+`get_diarios`, `get_atualizacoes_counts`, `set_favourite_course`, `set_visible_course`,
+`set_user_preference`, `sync_user_preference`, `sync_up_enrolments`, `sync_down_grades`
+
+### `sync_up_enrolments` (POST)
+
+Valida que o payload contenha os campos obrigatórios:
+
+| Campo        | Subfields obrigatórios              |
+|--------------|-------------------------------------|
+| `campus`     | `id`, `sigla`, `descricao`          |
+| `curso`      | `id`, `codigo`, `nome`              |
+| `turma`      | `id`, `codigo`                      |
+| `componente` | `id`, `sigla`, `descricao`          |
+| `diario`     | `id`, `sigla`, `situacao`           |
+
+Retorno em caso de **sucesso** (espelha o formato real do plugin):
 
 ```json
 {
-    "status": "success",
-    "mock": true,
-    "url": "https://moodle.test.com/course/view.php?id=1",
-    "cohort_count": 1
+    "url":                  "https://<moodle>/course/view.php?id=1",
+    "url_sala_coordenacao": "https://<moodle>/course/view.php?id=2",
+    "roles_not_found":      []
 }
 ```
 
-### Exemplo de retorno `sync_down_grades`
+Retorno em caso de **payload inválido** (422):
+
+```json
+{
+    "error": {
+        "code":    422,
+        "message": "Campos obrigatórios ausentes: campus.id, curso.nome"
+    }
+}
+```
+
+### `sync_down_grades` (GET)
+
+Parâmetro: `?diario_id=<id>`
+
+Retorno:
 
 ```json
 [
     {
         "matricula": "20260001",
-        "nota": 8.5,
-        "diario_id": "123",
-        "mock": true
+        "nota":       8.5,
+        "diario_id":  "123",
+        "mock":        true
     }
 ]
 ```
 
-## Variáveis de ambiente
+### Erros comuns
 
-As variáveis são carregadas em `settings/developments.py`:
+| Situação                        | HTTP | Corpo                                                        |
+|---------------------------------|------|--------------------------------------------------------------|
+| Endpoint não reconhecido        | 404  | `{"error": "Endpoint Moodle mock não reconhecido."}`        |
+| Serviço desconhecido            | 404  | `{"error": {"code": 404, "message": "Serviço não existe"}}` |
+| Sem cabeçalho `Authentication`  | 400  | `{"error": {"code": 400, "message": "...not informed"}}`    |
+| Token incorreto                 | 401  | `{"error": {"code": 401, "message": "Unauthorized"}}`       |
+| Serviço não implementado        | 501  | `{"error": {"code": 501, "message": "Não implementado"}}`   |
 
-- `MOODLE_HTTP_MOCK_ENABLED`:
-    - `true`: usa o mock nas chamadas HTTP para `/local/suap/api/index.php`.
-    - `false`: usa `requests` normalmente.
-
-- `MOODLE_HTTP_MOCK_BACKGROUND`:
-    - `true`: sobe servidor HTTP mock em background ao iniciar a app em DEBUG.
-    - `false`: não sobe servidor.
-
-- `MOODLE_HTTP_MOCK_HOST`:
-    - host de bind do servidor mock (default: `0.0.0.0`).
-
-- `MOODLE_HTTP_MOCK_PORT`:
-    - porta do servidor mock (default: `18091`).
-
-## Fluxo em modo debug (interface)
-
-No `docker-compose.yml` do workspace, o serviço `integrador` já está configurado para:
-
-- `MOODLE_HTTP_MOCK_ENABLED=true`
-- `MOODLE_HTTP_MOCK_BACKGROUND=true`
-- `MOODLE_HTTP_MOCK_HOST=0.0.0.0`
-- `MOODLE_HTTP_MOCK_PORT=18091`
-
-Com isso, ao subir o ambiente em DEBUG, você pode validar fluxos de interface que dependem de integração sem precisar provisionar dados no Moodle.
-
-## Uso em testes
-
-### 1) Testes unitários com mock habilitado
-
-Use `override_settings`:
+### Uso em testes
 
 ```python
-@override_settings(MOODLE_HTTP_MOCK_ENABLED=True)
-def test_sync_up_uses_mock(self):
-    result = self.broker.sync_up_enrolments()
-    self.assertTrue(result["mock"])
+from integrador.moodle_mock import LocalSuapHTTPMock
+
+AUTH = {"Authentication": f"Token {LocalSuapHTTPMock.TOKEN}"}
+mock = LocalSuapHTTPMock()
+
+# sync_up_enrolments
+payload = {
+    "campus":     {"id": 1, "sigla": "ZL",       "descricao": "Campus ZL"},
+    "curso":      {"id": 1, "codigo": "15806",   "nome": "Sistemas Operacionais Abertos"},
+    "turma":      {"id": 2, "codigo": "20261.6.15806.1E"},
+    "componente": {"id": 1, "sigla": "TEC.1023", "descricao": "Bancos de Dados"},
+    "diario":     {"id": 2, "sigla": "TEC.1023", "situacao": "Aberto"},
+}
+response = mock.post(
+    "https://moodle.test/local/suap/api/index.php?sync_up_enrolments",
+    jsonbody=payload,
+    headers=AUTH,
+)
+assert response.ok
+data = json.loads(response.content)
+assert "url" in data
+assert "roles_not_found" in data
+
+# sync_down_grades
+response = mock.get(
+    "https://moodle.test/local/suap/api/index.php?sync_down_grades&diario_id=2",
+    headers=AUTH,
+)
+assert response.ok
+grades = json.loads(response.content)
+assert isinstance(grades, list)
 ```
 
-### 2) Garantia de não usar rede externa
+### Servidor HTTP em background
 
-Você pode validar que `requests` não foi chamado:
+O servidor em background é iniciado por `start_mock_moodle_server_in_background()` usando
+`LocalSuapHTTPMock`. Ele só está disponível para este broker.
+
+Configure as variáveis em `settings/developments.py`:
+
+| Variável                       | Descrição                                               | Default    |
+|--------------------------------|---------------------------------------------------------|------------|
+| `MOODLE_HTTP_MOCK_ENABLED`     | `true` → usa mock; `false` → usa `requests` normalmente | `false`    |
+| `MOODLE_HTTP_MOCK_BACKGROUND`  | `true` → sobe servidor HTTP em background no DEBUG      | `false`    |
+| `MOODLE_HTTP_MOCK_HOST`        | Host de bind do servidor mock                           | `0.0.0.0`  |
+| `MOODLE_HTTP_MOCK_PORT`        | Porta do servidor mock                                  | `18091`    |
+
+No `docker-compose.yml` do workspace, o serviço `integrador` já vem pré-configurado com
+`MOODLE_HTTP_MOCK_ENABLED=true` e `MOODLE_HTTP_MOCK_BACKGROUND=true`, permitindo validar
+fluxos de interface sem provisionar dados no Moodle.
+
+---
+
+## Broker `suap2tool_sga`
+
+**Mock:** `ToolSgaHTTPMock` — simula `/local/tool_sga/api/index.php`
+**Classe de teste:** `ToolSgaHTTPMockTestCase`
+**Status:** não implementado — retorna 501 para qualquer chamada autenticada.
+
+### Erros esperados
+
+| Situação                        | HTTP |
+|---------------------------------|------|
+| Endpoint não reconhecido        | 404  |
+| Sem cabeçalho `Authentication`  | 400  |
+| Token incorreto                 | 401  |
+| Qualquer serviço autenticado    | 501  |
+
+### Uso em testes
 
 ```python
-@override_settings(MOODLE_HTTP_MOCK_ENABLED=True)
-@patch("integrador.utils.requests.post")
-def test_http_post_json_uses_mock(self, mock_post):
-    http_post_json("https://moodle.test.com/local/suap/api/index.php?sync_up_enrolments", {"coortes": []})
-    mock_post.assert_not_called()
+from integrador.moodle_mock import ToolSgaHTTPMock
+
+AUTH = {"Authentication": f"Token {ToolSgaHTTPMock.TOKEN}"}
+mock = ToolSgaHTTPMock()
+
+response = mock.post(
+    "https://moodle.test/local/tool_sga/api/index.php?qualquer_servico",
+    jsonbody={},
+    headers=AUTH,
+)
+assert response.status_code == 501
 ```
+
+> Quando o broker `suap2tool_sga` for implementado, expanda este mock seguindo o padrão do
+> `LocalSuapHTTPMock`: adicione serviços a `_TOOL_SGA_IMPLEMENTED_SERVICES` e implemente
+> os métodos correspondentes.
+
+---
+
+## Broker `sga2tool_sga`
+
+**Mock:** `ToolSgaHTTPMock` — simula `/local/tool_sga/api/index.php`
+**Classe de teste:** `ToolSgaHTTPMockTestCase` (compartilhada com `suap2tool_sga`)
+**Status:** não implementado — retorna 501 para qualquer chamada autenticada.
+
+Como `suap2tool_sga` e `sga2tool_sga` usam o mesmo plugin Moodle (`tool_sga`) e o mesmo
+endpoint, eles compartilham `ToolSgaHTTPMock` e `ToolSgaHTTPMockTestCase`.
+
+Quando esses brokers forem implementados, considere separar as classes de teste por broker
+para manter os casos de teste bem delimitados.
+
+---
 
 ## Quando usar mock e quando usar Moodle real
 
@@ -111,11 +217,13 @@ Use Moodle real quando:
 - quer testar diferenças de payload/erros de plugin real;
 - precisa validar comportamento fim a fim em ambiente próximo de produção.
 
+---
+
 ## Troubleshooting
 
 - Sintoma: integração continua chamando Moodle real.
     - Verifique `MOODLE_HTTP_MOCK_ENABLED=true`.
-    - Confirme se a URL chamada contém `/local/suap/api/index.php`.
+    - Confirme se a URL chamada contém o path correto do plugin.
 
 - Sintoma: porta do mock em conflito.
     - Ajuste `MOODLE_HTTP_MOCK_PORT`.
@@ -125,10 +233,16 @@ Use Moodle real quando:
     - Verifique `MOODLE_HTTP_MOCK_BACKGROUND=true`.
     - Confira logs da app `integrador`.
 
+---
+
 ## Referências de código
 
-- Implementação do mock: `src/integrador/moodle_mock.py`
-- Integração no HTTP client: `src/integrador/utils.py`
-- Startup em DEBUG: `src/integrador/apps.py`
-- Settings de mock: `src/settings/developments.py`
-- Testes do mock: `src/integrador/tests.py`
+| Artefato                  | Caminho                                                                       |
+|---------------------------|-------------------------------------------------------------------------------|
+| Implementação dos mocks   | `src/integrador/moodle_mock.py`                                               |
+| Integração no HTTP client | `src/integrador/utils.py`                                                     |
+| Startup em DEBUG          | `src/integrador/apps.py`                                                      |
+| Settings de mock          | `src/settings/developments.py`                                                |
+| Testes `suap2local_suap`  | `src/integrador/tests.py` → `LocalSuapHTTPMockTestCase`                       |
+| Testes `suap2tool_sga`    | `src/integrador/tests.py` → `ToolSgaHTTPMockTestCase`                         |
+| Testes `sga2tool_sga`     | `src/integrador/tests.py` → `ToolSgaHTTPMockTestCase`                         |

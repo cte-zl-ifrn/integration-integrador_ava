@@ -20,7 +20,7 @@
 # Brokers:
 
 - BaseBrokerTestCase: Classe base com credentials, get_coortes, métodos abstratos
-- Suap2LocalSuapBrokerTestCase: Implementação específica com moodle_base_api_url, sync_up_enrolments, sync_down_grades
+- Suap2LocalSuapBrokerTestCase: Implementação específica com moodle_base_api_url, sync_up_enrolments, sync_down_grades, validação de payload (422)
 
 # Management Commands:
 
@@ -49,8 +49,8 @@ cd ~/projetos/IFRN/ava/workspace
 ```bash
 cd ~/projetos/IFRN/ava/workspace
 ./ava test integrador \
-	integrador.tests.MoodleHTTPMockTestCase \
-	integrador.tests.MoodleHTTPMockBackgroundServerTestCase \
+	integrador.tests.LocalSuapHTTPMockTestCase \
+	integrador.tests.ToolSgaHTTPMockTestCase \
 	integrador.tests.Suap2LocalSuapBrokerTestCase
 ```
 
@@ -100,4 +100,4 @@ docker compose run --rm \
 
 Detalhes completos de arquitetura e troubleshooting do mock em:
 
-- [MOODLE_HTTP_MOCK](MOODLE_HTTP_MOCK)
+- [docs/MOODLE_HTTP_MOCK.md](../MOODLE_HTTP_MOCK.md)

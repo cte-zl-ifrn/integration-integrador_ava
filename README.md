@@ -1,16 +1,33 @@
-# Integrador integrador SUAP-Moodle
+# Integrador AVA
 
-O Integrador é um Middleware que integra o SUAP ao Moodle.
+O Integrador AVA é um middleware que conecta Sistemas de Gestão Acadêmica (SGA) ao Moodle. Suporta o Suap como padrão principal — pronto de fábrica para o IFRN — e o padrão SGA genérico para instituições que usam SIGAA, qAcadêmico ou outro sistema acadêmico.
 
-> Neste projeto usamos Git, Python 3.14+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
+> Neste projeto usamos Git, Python 3.12+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
+
+> Não confundir com o [Painel AVA](https://github.com/cte-zl-ifrn/integration-painel_ava) que tem outra função.
 
 ## Como funciona
 
-...
+O Integrador AVA recebe dados de um SGA e os sincroniza com o Moodle via três estratégias
+de integração (brokers) e dois padrões de payload (Suap e SGA genérico).
 
-As variáveis de ambiente no SUAP têm as seguintes definições:
+| Broker            | Payload recebido | Plugin Moodle | Status         |
+|-------------------|-----------------|---------------|----------------|
+| `suap2local_suap` | Suap            | `local_suap`  | Implementado   |
+| `suap2tool_sga`   | Suap            | `tool_sga`    | Em elaboração  |
+| `sga2tool_sga`    | SGA (genérico)  | `tool_sga`    | Em elaboração  |
 
-- `VARNAME` - ...
+Documentação completa (arquitetura, configuração, referência de API):
+
+- **[docs/](docs/)** — página inicial da documentação
+- [docs/suap2local_suap/](docs/suap2local_suap/) — API completa do broker implementado
+- [docs/admin/](docs/admin/) — guia do administrador (Ambientes, Solicitações, Cohorts)
+
+Para testar localmente sem Moodle real:
+
+- [docs/MOODLE_HTTP_MOCK.md](docs/MOODLE_HTTP_MOCK.md)
+
+
 
 ## Como implantar
 
@@ -59,7 +76,7 @@ Veja o `ava_workspace` para o desenvolvimento.
 
 Para integração local sem depender de Moodle com dados reais, veja também:
 
-- [MOODLE_HTTP_MOCK](docs/tests/MOODLE_HTTP_MOCK)
+- [docs/MOODLE_HTTP_MOCK.md](docs/MOODLE_HTTP_MOCK.md)
 
 ## Qualidade de código e cobertura
 
@@ -185,8 +202,8 @@ Acesse **Ambientes > Adicionar**.
 - **Ativo?:** Marque este campo
 - **URL:** `http://moodle`
 - **Token:** `changeme`
-- **Expressão regular:** `{campus}='ZL'`
-- **Order:** `0´
+- **Expressão seletora:** `campus.sigla == "ZL"` (sintaxe [rule_engine](https://zerosteiner.github.io/rule-engine/), avaliada sobre o JSON recebido)
+- **Ordem:** `0`
 
 ---
 
@@ -276,6 +293,8 @@ Após salvar, localize a solicitação na lista e clique em **Reenviar** no cant
 
 Se tudo estiver configurado corretamente, os diários serão criados automaticamente no seu Moodle local.
 
-### 4. Enviar via locust
+### 4. Teste de carga via locust
 
-locust -f integrador/example/carga.json --host=http://integrador --users 300 --spawn-rate 50
+```bash
+locust -f src/locust.py --host=http://integrador --users 300 --spawn-rate 50
+```
