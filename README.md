@@ -20,8 +20,8 @@ de integração (brokers) e dois padrões de payload (Suap e SGA genérico).
 Documentação completa (arquitetura, configuração, referência de API):
 
 - **[docs/](docs/)** — página inicial da documentação
-- [docs/suap2local_suap/](docs/suap2local_suap/) — API completa do broker implementado
 - [docs/admin/](docs/admin/) — guia do administrador (Ambientes, Solicitações, Cohorts)
+- [docs/suap2local_suap/](docs/suap2local_suap/) — API completa do broker implementado
 
 Para testar localmente sem Moodle real:
 
