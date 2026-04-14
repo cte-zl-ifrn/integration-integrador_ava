@@ -1,6 +1,5 @@
 # Integration Integrador AVA
 
-Documentação em formato de apresentação.
-```
+## Visão geral da integração entre sistemas acadêmicos
 
-**`docs/slides/integrador/02-visao-geral.md`**
+IFRN · Documentação técnica · MkDocs Slides
