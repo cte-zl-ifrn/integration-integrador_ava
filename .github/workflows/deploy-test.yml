@@ -1,0 +1,22 @@
+name: Test Deploy via SSH
+
+on:
+  push:
+    branches:
+      - cd/ci
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, dead-runner]
+
+    steps:
+      - name: Setup known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 10.22.1.212 >> ~/.ssh/known_hosts
+
+      - name: Test SSH and list directory
+        run: |
+          echo "🔌 Conectando via SSH..."
+          ssh root@10.22.1.212 "ls -la /var/docker_teste"
