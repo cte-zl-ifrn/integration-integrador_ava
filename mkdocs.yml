@@ -9,15 +9,11 @@ theme:
   language: pt-BR
   color_mode: light  
 
-extra_css:
-  - stylesheets/extra.css
-
 plugins:
   - search
   - mermaid2
   - slides:
       font_size: "28px"
-      template: "layouts/slide_template.html"  
 #   - excalidraw
 
 markdown_extensions:
