@@ -227,9 +227,9 @@ Registra o vínculo entre um `MoodleUser` e uma `Cohort` (matrícula na coorte).
 | `cohort` | `ForeignKey(Cohort)`     | Coorte de destino (PROTECT)  |
 
 <details>
-  <summary>Ver mais</summary>
+    <summary>Ver mais</summary>
 
-**Ordenação**: `["cohort", "user"]`
+    **Ordenação**: `["cohort", "user"]`
 
 </details>
 
@@ -452,18 +452,3 @@ classDiagram
     AmbienteManager --* Ambiente
     User ..> Role : auditoria via simple_history
 ```
-
----
-
-## Referências
-
-| Artefato               | Caminho                                                                         |
-|------------------------|---------------------------------------------------------------------------------|
-| Modelos `cohort`       | `src/cohort/models.py`                                                          |
-| Modelos `integrador`   | `src/integrador/models.py`                                                      |
-| Admin `cohort`         | `src/cohort/admin.py`                                                           |
-| Admin `integrador`     | `src/integrador/admin.py`                                                       |
-| Migrações `cohort`     | `src/cohort/migrations/`                                                        |
-| Migrações `integrador` | `src/integrador/migrations/`                                                    |
-| Testes dos modelos     | `src/integrador/tests.py` → `AmbienteModelTestCase`, `SolicitacaoModelTestCase` |
-| Guia do admin          | [docs/admin/](../admin/index.md)                                                |
