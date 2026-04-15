@@ -229,7 +229,7 @@ Registra o vínculo entre um `MoodleUser` e uma `Cohort` (matrícula na coorte).
 <details>
     <summary>Ver mais</summary>
 
-    **Ordenação**: `["cohort", "user"]`
+**Ordenação**: `["cohort", "user"]`
 
 </details>
 
