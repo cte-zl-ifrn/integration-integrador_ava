@@ -42,6 +42,8 @@ from integrador.utils import SyncError, validate_http_response, http_get, http_p
 from integrador.middleware import DisableCSRFForAPIMiddleware
 from integrador.brokers.base import BaseBroker
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
+from integrador.moodle_mock import MockHTTPResponse, LocalSuapHTTPMock, ToolSgaHTTPMock
+from cohort.models import Cohort, Role, MoodleUser, Enrolment
 
 # Configura logging para WARNING durante testes (suprime DEBUG e INFO)
 logging.getLogger("integrador").setLevel(logging.WARNING)
@@ -451,6 +453,286 @@ class UtilsFunctionsTestCase(TestCase):
             validate_http_response("http://test.com", "utf-8", True, mock_response)
 
         self.assertEqual(context.exception.status, 403)
+
+
+class LocalSuapHTTPMockTestCase(TestCase):
+    """
+    Testes para LocalSuapHTTPMock e MockHTTPResponse.
+
+    Cobre o mock do plugin `local_suap`, usado pelo broker `Suap2LocalSuapBroker`.
+    """
+
+    BASE_URL = "https://moodle.test.com/local/suap/api/index.php"
+
+    def setUp(self):
+        self.mock = LocalSuapHTTPMock()
+
+    # --- MockHTTPResponse ---
+
+    def test_mock_response_ok(self):
+        """Resposta JSON padrão deve ser ok."""
+        response = MockHTTPResponse({"status": "ok"})
+        self.assertTrue(response.ok)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content), {"status": "ok"})
+
+    def test_mock_response_html_error_nao_ok(self):
+        """html_error com status 5xx deve ter ok=False e Content-Type HTML."""
+        response = MockHTTPResponse.html_error(500)
+        self.assertFalse(response.ok)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn(b"<html>", response.content)
+
+    def test_mock_response_html_error_2xx_ok_true(self):
+        """Moodle pode retornar HTML com status 200 (erro PHP com output antes dos headers)."""
+        response = MockHTTPResponse.html_error(200, message="Fatal error: Uncaught Error")
+        self.assertTrue(response.ok)
+        self.assertIn(b"Fatal error", response.content)
+
+    def test_mock_response_html_nao_e_json_valido(self):
+        """Conteúdo HTML não pode ser parseado como JSON."""
+        response = MockHTTPResponse.html_error(500)
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(response.content)
+
+    # --- LocalSuapHTTPMock ---
+
+    def test_endpoint_desconhecido_retorna_404(self):
+        response = self.mock.get("https://moodle.test.com/outro/endpoint")
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.ok)
+
+    AUTH_HEADERS = {"Authentication": f"Token {LocalSuapHTTPMock.TOKEN}"}
+
+    SYNC_UP_PAYLOAD_MINIMO = {
+        "campus": {"id": 1, "sigla": "ZL", "descricao": "Campus ZL"},
+        "curso": {"id": 1, "codigo": "15806", "nome": "Sistemas Operacionais Abertos"},
+        "turma": {"id": 2, "codigo": "20261.6.15806.1E"},
+        "componente": {"id": 1, "sigla": "TEC.1023", "descricao": "Bancos de Dados"},
+        "diario": {"id": 2, "sigla": "TEC.1023", "situacao": "Aberto"},
+    }
+
+    def test_sync_up_enrolments_post_sucesso(self):
+        url = f"{self.BASE_URL}?sync_up_enrolments"
+        payload = {**self.SYNC_UP_PAYLOAD_MINIMO, "coortes": [{"id": 1}, {"id": 2}]}
+        response = self.mock.post(url, jsonbody=payload, headers=self.AUTH_HEADERS)
+        self.assertTrue(response.ok)
+        data = json.loads(response.content)
+        self.assertIn("url", data)
+        self.assertIn("url_sala_coordenacao", data)
+        self.assertEqual(data["roles_not_found"], [])
+        self.assertNotIn("mock", data)
+        self.assertNotIn("cohort_count", data)
+
+    def test_sync_up_enrolments_payload_invalido_retorna_422(self):
+        url = f"{self.BASE_URL}?sync_up_enrolments"
+        response = self.mock.post(url, jsonbody={"coortes": []}, headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(response.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 422)
+        self.assertIn("campus", data["error"]["message"])
+
+    def test_sync_down_grades_get_sucesso(self):
+        url = f"{self.BASE_URL}?sync_down_grades&diario_id=42"
+        response = self.mock.get(url, headers=self.AUTH_HEADERS)
+        self.assertTrue(response.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data[0]["diario_id"], "42")
+        self.assertTrue(data[0]["mock"])
+
+    def test_servico_desconhecido_retorna_404(self):
+        url = f"{self.BASE_URL}?servico_inexistente"
+        response = self.mock.get(url, headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 404)
+        self.assertEqual(data["error"]["message"], "Serviço não existe")
+
+    def test_servico_nao_implementado_retorna_501(self):
+        url = f"{self.BASE_URL}?get_diarios"
+        response = self.mock.get(url, headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 501)
+        self.assertFalse(response.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 501)
+        self.assertEqual(data["error"]["message"], "Não implementado")
+
+    def test_sem_authentication_retorna_400(self):
+        url = f"{self.BASE_URL}?sync_up_enrolments"
+        response = self.mock.post(url, jsonbody={})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 400)
+        self.assertIn("Authentication not informed", data["error"]["message"])
+
+    def test_authentication_incorreta_retorna_401(self):
+        url = f"{self.BASE_URL}?sync_up_enrolments"
+        response = self.mock.post(url, jsonbody={}, headers={"Authentication": "Token token_errado"})
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(response.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 401)
+        self.assertEqual(data["error"]["message"], "Unauthorized")
+
+    # --- Cenário: Moodle retorna HTML em vez de JSON ---
+
+    def test_html_error_com_status_500_propaga_http_exception(self):
+        """validate_http_response deve lançar HTTPException quando Moodle retorna HTML 500."""
+        html_response = MockHTTPResponse.html_error(500)
+        with self.assertRaises(HTTPException) as ctx:
+            validate_http_response(self.BASE_URL, "utf-8", True, html_response)
+        self.assertEqual(ctx.exception.status, 500)
+
+    def test_html_error_com_status_200_causa_json_decode_error_em_get(self):
+        """Moodle retorna HTML com status 200 (erro PHP): http_get_json falha ao parsear."""
+        html_str = "<!DOCTYPE html><html><body><h1>Fatal error</h1></body></html>"
+        with patch("integrador.utils.http_get", return_value=html_str):
+            with self.assertRaises(json.JSONDecodeError):
+                http_get_json(f"{self.BASE_URL}?sync_down_grades&diario_id=1")
+
+    def test_html_error_com_status_200_causa_json_decode_error_em_post(self):
+        """Moodle retorna HTML com status 200 (erro PHP): http_post_json falha ao parsear."""
+        html_str = "<!DOCTYPE html><html><body><h1>Fatal error</h1></body></html>"
+        with patch("integrador.utils.http_post", return_value=html_str):
+            with self.assertRaises(json.JSONDecodeError):
+                http_post_json(f"{self.BASE_URL}?sync_up_enrolments", {})
+
+
+class ToolSgaHTTPMockTestCase(TestCase):
+    """
+    Testes para ToolSgaHTTPMock.
+
+    Cobre o mock do plugin `tool_sga`, usado pelos brokers
+    `Suap2ToolSgaBroker` e `Sga2ToolSgaBroker`.
+
+    Os brokers ainda não estão implementados, portanto os testes cobrem
+    apenas o comportamento de stub (respostas 4xx/501).
+    """
+
+    PLUGIN_PATH = ToolSgaHTTPMock.PLUGIN_PATH
+    BASE_URL = f"https://moodle.test.com{PLUGIN_PATH}"
+    AUTH_HEADERS = {"Authentication": f"Token {ToolSgaHTTPMock.TOKEN}"}
+
+    def setUp(self):
+        self.mock = ToolSgaHTTPMock()
+
+    def test_sem_authentication_retorna_400(self):
+        """Chamada sem cabeçalho Authentication deve retornar 400."""
+        response = self.mock.get(self.BASE_URL)
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 400)
+
+    def test_authentication_incorreta_retorna_401(self):
+        """Cabeçalho Authentication errado deve retornar 401."""
+        response = self.mock.get(self.BASE_URL, headers={"Authentication": "Token errado"})
+        self.assertEqual(response.status_code, 401)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 401)
+
+    def test_endpoint_errado_retorna_404(self):
+        """URL com path incorreto deve retornar 404."""
+        response = self.mock.get("https://moodle.test.com/outro/path", headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 404)
+
+    def test_qualquer_servico_retorna_501(self):
+        """Qualquer serviço autenticado deve retornar 501 enquanto o broker não for implementado."""
+        response = self.mock.post(self.BASE_URL, jsonbody={}, headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 501)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 501)
+
+
+# Alias para manter compatibilidade caso testes externos referenciem o nome antigo.
+MoodleHTTPMockTestCase = LocalSuapHTTPMockTestCase
+
+
+class AmbienteSelecaoTestCase(TestCase):
+    """Testes para os cenários de seleção de ambiente em seleciona_ambiente."""
+
+    SYNC_JSON = {"campus": {"sigla": "TEST"}}
+
+    def _cria_ambiente(self, nome, ordem=1, active=True, expressao="campus.sigla == 'TEST'"):
+        return Ambiente.objects.create(
+            nome=nome,
+            url=f"https://{nome.lower().replace(' ', '-')}.moodle.com",
+            token="token",
+            expressao_seletora=expressao,
+            ordem=ordem,
+            active=active,
+        )
+
+    # 1. Ativos e inativos
+
+    def test_ambiente_ativo_e_selecionado(self):
+        """Ambiente ativo com expressão correspondente é selecionado."""
+        amb = self._cria_ambiente("Ativo", active=True)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, amb)
+
+    def test_ambiente_inativo_nao_e_selecionado(self):
+        """Ambiente inativo nunca é selecionado, mesmo com expressão correspondente."""
+        self._cria_ambiente("Inativo", active=False)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    def test_ambiente_inativo_ignorado_quando_ha_ativo(self):
+        """Quando coexistem ativo e inativo com mesma expressão, apenas o ativo é retornado."""
+        self._cria_ambiente("Inativo", ordem=1, active=False)
+        ativo = self._cria_ambiente("Ativo", ordem=2, active=True)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, ativo)
+
+    # 2. Nenhum ambiente selecionado
+
+    def test_nenhum_ambiente_retorna_none_quando_nao_ha_cadastro(self):
+        """Sem ambientes cadastrados, retorna None."""
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    def test_nenhum_ambiente_retorna_none_quando_expressao_nao_corresponde(self):
+        """Ambiente ativo com expressão que não corresponde ao JSON retorna None."""
+        self._cria_ambiente("Outro", expressao="campus.sigla == 'OUTRO'")
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    def test_nenhum_ambiente_retorna_none_quando_todos_inativos(self):
+        """Todos inativos, mesmo com expressão correspondente, retorna None."""
+        self._cria_ambiente("Inativo A", active=False)
+        self._cria_ambiente("Inativo B", active=False)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    # 3. Exatamente um ambiente selecionado
+
+    def test_exatamente_um_ambiente_ativo_correspondente_e_retornado(self):
+        """Com apenas um ambiente ativo correspondente, ele é retornado."""
+        self._cria_ambiente("Diferente", expressao="campus.sigla == 'OUTRO'")
+        esperado = self._cria_ambiente("Correspondente", ordem=2)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, esperado)
+
+    # 4. Múltiplos ambientes atendendo ao critério — apenas o primeiro é retornado
+
+    def test_multiplos_ambientes_correspondentes_retorna_o_primeiro_por_ordem(self):
+        """Com múltiplos ativos correspondentes, o de menor ordem é retornado."""
+        primeiro = self._cria_ambiente("Primeiro", ordem=1)
+        self._cria_ambiente("Segundo", ordem=2)
+        self._cria_ambiente("Terceiro", ordem=3)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, primeiro)
+        self.assertNotEqual(resultado.nome, "Segundo")
+
+    def test_multiplos_ambientes_correspondentes_nao_retorna_o_segundo(self):
+        """Garante que o segundo ambiente correspondente nunca é retornado."""
+        self._cria_ambiente("Primeiro", ordem=1)
+        segundo = self._cria_ambiente("Segundo", ordem=2)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertNotEqual(resultado, segundo)
 
 
 class DecoratorsTestCase(TestCase):
@@ -881,6 +1163,218 @@ class BaseBrokerTestCase(TestCase):
         self.assertEqual(cohorts, [{"nome": "A"}, {"nome": "B"}])
 
 
+class CohortSelecaoTestCase(TestCase):
+    """Testes de seleção de coortes para sincronização, com exemplos reais."""
+
+    SYNC_JSON_COM_POLO = {
+        "campus": {"id": 14, "sigla": "ZL", "descricao": "Campus EaD"},
+        "curso": {"id": 1, "codigo": "15056", "nome": "Sistemas Operacionais Abertos"},
+        "turma": {"id": 2, "codigo": "20261.6.15056.1E"},
+        "componente": {"id": 1, "sigla": "TEC.1023", "descricao": "Bancos de Dados"},
+        "diario": {"id": 2, "sigla": "TEC.1023", "situacao": "Aberto"},
+        "alunos": [
+            {"polo": {"descricao": "Natal (RN)"}, "programa": "Institucional"},
+            {"polo": {"descricao": "Mossoró (RN)"}, "programa": "UAB"},
+        ],
+    }
+    SYNC_JSON_SEM_POLO = {
+        "campus": {"id": 14, "sigla": "ZL", "descricao": "Campus EaD"},
+        "curso": {"id": 2, "codigo": "99999", "nome": "Curso Sem Polo"},
+        "turma": {"id": 3, "codigo": "20261.6.99999.1E"},
+        "componente": {"id": 2, "sigla": "TEC.9999", "descricao": "Disciplina Sem Polo"},
+        "diario": {"id": 3, "sigla": "TEC.9999", "situacao": "Aberto"},
+        "alunos": [
+            {"polo": {"descricao": "Sem polo"}, "programa": "Institucional"},
+        ],
+    }
+
+    def setUp(self):
+        self.ambiente = Ambiente.objects.create(
+            nome="ZL", url="https://ead.zl.ifrn.edu.br", token="token", expressao_seletora="1==1", active=True
+        )
+        self.solicitacao = Solicitacao.objects.create(
+            ambiente=self.ambiente,
+            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
+            recebido=self.SYNC_JSON_COM_POLO,
+        )
+        self.broker = BaseBroker(self.solicitacao)
+
+        self.role_coo_polo = Role.objects.create(name="ZL.CooPolo", shortname="coordenadordepolo", active=True)
+        self.role_coo_curso = Role.objects.create(name="ZL.CooCurso", shortname="coordenadordecurso", active=True)
+        self.role_tut = Role.objects.create(name="ZL.CooTutProg", shortname="tutordeprograma", active=True)
+
+    def _cria_cohort(self, name, idnumber, role, rule_diario, rule_coordenacao, active=True):
+        return Cohort.objects.create(
+            name=name,
+            idnumber=idnumber,
+            role=role,
+            rule_diario=rule_diario,
+            rule_coordenacao=rule_coordenacao,
+            active=active,
+        )
+
+    def _adiciona_colaborador(self, cohort, login, nome, email):
+        user, _ = MoodleUser.objects.get_or_create(
+            login=login, defaults={"fullname": nome, "email": email, "active": True}
+        )
+        Enrolment.objects.create(cohort=cohort, user=user)
+        return user
+
+    # --- Sem coortes ---
+
+    def test_sem_coortes_cadastradas_retorna_lista_vazia(self):
+        """Sem nenhuma coorte no banco, get_cohort retorna lista vazia."""
+        resultado = self.broker.get_cohort()
+        self.assertEqual(resultado, [])
+
+    def test_sem_coortes_ativas_retorna_lista_vazia(self):
+        """Coorte inativa nunca é incluída, mesmo com regra correspondente."""
+        self._cria_cohort(
+            name="ZL.CooPolo.Natal(RN)",
+            idnumber="ZL.CooPolo.Natal(RN)",
+            role=self.role_coo_polo,
+            rule_diario='$any([aluno.polo.descricao == "Natal (RN)" for aluno in alunos])',
+            rule_coordenacao='$any([aluno.polo.descricao == "Natal (RN)" for aluno in alunos])',
+            active=False,
+        )
+        resultado = self.broker.get_cohort()
+        self.assertEqual(resultado, [])
+
+    def test_sem_coorte_correspondente_retorna_lista_vazia(self):
+        """Coorte ativa mas sem regra que corresponda ao JSON retorna lista vazia."""
+        self._cria_cohort(
+            name="ZL.CooPolo.Parelhas",
+            idnumber="ZL.CooPolo.Parelhas",
+            role=self.role_coo_polo,
+            rule_diario='$any([aluno.polo.descricao == "Parelhas" for aluno in alunos])',
+            rule_coordenacao='$any([aluno.polo.descricao == "Parelhas" for aluno in alunos])',
+        )
+        self.solicitacao.recebido = self.SYNC_JSON_SEM_POLO
+        resultado = self.broker.get_cohort()
+        self.assertEqual(resultado, [])
+
+    # --- Com coortes por polo ---
+
+    def test_coorte_polo_natal_corresponde_ao_json(self):
+        """Coorte de polo Natal(RN) é selecionada quando há aluno desse polo."""
+        cohort = self._cria_cohort(
+            name="ZL.CooPolo.Natal(RN)",
+            idnumber="ZL.CooPolo.Natal(RN)",
+            role=self.role_coo_polo,
+            rule_diario='$any([aluno.polo.descricao == "Natal (RN)" for aluno in alunos])',
+            rule_coordenacao='$any([aluno.polo.descricao == "Natal (RN)" for aluno in alunos])',
+        )
+        self._adiciona_colaborador(cohort, "coord.natal", "Coord Natal", "coord.natal@ifrn.edu.br")
+        resultado = self.broker.get_cohort()
+        idnumbers = [c["idnumber"] for c in resultado]
+        self.assertIn("ZL.CooPolo.Natal(RN)", idnumbers)
+
+    def test_coorte_polo_mossoro_nao_corresponde_sem_aluno_desse_polo(self):
+        """Coorte de Mossoró não é selecionada quando não há aluno desse polo."""
+        self._cria_cohort(
+            name="ZL.CooPolo.Mossor (RN)",
+            idnumber="ZL.CooPolo.Mossor (RN)",
+            role=self.role_coo_polo,
+            rule_diario='$any([aluno.polo.descricao == "Mossoró (RN)" for aluno in alunos])',
+            rule_coordenacao='$any([aluno.polo.descricao == "Mossoró (RN)" for aluno in alunos])',
+        )
+        self.solicitacao.recebido = self.SYNC_JSON_SEM_POLO
+        resultado = self.broker.get_cohort()
+        self.assertEqual(resultado, [])
+
+    # --- Com coortes por curso ---
+
+    def test_coorte_curso_15056_corresponde_ao_json(self):
+        """Coorte de coordenação do curso 15056 é selecionada pelo código do curso."""
+        cohort = self._cria_cohort(
+            name="ZL.CooCurso.15056",
+            idnumber="ZL.CooCurso.15056",
+            role=self.role_coo_curso,
+            rule_diario='curso.codigo == "15056"',
+            rule_coordenacao='curso.codigo == "15056"',
+        )
+        self._adiciona_colaborador(cohort, "coo.curso15056", "Coo Curso 15056", "coo@ifrn.edu.br")
+        resultado = self.broker.get_cohort()
+        idnumbers = [c["idnumber"] for c in resultado]
+        self.assertIn("ZL.CooCurso.15056", idnumbers)
+
+    def test_coorte_curso_diferente_nao_corresponde(self):
+        """Coorte com código de curso diferente não é selecionada."""
+        self._cria_cohort(
+            name="ZL.CooCurso.99624",
+            idnumber="ZL.CooCurso.99624",
+            role=self.role_coo_curso,
+            rule_diario='curso.codigo == "99624"',
+            rule_coordenacao='curso.codigo == "99624"',
+        )
+        resultado = self.broker.get_cohort()
+        self.assertEqual(resultado, [])
+
+    # --- Com coortes por programa ---
+
+    def test_coorte_programa_uab_corresponde_quando_ha_aluno_uab(self):
+        """Coorte UAB é selecionada quando há aluno com programa UAB."""
+        cohort = self._cria_cohort(
+            name="ZL.CooTutProg.UAB",
+            idnumber="ZL.CooTutProg.UAB",
+            role=self.role_tut,
+            rule_diario='$any([aluno.programa == "UAB" for aluno in alunos])',
+            rule_coordenacao='$any([aluno.programa == "UAB" for aluno in alunos])',
+        )
+        self._adiciona_colaborador(cohort, "tut.uab", "Tutor UAB", "tut.uab@ifrn.edu.br")
+        resultado = self.broker.get_cohort()
+        idnumbers = [c["idnumber"] for c in resultado]
+        self.assertIn("ZL.CooTutProg.UAB", idnumbers)
+
+    # --- Múltiplas coortes simultâneas ---
+
+    def test_multiplas_coortes_correspondentes_todas_incluidas(self):
+        """Quando polo e curso correspondem, ambas as coortes são retornadas."""
+        c1 = self._cria_cohort(
+            name="ZL.CooPolo.Natal(RN)",
+            idnumber="ZL.CooPolo.Natal(RN)",
+            role=self.role_coo_polo,
+            rule_diario='$any([aluno.polo.descricao == "Natal (RN)" for aluno in alunos])',
+            rule_coordenacao='$any([aluno.polo.descricao == "Natal (RN)" for aluno in alunos])',
+        )
+        c2 = self._cria_cohort(
+            name="ZL.CooCurso.15056",
+            idnumber="ZL.CooCurso.15056",
+            role=self.role_coo_curso,
+            rule_diario='curso.codigo == "15056"',
+            rule_coordenacao='curso.codigo == "15056"',
+        )
+        self._adiciona_colaborador(c1, "coord.natal", "Coord Natal", "coord.natal@ifrn.edu.br")
+        self._adiciona_colaborador(c2, "coo.curso", "Coo Curso", "coo.curso@ifrn.edu.br")
+
+        resultado = self.broker.get_cohort()
+        idnumbers = [c["idnumber"] for c in resultado]
+        self.assertIn("ZL.CooPolo.Natal(RN)", idnumbers)
+        self.assertIn("ZL.CooCurso.15056", idnumbers)
+
+    # --- Payload das coortes ---
+
+    def test_payload_da_coorte_inclui_colaboradores(self):
+        """Coorte retornada deve incluir colaboradores com dados corretos."""
+        cohort = self._cria_cohort(
+            name="ZL.CooCurso.15056",
+            idnumber="ZL.CooCurso.15056",
+            role=self.role_coo_curso,
+            rule_diario='curso.codigo == "15056"',
+            rule_coordenacao='curso.codigo == "15056"',
+        )
+        self._adiciona_colaborador(cohort, "coord.x", "Coord X", "coord.x@ifrn.edu.br")
+
+        resultado = self.broker.get_cohort()
+        coorte = next(c for c in resultado if c["idnumber"] == "ZL.CooCurso.15056")
+        self.assertEqual(coorte["nome"], "ZL.CooCurso.15056")
+        self.assertEqual(coorte["role"], "ZL.CooCurso")
+        colaboradores = coorte["colaboradores"]
+        self.assertEqual(len(colaboradores), 1)
+        self.assertEqual(colaboradores[0]["login"], "coord.x")
+        self.assertEqual(colaboradores[0]["email"], "coord.x@ifrn.edu.br")
+
+
 class Suap2LocalSuapBrokerTestCase(TestCase):
     """Testes para Suap2LocalSuapBroker."""
 
@@ -898,7 +1392,13 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
             ambiente=self.ambiente,
             operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
             diario_id="123",
-            recebido={"diario": {"id": 123}, "campus": {"sigla": "TEST"}, "turma": {"codigo": "T1"}},
+            recebido={
+                "campus": {"id": 1, "sigla": "TEST", "descricao": "Campus Teste"},
+                "curso": {"id": 10, "codigo": "15806", "nome": "Sistemas Operacionais Abertos"},
+                "turma": {"id": 2, "codigo": "T1"},
+                "componente": {"id": 5, "sigla": "TEC.1023", "descricao": "Bancos de Dados"},
+                "diario": {"id": 123, "sigla": "TEC.1023", "situacao": "Aberto"},
+            },
         )
 
         self.broker = Suap2LocalSuapBroker(self.solicitacao)
@@ -915,12 +1415,28 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
     @patch("integrador.brokers.suap2local_suap.http_post_json")
     def test_broker_sync_up_enrolments_success(self, mock_http_post_json):
         """Testa sync_up_enrolments com sucesso."""
-        mock_http_post_json.return_value = {"status": "success"}
+        mock_http_post_json.return_value = {
+            "url": "https://moodle.test.com/course/view.php?id=1",
+            "url_sala_coordenacao": "https://moodle.test.com/course/view.php?id=2",
+            "roles_not_found": [],
+        }
 
         result = self.broker.sync_up_enrolments()
 
-        self.assertEqual(result, {"status": "success"})
+        self.assertIn("url", result)
+        self.assertIn("url_sala_coordenacao", result)
+        self.assertEqual(result["roles_not_found"], [])
+        self.assertEqual(result["ambiente"], "https://moodle.test.com")
         mock_http_post_json.assert_called_once()
+
+    def test_broker_sync_up_enrolments_payload_faltando_campo_obrigatorio(self):
+        """Testa que SyncError é lançado quando o payload não tem campos obrigatórios."""
+        self.solicitacao.recebido = {"diario": {"id": 1}}  # incompleto
+        self.solicitacao.save()
+        with self.assertRaises(SyncError) as ctx:
+            self.broker.sync_up_enrolments()
+        self.assertEqual(ctx.exception.code, 422)
+        self.assertIn("campus", str(ctx.exception))
 
     @patch("integrador.brokers.suap2local_suap.http_post_json")
     def test_broker_sync_up_enrolments_raises_sync_error_when_get_cohort_fails(self, mock_http_post_json):
@@ -1267,13 +1783,18 @@ class IntegrationTestCase(TestCase):
     @patch("integrador.brokers.suap2local_suap.http_post_json")
     def test_complete_sync_up_flow(self, mock_http_post_json):
         """Testa fluxo completo de sync_up_enrolments."""
-        mock_http_post_json.return_value = {"url": "https://moodle.test/course/123", "status": "success"}
+        mock_http_post_json.return_value = {
+            "url": "https://moodle.integration.test/course/view.php?id=1",
+            "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
+            "roles_not_found": [],
+        }
 
         json_data = {
-            "campus": {"sigla": "INT"},
-            "turma": {"codigo": "T123"},
-            "componente": {"sigla": "COMP"},
-            "diario": {"id": 456, "tipo": "regular"},
+            "campus": {"id": 1, "sigla": "INT", "descricao": "Campus Integration"},
+            "curso": {"id": 10, "codigo": "15806", "nome": "Sistemas Operacionais Abertos"},
+            "turma": {"id": 2, "codigo": "T123"},
+            "componente": {"id": 5, "sigla": "COMP", "descricao": "Componente de Integração"},
+            "diario": {"id": 456, "sigla": "COMP", "situacao": "Aberto"},
             "professores": [],
         }
 
