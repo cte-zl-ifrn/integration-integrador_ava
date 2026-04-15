@@ -14,7 +14,6 @@ plugins:
   - mermaid2
   - slides:
       font_size: "28px"
-#   - excalidraw
 
 markdown_extensions:
   - admonition
@@ -22,7 +21,11 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
   - pymdownx.highlight:
       anchor_linenums: true
 
