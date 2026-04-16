@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, dead-runner]
+    runs-on: [self-hosted, runner-dead]
 
     steps:
       - name: Setup known_hosts
