@@ -29,19 +29,29 @@ class AmbienteAdmin(BaseModelAdmin):
     class AmbienteResource(ModelResource):
         class Meta:
             model = Ambiente
-            export_order = ("nome", "url", "token", "active")
+            export_order = (
+                "nome",
+                "url",
+                "local_suap_token",
+                "local_suap_active",
+                "tool_sga_token",
+                "tool_sga_active",
+                "expressao_seletora",
+                "ordem",
+            )
             import_id_fields = ("nome",)
             fields = export_order
             skip_unchanged = True
 
-    list_display = ["nome", "checked_url", "checked_expressao_seletora", "active"]
+    list_display = ["nome", "checked_url", "checked_expressao_seletora", "checked_local_suap", "checked_tool_sga"]
     history_list_display = list_display
     field_to_highlight = list_display[0]
     search_fields = ["nome", "url"]
-    list_filter = ["active"]
+    list_filter = []
     fieldsets = [
-        (_("Identificação"), {"fields": ["nome"]}),
-        (_("    "), {"fields": ["active", "url", "token", "expressao_seletora", "ordem"]}),
+        (_("Identificação"), {"fields": ["nome", "url", "expressao_seletora", "ordem"]}),
+        (_("Local SUAP"), {"fields": ["local_suap_active", "local_suap_token"]}),
+        (_("Tool SGA"), {"fields": ["tool_sga_active", "tool_sga_token"]}),
     ]
     resource_classes = [AmbienteResource]
 
@@ -90,6 +100,54 @@ class AmbienteAdmin(BaseModelAdmin):
             title=title,
             status=status,
             color=color,
+        )
+
+    def _integration_badge(self, obj, active, token_field, api_path, label):
+        token = getattr(obj, token_field)
+        has_token = bool(token and str(token).strip())
+
+        if not active and not has_token:
+            return format_html('<span title="{}">🚫</span>', f"{label}: inativo e sem token.")
+
+        if not active:
+            return format_html('<span title="{}">⏸️</span>', f"{label}: token configurado, mas inativo.")
+
+        if not has_token:
+            return format_html('<span title="{}">⚠️</span>', f"{label}: ativo, mas sem token configurado.")
+        try:
+            response = requests.get(
+                f"{obj.base_url}{api_path}",
+                headers={"Authentication": f"Token {token}"},
+                timeout=3,
+            )
+            print(f"{obj.base_url}{api_path}", response.status_code, response.text)
+            if response.status_code == 200:
+                data = response.json()
+                print(data)
+                title = (
+                    f"{label}: OK — plugin {data.get('plugin_release', '?')} / Moodle {data.get('moodle_release', '?')}"
+                )
+                return format_html('<span title="{}">✅</span>', title)
+            elif response.status_code == 401:
+                return format_html('<span title="{}">🔑</span>', f"{label}: token inválido (401).")
+            else:
+                print(response.text)
+                return format_html(
+                    '<span title="{}">⚠️</span>', f"{label}: resposta inesperada ({response.status_code})."
+                )
+        except Exception as e:
+            return format_html('<span title="{}">🚫</span>', f"{label}: erro ao contactar o plugin — {e}.")
+
+    @display(description="Local SUAP")
+    def checked_local_suap(self, obj):
+        return self._integration_badge(
+            obj, obj.local_suap_active, "local_suap_token", "/local/suap/api/index.php?health", "Local SUAP"
+        )
+
+    @display(description="Tool SGA")
+    def checked_tool_sga(self, obj):
+        return self._integration_badge(
+            obj, obj.tool_sga_active, "tool_sga_token", "/admin/tool/sga/api/index.php?health", "Tool SGA"
         )
 
 

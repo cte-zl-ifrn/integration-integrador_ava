@@ -1,36 +1,12 @@
 from django.utils.translation import gettext as _
 import json
-import re
-
-from django import forms
-from django.core.exceptions import ValidationError
-from django.db.models import (
-    CharField,
-    DateTimeField,
-    JSONField,
-    BooleanField,
-    IntegerField,
-    TextField,
-    ForeignKey,
-    PROTECT,
-    URLField,
-)
+from django.db.models import CharField, DateTimeField, JSONField, BooleanField, IntegerField, TextField
+from django.db.models import ForeignKey, PROTECT
 from django.db.models import Manager, Model
 from django.utils.html import format_html
 from django_better_choices import Choices
+from sga.db.fields import PermissiveURLField
 from rule_engine import Rule
-
-
-class PermissiveURLField(URLField):
-    def permissive_url_validator(value):
-        pattern = r"^https?://[\w.-]+(:\d+)?(/.*)?$"
-        if not re.match(pattern, value):
-            raise ValidationError("Informe uma URL válidaaa.")
-
-    default_validators = [permissive_url_validator]
-
-    def formfield(self, **kwargs):
-        return CharField.formfield(self, **{"form_class": forms.CharField, **kwargs})
 
 
 class Ambiente(Model):
@@ -50,10 +26,12 @@ class Ambiente(Model):
 
     nome = CharField(_("nome do ambiente"), max_length=255)
     url = PermissiveURLField(_("URL"), max_length=255)
-    token = CharField(_("token"), max_length=255)
-    expressao_seletora = TextField(_("expressão seletora"), max_length=2550)
+    expressao_seletora = TextField(_("expressão seletora"), max_length=2550, null=True, blank=True)
     ordem = IntegerField(_("ordem"), default=0)
-    active = BooleanField(_("ativo?"), default=True)
+    local_suap_token = CharField(_("token local_suap"), max_length=255, null=True, blank=True)
+    local_suap_active = BooleanField(_("local_suap ativo?"), default=True)
+    tool_sga_token = CharField(_("token tool_sga"), max_length=255, null=True, blank=True)
+    tool_sga_active = BooleanField(_("tool_sga ativo?"), default=True)
 
     objects = AmbienteManager()
 
