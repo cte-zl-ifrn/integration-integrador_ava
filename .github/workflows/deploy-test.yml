@@ -27,4 +27,4 @@ jobs:
       - name: Test SSH and list directory
         run: |
           echo "🔌 Conectando via SSH..."
-          ssh root@10.22.1.212 "ls -la /var/docker_teste"
+          ssh root@10.22.1.212 "ls -la /var/dockers_teste"
