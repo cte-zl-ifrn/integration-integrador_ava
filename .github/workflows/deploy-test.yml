@@ -8,9 +8,17 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, dead-runner]
+    # Usando a etiqueta correta que configuramos no GitHub
+    runs-on: [self-hosted, runner-dead]
 
     steps:
+      - name: Checar diretorio atual (PWD)
+        run: |
+          echo "📍 Diretório atual:"
+          pwd
+          echo "📁 Arquivos nesta pasta:"
+          ls -la
+
       - name: Setup known_hosts
         run: |
           mkdir -p ~/.ssh
