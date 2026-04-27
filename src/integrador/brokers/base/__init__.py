@@ -12,8 +12,7 @@ class BaseBroker:
 
     @property
     def credentials(self) -> dict:
-        c = {"Authentication": f"Token {self.solicitacao.ambiente.token}"}
-        return c
+        return {"Authentication": f"Token {self.solicitacao.ambiente.token}"}
 
     def cast_cohort(self, c: Cohort) -> dict:
         return {

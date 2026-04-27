@@ -3,6 +3,7 @@ from django.db import transaction
 from django.http import HttpRequest
 from integrador.models import Solicitacao
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
+from integrador.brokers.suap2tool_sga import Suap2ToolSgaBroker
 from integrador.decorators import (
     json_response,
     exception_as_json,
@@ -27,7 +28,18 @@ logger = logging.getLogger(__name__)
 @detect_ambiente
 @try_solicitacao(Solicitacao.Operacao.SYNC_UP_DIARIO)
 def sync_up_enrolments(request: HttpRequest = None) -> dict:
-    return Suap2LocalSuapBroker(request.solicitacao).sync_up_enrolments()
+    ambiente = request.solicitacao.ambiente
+    if ambiente.can_send_to_local_suap:
+        print(f"Enviando dados para o Local SUAP usando o ambiente {ambiente}")
+        return Suap2LocalSuapBroker(request.solicitacao).sync_up_enrolments()
+    elif ambiente.can_send_to_tool_sga:
+        print(f"Enviando dados para o Tool SGA usando o ambiente {ambiente}")
+        return Suap2ToolSgaBroker(request.solicitacao).sync_up_enrolments()
+    else:
+        raise Exception(
+            f"O ambiente {ambiente.ambiente} não está configurado "
+            f"para enviar dados para o Local SUAP ou Tool SGA. Contacte um administrador."
+        )
 
 
 @transaction.atomic

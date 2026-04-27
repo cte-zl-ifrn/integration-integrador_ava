@@ -21,7 +21,6 @@ def detect_ambiente(func):
             request, "json_recebido", {"campus": {"sigla": request.GET.get("campus_sigla")}}
         )
         request.ambiente = Ambiente.objects.seleciona_ambiente(request.json_recebido)
-
         if getattr(request, "ambiente") is None:
             raise SyncError(f"Não encontramos um Ambiente ativo para o campus {request.GET.get('campus_sigla')}", 404)
 
@@ -94,6 +93,7 @@ def check_json(operacao: str):
         def wrapper(request: HttpRequest, *args, **kwargs):
             try:
                 message = request.body.decode("utf-8")
+                print("Received message:", message)
                 try:
                     request.json_recebido = json.loads(message)
 
@@ -113,11 +113,13 @@ def check_json(operacao: str):
                     #             "request_message": request.json_recebido
                     #         }
                 except Exception as e2:
+                    print(f"Error parsing JSON: {e2}")
                     request.json_recebido = {
                         "error": {"code": 512, "message": f"Foi enviado um JSON mal formado ou nem é JSON ({e2})."},
                         "request_message": message,
                     }
             except Exception as e1:
+                print(f"Error decoding body: {e1}")
                 request.json_recebido = {
                     "error": {"code": 405, "message": f"Erro ao decodificar o body em utf-8 ({e1})."},
                     "request_message": message,

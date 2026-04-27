@@ -12,13 +12,10 @@ from rule_engine import Rule
 class Ambiente(Model):
     class AmbienteManager(Manager):
         def seleciona_ambiente(self, sync_json: dict) -> Model:
-            ambientes = Ambiente.objects.filter(active=True)
+            ambientes = list(Ambiente.objects.all())
             for a in ambientes:
-                try:
-                    if Rule(a.expressao_seletora).matches(sync_json):
-                        return a
-                except Exception as e:
-                    raise Exception(f"Erro ao processar o ambiente {a} ({a.expressao_seletora}): {e} {sync_json}")
+                if a.check_selectable(sync_json):
+                    return a
             return None
 
     def _c(color: str):
@@ -56,6 +53,34 @@ class Ambiente(Model):
             return True
         except Exception:
             return False
+
+    @property
+    def can_send_to_local_suap(self):
+        return self.local_suap_active and (self.local_suap_token or "") != ""
+
+    @property
+    def can_send_to_tool_sga(self):
+        return self.tool_sga_active and (self.tool_sga_token or "") != ""
+
+    def check_selectable(self, sync_json: dict):
+        if not (self.can_send_to_local_suap or self.can_send_to_tool_sga) and not self.valid_expressao_seletora:
+            return False
+        try:
+            return Rule(self.expressao_seletora).matches(sync_json)
+        except Exception:
+            return False
+
+    @property
+    def which_broker(self):
+        if self.can_send_to_local_suap:
+            return "local_suap"
+        if self.can_send_to_tool_sga:
+            return "tool_sga"
+        return None
+
+    @property
+    def token(self):
+        return getattr(self, f"{self.which_broker}_token", None)
 
 
 class Solicitacao(Model):

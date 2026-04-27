@@ -15,19 +15,282 @@ Authentication: Token changeme
     "diario":     {"id": 2,     "sigla":  "TEC.1023",           "situacao":     "Aberto"                            }
 }
 
+
+### Todos os atributos, exceto de usuários
+POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
+Authentication: Token changeme
+
+
+{
+    "polo": null,
+    "campus": {
+        "id": 16,
+        "sigla": "NC",
+        "descricao": "CAMPUS NOVA CRUZ"
+    },
+    "curso": {
+        "id": 99999,
+        "codigo": "99999",
+        "nome": "AAAA",
+        "descricao": "AAAAA",
+        "descricao_historico": "AAAAAA",
+        "titulo_certificado_masculino": "boy",
+        "titulo_certificado_feminino": null,
+        "programa": "AAAA"
+    },
+    "turma":      {"id": 9999, "codigo": "AAAAP.M.CCCCCC.DDDDDDD.TT"                                                },
+    "componente": {"id": 1,     "sigla":  "TEC.1023",           "descricao":    "Bancos de Dados"                   },
+    "diario":     {"id": 2,     "sigla":  "TEC.1023",           "situacao":     "Aberto"                            }
+}
+
+
+### Todos os atributos, de pessoas apenas os obrigatórios
+POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
+Authentication: Token changeme
+
+
+{
+    "polo": null,
+    "campus": {
+        "id": 16,
+        "sigla": "NC",
+        "descricao": "CAMPUS NOVA CRUZ"
+    },
+    "curso": {
+        "id": 99999,
+        "codigo": "99999",
+        "nome": "AAAA",
+        "descricao": "AAAAA",
+        "descricao_historico": "AAAAAA",
+        "titulo_certificado_masculino": null,
+        "titulo_certificado_feminino": null,
+        "ch_total": null,
+        "ch_aula": null,
+        "conteudo": [
+            {
+                "descricao": "AAAAA",
+                "ch": 99
+            },
+            {
+                "descricao": "Webnar",
+                "ch": 1
+            }
+        ],
+        "autoinstrucional": false,
+        "modalidade": {
+            "id": 1,
+            "descricao": "Educação a Distância",
+            "nivel_ensino": {
+                "id": 1,
+                "descricao": "Técnico"
+            }
+        },
+        "auto_inscricao": true,
+        "restricoes": [
+            {
+                "descricao": "Modalidade do curso da matricula",
+                "chave": "modalidade.id",
+                "restricao": "1"
+            },
+            {
+                "descricao": "Aluno, conforme modalidade do curso",
+                "chave": "modalidade.id",
+                "restricao": "13"
+            },
+            {
+                "descricao": "Aluno, conforme nível de ensino do curso",
+                "chave": "modalidade.nivel_ensino.id",
+                "restricao": "1"
+            },
+            {
+                "descricao": "É aluno",
+                "chave": "eh_aluno",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É servidor",
+                "chave": "eh_servidor",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É prestador",
+                "chave": "eh_prestador",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É usuario externo",
+                "chave": "eh_usuarioexterno",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É docente",
+                "chave": "eh_docente",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É técnico administrativo",
+                "chave": "eh_tecnico_administrativo",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É estrangeiro",
+                "chave": "eh_estrangeiro",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É matriculado no curso",
+                "chave": "outras_matriculas.*.curso.codigo",
+                "restricao": "99999"
+            },
+            {
+                "descricao": "É matriculado no curso",
+                "chave": "outras_matriculas.*.curso.codigo",
+                "restricao": "99999"
+            }
+        ],
+        "programa": "AAAA"
+    },
+    "turma": {
+        "id": 9999,
+        "codigo": "AAAAP.M.CCCCCC.DDDDDDD.TT",
+        "data_inicio": "9999-09-09",
+        "data_fim": "9999-09-09",
+        "gerar_matricula": false,
+        "modelo_padrao": false,
+        "nota_minima": 0.0000,
+        "completude_minima": 0.00
+    },
+    "componente": {
+        "id": 9999,
+        "tipo": 1,
+        "sigla": "AAA.9999",
+        "periodo": 9,
+        "optativo": false,
+        "descricao": "AAAAAAAAAA",
+        "qtd_avaliacoes": 4,
+        "descricao_historico": "AAAAA",
+        "is_seminario_estagio_docente": false,
+        "ch_presencial": 0,
+        "ch_pratica": 0,
+        "ch_extensao": 0,
+        "ch_pcc": 0,
+        "ch_visita_tecnica": 0,
+        "ch_semanal_1s": 0,
+        "ch_semanal_2s": 0
+    },
+    "diario": {
+        "id": 99999,
+        "tipo": "regular",
+        "sigla": "AAA.9999",
+        "situacao": "AAAAA",
+        "descricao": "AAAA",
+        "descricao_historico": "AAAA"
+    },
+    "alunos": [
+        {
+            "id": 999999,
+            "nome": "AAAAAAAA",
+            "email": "email_preferencial@b.c",
+            "email_secundario": "email_secundario@b.c",
+            "programa": "UAB",
+            "situacao_diario": "ativo",
+            "polo": {
+                "id": 16,
+                "descricao": "POLO DO ALUNO",
+                "sigla": "ZL"
+            },
+            "situacao": "ativo",
+            "matricula": "9999999999AAAA999",
+            "username": "vamos padronizar username e ativo",
+            "ativo": false,
+            "nome_usual": "AAAAAAA",
+            "nome_social": "AAAAAAA",
+            "nome_registro": "AAAAAAA",
+            "cpf": "99999999999",
+            "outras_matriculas": [
+            {
+                "identificacao": "9999999999AAAA999",
+                "curso": {
+                "id": 99999,
+                "codigo": "99999",
+                "nome": "AAAA"
+                }
+            }
+            ],
+            "passaporte": "99999999AAA99"
+        }
+    ],
+    "professores": [
+        {
+            "id": 99999,
+            "nome": "AAAAAAA",
+            "tipo": "Principal|Formador|Tutor|Mediador|ProfessorMinicurso|ModeradorMiniCurso|?",
+            "email": "email_preferencial@b.c",
+            "email_secundario": "fary@bol.com.br",
+            "login": "1035123",
+            "status": "ativo",
+            "username": "vamos padronizar username e ativo",
+            "ativo": false,
+            "nome_usual": "AAAAAAA",
+            "nome_social": "AAAAAAA",
+            "nome_registro": "AAAAAAA",
+            "eh_servidor": true,
+            "eh_aluno": false,
+            "eh_prestador": false,
+            "eh_usuarioexterno": false,
+            "eh_docente": true,
+            "eh_tecnico_administrativo": false,
+            "eh_estrangeiro": false,
+            "cpf": "99999999999",
+            "passaporte": "99999999AAA99"
+        }
+    ],
+    "equipe": [
+        {
+            "username": "999999999ZL99",
+            "ativo": false,
+            "eh_servidor": true,
+            "eh_aluno": false,
+            "eh_prestador": false,
+            "eh_usuarioexterno": false,
+            "eh_docente": true,
+            "eh_tecnico_administrativo": false,
+            "eh_estrangeiro": false,
+            "nome": "AAAAAAA",
+            "nome_usual": "AAAAAAA",
+            "nome_social": "AAAAAAA",
+            "nome_registro": "AAAAAAA",
+            "email": "email_preferencial@b.c",
+            "email_secundario": "email_secundario@b.c",
+            "cpf": "99999999999",
+            "passaporte": "99999999AAA99",
+            "papeis": [
+                {
+                "id": 1,
+                "descricao": "coordenador_de_curso|coordenador_de_polo|tutor_de_polo",
+                    "polo": {
+                        "id": 16,
+                        "sigla": "ZL",
+                        "descricao": "POLO DO COORDENADOR/TUTOR"
+                    }
+                }
+            ]
+        }
+    ]
+}
 ### Matricula alguns alunos
 POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
 
 
 {
-    "curso": {"id": 1,"nome": "Tecnologia em Redes de Computadores","codigo": "00001","descricao": "Tecnologia em Redes de Computadores - Nome Completo do Campus"},
-    "turma": {"id": 2,"codigo": "20221.6.00001.3E"},
-    "alunos": [{"id": 4,"nome": "Nome do aluno quatro","polo": {"id": 1,"descricao": "Pólo Assú"},"situacao": "Ativo","matricula": "201830000100004","email": "nome.4@academico.ifrn.edu.br","email_secundario": "nome.4@hotmail.com"},{"id": 5,"nome": "Nome do aluno cinco","polo": {"id": 2,"descricao": "Pólo EaD"},"situacao": "Inativo","situacao_diario": "Inativo","matricula": "201830000100005","email": "nome.5@academico.ifrn.edu.br","email_secundario": "nome.5@gmail.com"},{"id": 6,"nome": "Nome do aluno seis","polo": {"id": 2,"descricao": "Pólo EaD"},"situacao": "Ativo","matricula": "201830000100006","email": "nome.6@academico.ifrn.edu.br","email_secundario": "nome.6d@gmail.com"}],
-    "campus": {"id": 14,"sigla": "ZL","descricao": "Campus EaD"},
-    "diario": {"id": 2,"sigla": "TEC.0001","situacao": "Aberto","descricao": "Bancos de Dados","descricao_historico": "Bancos de Dados"},
-    "componente": {"id": 1,"tipo": 1,"sigla": "TEC.0001","periodo": null,"optativo": false,"descricao": "Bancos de Dados","qtd_avaliacoes": 2,"descricao_historico": "Bancos de Dados"},
-    "professores": [{"id": 1,"nome": "Nome do professor principal","tipo": "Principal","email": "nome.sobrenome@ifrn.edu.br","login": "1234567","status": "ativo","email_secundario": "nome.sobrenome@gmail.com"},{"id": 2,"nome": "Nome do professor formador","tipo": "Formador","email": "nome.2@ifrn.edu.br","login": "2","status": "inativo","email_secundario": "nome.2@gmail.com"},{"id": 3,"nome": "Nome do tutor","tipo": "Tutor","email": "nome.3@ifrn.edu.br","login": "3","status": "ativo","email_secundario": "nome.3@gmail.com"}]
+    "campus":     {"id": 1,     "sigla":  "ZL",                 "descricao":    "Campus ZL"                         },
+    "curso":       {"id": 1, "codigo": "00001", "nome": "Tecnologia em Redes de Computadores","descricao": "Tecnologia em Redes de Computadores - Nome Completo do Campus"},
+    "turma":       {"id": 2, "codigo": "20221.6.00001.3E"},
+    "componente":  {"id": 1, "tipo":   1,"sigla": "TEC.0001","periodo": null,"optativo": false,"descricao": "Bancos de Dados","qtd_avaliacoes": 2,"descricao_historico": "Bancos de Dados"},
+    "diario":      {"id": 2, "sigla": "TEC.0001","situacao": "Aberto","descricao": "Bancos de Dados","descricao_historico": "Bancos de Dados"},
+    "professores": [{"id": 1, "nome": "Nome do professor principal","tipo": "Principal","email": "nome.sobrenome@ifrn.edu.br","login": "1234567","status": "ativo","email_secundario": "nome.sobrenome@gmail.com"},{"id": 2,"nome": "Nome do professor formador","tipo": "Formador","email": "nome.2@ifrn.edu.br","login": "2","status": "inativo","email_secundario": "nome.2@gmail.com"},{"id": 3,"nome": "Nome do tutor","tipo": "Tutor","email": "nome.3@ifrn.edu.br","login": "3","status": "ativo","email_secundario": "nome.3@gmail.com"}],
+    "alunos":      [{"id": 4, "nome": "Nome do aluno quatro","polo": {"id": 1,"descricao": "Pólo Assú"},"situacao": "Ativo","matricula": "201830000100004","email": "nome.4@academico.ifrn.edu.br","email_secundario": "nome.4@hotmail.com"},{"id": 5,"nome": "Nome do aluno cinco","polo": {"id": 2,"descricao": "Pólo EaD"},"situacao": "Inativo","situacao_diario": "Inativo","matricula": "201830000100005","email": "nome.5@academico.ifrn.edu.br","email_secundario": "nome.5@gmail.com"},{"id": 6,"nome": "Nome do aluno seis","polo": {"id": 2,"descricao": "Pólo EaD"},"situacao": "Ativo","matricula": "201830000100006","email": "nome.6@academico.ifrn.edu.br","email_secundario": "nome.6d@gmail.com"}]
 }
 
 ### Desativa o 6 pois deixou de vir
