@@ -15,6 +15,21 @@ Authentication: Token changeme
     "diario":     {"id": 55555, "sigla":  "TEC.1234",                   "situacao":  "Aberto"    }
 }
 
+### Apenas os atributos os obrigatórios
+POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
+Authentication: Token changeme
+
+
+{
+    "campus":     {"id": 1,     "sigla":  "NC",                         "descricao": "CAMPUS NC" },
+    "curso":      {"id": 22,    "codigo": "999999",                     "nome":      "AAAA"      },
+    "componente": {"id": 333,   "sigla":  "TEC.1234",                   "descricao": "BBBB"      },
+    "turma":      {"id": 4444,  "codigo": "20262.6.999999.TEC.1234.1E"                           },
+    "diario":     {"id": 55555, "sigla":  "TEC.1234",                   "situacao":  "Aberto"    },
+
+    "alunos": [{"matricula": "20260000000001", "email": "", "email_secundario": "aluno1@gmail.com", "situacao": "ativo", "nome": "aluno um", "situacao_diario": "ativo"}]
+}
+
 
 ### Todos os atributos nulos, exceto de usuários
 POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
