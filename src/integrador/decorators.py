@@ -15,20 +15,6 @@ def json_response(func):
     return inner
 
 
-def detect_ambiente(func):
-    def inner(request: HttpRequest, *args, **kwargs):
-        request.json_recebido = getattr(
-            request, "json_recebido", {"campus": {"sigla": request.GET.get("campus_sigla")}}
-        )
-        request.ambiente = Ambiente.objects.seleciona_ambiente(request.json_recebido)
-        if getattr(request, "ambiente") is None:
-            raise SyncError(f"Não encontramos um Ambiente ativo para o campus {request.GET.get('campus_sigla')}", 404)
-
-        return JsonResponse(func(request, *args, **kwargs), safe=False)
-
-    return inner
-
-
 def exception_as_json(func):
     def inner(request: HttpRequest, *args, **kwargs):
         def __response_error(request: HttpRequest, error: Exception):
@@ -51,6 +37,15 @@ def exception_as_json(func):
     return inner
 
 
+def check_is_post(func):
+    def inner(request: HttpRequest, *args, **kwargs):
+        if request.method != "POST":
+            raise SyncError("Method HTTP não autorizado.", 501)
+        return func(request, *args, **kwargs)
+
+    return inner
+
+
 def valid_token(func):
     def inner(request: HttpRequest, *args, **kwargs):
         if not hasattr(settings, "SUAP_INTEGRADOR_KEY"):
@@ -64,15 +59,6 @@ def valid_token(func):
                 "Você enviou um token de autenticação diferente do que tem na settings 'SUAP_INTEGRADOR_KEY'.",
                 403,  # noqa
             )
-        return func(request, *args, **kwargs)
-
-    return inner
-
-
-def check_is_post(func):
-    def inner(request: HttpRequest, *args, **kwargs):
-        if request.method != "POST":
-            raise SyncError("Method HTTP não autorizado.", 501)
         return func(request, *args, **kwargs)
 
     return inner
@@ -93,7 +79,6 @@ def check_json(operacao: str):
         def wrapper(request: HttpRequest, *args, **kwargs):
             try:
                 message = request.body.decode("utf-8")
-                print("Received message:", message)
                 try:
                     request.json_recebido = json.loads(message)
 
@@ -113,13 +98,13 @@ def check_json(operacao: str):
                     #             "request_message": request.json_recebido
                     #         }
                 except Exception as e2:
-                    print(f"Error parsing JSON: {e2}")
                     request.json_recebido = {
-                        "error": {"code": 512, "message": f"Foi enviado um JSON mal formado ou nem é JSON ({e2})."},
-                        "request_message": message,
+                        "check_json": {
+                            "error": {"code": 512, "message": f"Foi enviado um JSON mal formado ou nem é JSON ({e2})."},
+                            "request_message": message,
+                        }
                     }
             except Exception as e1:
-                print(f"Error decoding body: {e1}")
                 request.json_recebido = {
                     "error": {"code": 405, "message": f"Erro ao decodificar o body em utf-8 ({e1})."},
                     "request_message": message,
@@ -129,6 +114,20 @@ def check_json(operacao: str):
         return wrapper
 
     return decorator
+
+
+def detect_ambiente(func):
+    def inner(request: HttpRequest, *args, **kwargs):
+        request.json_recebido = getattr(
+            request, "json_recebido", {"campus": {"sigla": request.GET.get("campus_sigla")}}
+        )
+        request.ambiente = Ambiente.objects.seleciona_ambiente(request.json_recebido)
+        if getattr(request, "ambiente") is None:
+            raise SyncError(f"Não encontramos um Ambiente ativo para o campus {request.GET.get('campus_sigla')}", 404)
+
+        return JsonResponse(func(request, *args, **kwargs), safe=False)
+
+    return inner
 
 
 def try_solicitacao(operacao: str):
