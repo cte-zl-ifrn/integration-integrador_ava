@@ -123,7 +123,10 @@ def detect_ambiente(func):
         )
         request.ambiente = Ambiente.objects.seleciona_ambiente(request.json_recebido)
         if getattr(request, "ambiente") is None:
-            raise SyncError(f"Não encontramos um Ambiente ativo para o campus {request.GET.get('campus_sigla')}", 404)
+            origin = request.json_recebido.get("campus", {}).get("sigla")
+            if origin is None:
+                origin = request.json_recebido.get("check_json", {}).get("error", {}).get("message", "desconecido")
+            raise SyncError(f"Nao encontramos um Ambiente ativo para o campus '{origin}'", 404)
 
         return JsonResponse(func(request, *args, **kwargs), safe=False)
 
