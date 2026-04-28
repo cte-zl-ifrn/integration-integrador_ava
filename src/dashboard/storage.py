@@ -5,7 +5,6 @@ Isola a lógica de negócio da view.
 
 import logging
 from datetime import timedelta
-
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count, Q
@@ -84,9 +83,13 @@ class DashboardStorage:
         """Carrega dados de ambientes."""
         try:
             self.data["ambientes_total"] = Ambiente.objects.count()
-            self.data["ambientes_ativos"] = Ambiente.objects.filter(active=True).count()
+            self.data["ambientes_ativos"] = Ambiente.objects.filter(
+                Q(local_suap_active=True) | Q(tool_sga_active=True)
+            ).count()
             self.data["ambientes_com_erro"] = sum(
-                1 for ambiente in Ambiente.objects.filter(active=True) if not ambiente.valid_expressao_seletora
+                1
+                for ambiente in Ambiente.objects.filter(Q(local_suap_active=True) | Q(tool_sga_active=True))
+                if not ambiente.valid_expressao_seletora
             )
             logger.info(
                 f"Ambientes carregados: total={self.data['ambientes_total']}, ativos={self.data['ambientes_ativos']}"
