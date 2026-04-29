@@ -2,7 +2,6 @@ import logging
 from integrador.utils import SyncError, http_get_json, http_post_json
 from integrador.brokers.base import BaseBroker
 
-
 logger = logging.getLogger(__name__)
 
 _SYNC_UP_REQUIRED_FIELDS = {
@@ -30,11 +29,7 @@ class Suap2LocalSuapBroker(BaseBroker):
         return result
 
     def __post_json(self, service: str, jsonbody: dict):
-        print("__get_service_url:", self.__get_service_url(service))
-        print("JSON Body:", jsonbody)
-        print("Credentials:", self.credentials)
         result = http_post_json(self.__get_service_url(service), jsonbody, self.credentials)
-        print("HTTP POST Result:", result)
         return result
 
     def _validate_sync_payload(self, payload: dict) -> None:

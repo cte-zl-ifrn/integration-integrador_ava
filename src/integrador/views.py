@@ -15,7 +15,6 @@ from integrador.decorators import (
     detect_ambiente,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -30,10 +29,8 @@ logger = logging.getLogger(__name__)
 def sync_up_enrolments(request: HttpRequest = None) -> dict:
     ambiente = request.solicitacao.ambiente
     if ambiente.can_send_to_local_suap:
-        print(f"Enviando dados para o Local SUAP usando o ambiente {ambiente}")
         return Suap2LocalSuapBroker(request.solicitacao).sync_up_enrolments()
     elif ambiente.can_send_to_tool_sga:
-        print(f"Enviando dados para o Tool SGA usando o ambiente {ambiente}")
         return Suap2ToolSgaBroker(request.solicitacao).sync_up_enrolments()
     else:
         raise Exception(

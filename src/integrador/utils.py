@@ -7,7 +7,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
-
 logger = logging.getLogger(__name__)
 REQUEST_TIMEOUT_SECONDS = 10
 
