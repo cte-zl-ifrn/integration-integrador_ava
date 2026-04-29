@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
                 (
                     "contexto",
                     models.CharField(
-                        choices=[("c", "Curso"), ("p", "Pólo")],
+                        choices=[("c", "Curso"), ("p", "Polo")],
                         max_length=1,
                         verbose_name="contexto",
                     ),
@@ -104,16 +104,16 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "suap_id",
-                    models.CharField(max_length=255, unique=True, verbose_name="ID do pólo no SUAP"),
+                    models.CharField(max_length=255, unique=True, verbose_name="ID do polo no SUAP"),
                 ),
                 (
                     "nome",
-                    models.CharField(max_length=255, unique=True, verbose_name="nome do pólo"),
+                    models.CharField(max_length=255, unique=True, verbose_name="nome do polo"),
                 ),
             ],
             options={
-                "verbose_name": "pólo",
-                "verbose_name_plural": "pólos",
+                "verbose_name": "polo",
+                "verbose_name_plural": "polos",
                 "ordering": ["nome"],
             },
         ),
@@ -194,7 +194,7 @@ class Migration(migrations.Migration):
                 (
                     "contexto",
                     models.CharField(
-                        choices=[("c", "Curso"), ("p", "Pólo")],
+                        choices=[("c", "Curso"), ("p", "Polo")],
                         max_length=1,
                         verbose_name="contexto",
                     ),
@@ -237,11 +237,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "suap_id",
-                    models.CharField(db_index=True, max_length=255, verbose_name="ID do pólo no SUAP"),
+                    models.CharField(db_index=True, max_length=255, verbose_name="ID do polo no SUAP"),
                 ),
                 (
                     "nome",
-                    models.CharField(db_index=True, max_length=255, verbose_name="nome do pólo"),
+                    models.CharField(db_index=True, max_length=255, verbose_name="nome do polo"),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField(db_index=True)),
@@ -264,8 +264,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "historical pólo",
-                "verbose_name_plural": "historical pólos",
+                "verbose_name": "historical polo",
+                "verbose_name_plural": "historical polos",
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
@@ -415,8 +415,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "historical vínculo no pólo",
-                "verbose_name_plural": "historical pólos X colaboradores",
+                "verbose_name": "historical vínculo no polo",
+                "verbose_name_plural": "historical polos X colaboradores",
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
@@ -484,8 +484,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "historical pólo do curso",
-                "verbose_name_plural": "historical pólos x cursos",
+                "verbose_name": "historical polo do curso",
+                "verbose_name_plural": "historical polos x cursos",
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
@@ -527,8 +527,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "pólo do curso",
-                "verbose_name_plural": "pólos x cursos",
+                "verbose_name": "polo do curso",
+                "verbose_name_plural": "polos x cursos",
                 "ordering": ["curso", "polo"],
             },
             bases=(base.models.ActiveMixin, models.Model),
@@ -622,8 +622,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "vínculo no pólo",
-                "verbose_name_plural": "pólos X colaboradores",
+                "verbose_name": "vínculo no polo",
+                "verbose_name_plural": "polos X colaboradores",
                 "ordering": ["papel", "polo", "colaborador"],
             },
             bases=(base.models.ActiveMixin, models.Model),
