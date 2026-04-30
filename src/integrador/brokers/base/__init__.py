@@ -2,7 +2,6 @@ import logging
 import rule_engine
 from cohort.models import Cohort
 
-
 logger = logging.getLogger(__name__)
 
 

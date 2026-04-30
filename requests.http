@@ -453,7 +453,8 @@ Authentication: Token changeme
             "login": "345679",
             "status": "ativo"
         }
-    ]
+    ],
+    "sincrono": true
 }
 
 
@@ -565,15 +566,15 @@ Authentication: Token changeme
         ]
     },
     "componente": {
-        "id": 333,
-        "sigla": "TEC.1234",
-        "descricao": "BBBB",
+        "id": 444,
+        "sigla": "TEC.4444",
+        "descricao": "DDDD",
 
         "tipo": 1,
         "periodo": 6,
         "optativo": true,
         "qtd_avaliacoes": 4,
-        "descricao_historico": "BBBB",
+        "descricao_historico": "DDDD",
         "is_seminario_estagio_docente": true,
         "ch_presencial": 1,
         "ch_pratica": 2,
@@ -585,7 +586,7 @@ Authentication: Token changeme
     },
     "turma": {
         "id": 4444,
-        "codigo": "20262.6.999999.TEC.1234.1E",
+        "codigo": "20262.6.888888.TEC.4444.1E",
         "data_inicio": "9999-09-09",
         "data_fim": "9999-09-09",
         "gerar_matricula": true,
@@ -594,12 +595,12 @@ Authentication: Token changeme
         "completude_minima": 100.00
     },
     "diario": {
-        "id": 55555,
-        "sigla": "TEC.1234",
+        "id": 888888,
+        "sigla": "TEC.4444",
         "tipo": "regular",
         "situacao": "Aberto",
-        "descricao": "CCCCC",
-        "descricao_historico": "CCCCC"
+        "descricao": "DDDDDD",
+        "descricao_historico": "DDDDDD"
     },
     "alunos": [
         {
@@ -694,5 +695,6 @@ Authentication: Token changeme
                 "descricao": "Polo UAB de NC"
             }
         }
-    ]
+    ],
+    "sincrono": true
 }

@@ -87,6 +87,7 @@ class Cohort(ActiveMixin, Model):
 class Enrolment(Model):
     user = ForeignKey(MoodleUser, on_delete=PROTECT, related_name="enrolments", null=True, blank=False)
     cohort = ForeignKey(Cohort, on_delete=PROTECT, related_name="enrolments")
+    active = BooleanField(_("ativo?"), default=True)
 
     class Meta:
         verbose_name = _("vínculo")
