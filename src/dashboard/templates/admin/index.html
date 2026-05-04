@@ -15,10 +15,13 @@
                 <h3>{% translate "Ações rápidas" %}</h3>
                 <ul class="link-list">
                     <li>
-                        <a href="{% url "admin:integrador_ambiente_changelist" %}">{% translate "Configurar ambientes" %}</a>
+                        <a href="{% url "admin:integrador_solicitacao_changelist" %}">{% translate "Ver solicitações" %}</a>
                     </li>
                     <li>
-                        <a href="{% url "admin:integrador_solicitacao_changelist" %}">{% translate "Ver solicitações" %}</a>
+                        <a href="{% url "admin:cohort_cohort_changelist" %}">{% translate "Configurar coortes" %}</a>
+                    </li>
+                    <li>
+                        <a href="{% url "admin:integrador_ambiente_changelist" %}">{% translate "Configurar ambientes" %}</a>
                     </li>
                 </ul>
             </div>
