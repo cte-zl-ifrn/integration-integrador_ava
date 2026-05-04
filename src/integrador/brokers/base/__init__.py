@@ -16,7 +16,7 @@ class BaseBroker:
     def cast_cohort(self, c: Cohort) -> dict:
         return {
             "nome": c.name,
-            "role": c.role.name,
+            "role": c.role.shortname,
             "ativo": c.active,
             "idnumber": c.idnumber,
             "descricao": c.description,
