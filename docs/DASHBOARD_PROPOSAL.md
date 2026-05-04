@@ -60,10 +60,9 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 ### Card 5: Ações Rápidas
 
 ```
-├─ Gerenciar Clientes
-├─ Configurar Ambientes
-├─ Ver Solicitações
-└─ Gerenciar Cursos
+├─ Ver solicitações
+├─ Configurar coortes
+├─ Configurar ambientes
 ```
 
 ---
