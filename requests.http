@@ -848,3 +848,95 @@ Authentication: Token changeme
     ],
     "sincrono": true
 }
+
+
+### Curso com auto-inscrição
+POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
+Authentication: Token changeme
+
+
+{
+    "polo": null,
+    "campus": {
+        "id": 1,
+        "sigla": "NC",
+        "descricao": "CAMPUS NC"
+    },
+    "curso": {
+        "id": 123,
+        "codigo": "123456",
+        "nome": "UDTUDT",
+        "descricao": "UDT",
+
+        "descricao_historico": "UDT",
+        "titulo_certificado_masculino": "técnico",
+        "titulo_certificado_feminino": "técnica",
+        "ch_total": 99,
+        "ch_aula": 1,
+        "autoinstrucional": true,
+        "autoinscricao": true,
+        "conteudo": [
+            {
+                "descricao": "Aulas",
+                "ch": 99
+            },
+            {
+                "descricao": "Webnar",
+                "ch": 1
+            }
+        ],
+        "modalidade": {
+            "id": 1,
+            "descricao": "Educação a Distância",
+            "nivel_ensino": {
+                "id": 1,
+                "descricao": "Técnico"
+            }
+        },
+        "restricoes": [
+            {
+                "descricao": "É servidor",
+                "chave": "eh_servidor",
+                "restricao": "true"
+            }
+        ]
+    },
+    "componente": {
+        "id": 123,
+        "sigla": "TEC.123",
+        "descricao": "UDT",
+
+        "tipo": 1,
+        "periodo": 6,
+        "optativo": true,
+        "qtd_avaliacoes": 4,
+        "descricao_historico": "UDT",
+        "is_seminario_estagio_docente": true,
+        "ch_presencial": 1,
+        "ch_pratica": 2,
+        "ch_extensao": 3,
+        "ch_pcc": 4,
+        "ch_visita_tecnica": 5,
+        "ch_semanal_1s": 6,
+        "ch_semanal_2s": 7
+    },
+    "turma": {
+        "id": 4444,
+        "codigo": "20262.1.UDT.TEC.123.AI",
+        "data_inicio": "2026-01-01",
+        "data_fim": "2026-12-31",
+        "gerar_matricula": true,
+        "modelo_padrao": true,
+        "nota_minima": 70.0000,
+        "completude_minima": 100.00
+    },
+    "diario": {
+        "id": 123456,
+        "sigla": "TEC.123",
+        "tipo": "minicurso",
+        "situacao": "Aberto",
+        "descricao": "UDT",
+        "descricao_historico": "UDT"
+    },
+    "sincrono": true
+}
