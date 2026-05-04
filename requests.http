@@ -458,6 +458,156 @@ Authentication: Token changeme
 }
 
 
+
+
+### Suspende o aluno acima
+POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
+Authentication: Token changeme
+
+
+{
+    "polo": null,
+    "campus": {
+        "id": 1,
+        "sigla": "NC",
+        "descricao": "CAMPUS NC"
+    },
+    "curso": {
+        "id": 22,
+        "codigo": "999999",
+        "nome": "AAAA",
+        "descricao": "AAAA",
+
+        "descricao_historico": "AAAAAA",
+        "titulo_certificado_masculino": "técnico",
+        "titulo_certificado_feminino": "técnica",
+        "ch_total": 99,
+        "ch_aula": 1,
+        "programa": "UAB",
+        "autoinstrucional": true,
+        "autoinscricao": true,
+        "conteudo": [
+            {
+                "descricao": "Aulas",
+                "ch": 99
+            },
+            {
+                "descricao": "Webnar",
+                "ch": 1
+            }
+        ],
+        "modalidade": {
+            "id": 1,
+            "descricao": "Educação a Distância",
+            "nivel_ensino": {
+                "id": 1,
+                "descricao": "Técnico"
+            }
+        },
+        "restricoes": [
+            {
+                "descricao": "Modalidade do curso da matricula",
+                "chave": "modalidade.id",
+                "restricao": "1"
+            },
+            {
+                "descricao": "Aluno, conforme modalidade do curso",
+                "chave": "modalidade.id",
+                "restricao": "13"
+            },
+            {
+                "descricao": "Aluno, conforme nível de ensino do curso",
+                "chave": "modalidade.nivel_ensino.id",
+                "restricao": "1"
+            },
+            {
+                "descricao": "É aluno",
+                "chave": "eh_aluno",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É servidor",
+                "chave": "eh_servidor",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É prestador",
+                "chave": "eh_prestador",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É usuario externo",
+                "chave": "eh_usuarioexterno",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É docente",
+                "chave": "eh_docente",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É técnico administrativo",
+                "chave": "eh_tecnico_administrativo",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É estrangeiro",
+                "chave": "eh_estrangeiro",
+                "restricao": "true"
+            },
+            {
+                "descricao": "É matriculado no curso",
+                "chave": "outras_matriculas.*.curso.codigo",
+                "restricao": "99999"
+            },
+            {
+                "descricao": "É matriculado no curso",
+                "chave": "outras_matriculas.*.curso.codigo",
+                "restricao": "99999"
+            }
+        ]
+    },
+    "componente": {
+        "id": 333,
+        "sigla": "TEC.1234",
+        "descricao": "BBBB",
+
+        "tipo": 1,
+        "periodo": 6,
+        "optativo": true,
+        "qtd_avaliacoes": 4,
+        "descricao_historico": "BBBB",
+        "is_seminario_estagio_docente": true,
+        "ch_presencial": 1,
+        "ch_pratica": 2,
+        "ch_extensao": 3,
+        "ch_pcc": 4,
+        "ch_visita_tecnica": 5,
+        "ch_semanal_1s": 6,
+        "ch_semanal_2s": 7
+    },
+    "turma": {
+        "id": 4444,
+        "codigo": "20262.6.999999.TEC.1234.1E",
+        "data_inicio": "9999-09-09",
+        "data_fim": "9999-09-09",
+        "gerar_matricula": true,
+        "modelo_padrao": true,
+        "nota_minima": 70.0000,
+        "completude_minima": 100.00
+    },
+    "diario": {
+        "id": 55555,
+        "sigla": "TEC.1234",
+        "tipo": "regular",
+        "situacao": "Aberto",
+        "descricao": "CCCCC",
+        "descricao_historico": "CCCCC"
+    },
+    "sincrono": true
+}
+
+
 ### Todos os atributos preenchidos, inclusive dos usuários
 POST http://localhost:8091/api/enviar_diarios/ HTTP/1.1
 Authentication: Token changeme
