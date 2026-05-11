@@ -3,8 +3,8 @@ Management command para gerar solicitações de teste para o dashboard.
 Cria dados históricos para os últimos 12 meses.
 """
 
-from datetime import timedelta
 import random
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now
@@ -41,13 +41,13 @@ class Command(BaseCommand):
         while date <= current_date:
             for _ in range(per_day):
                 # Pesar os status: mais sucesso, menos falhas
-                status = random.choices(statuses, weights=[70, 20, 10], k=1)[0]  # nosec B311
+                status = random.choices(statuses, weights=[70, 20, 10], k=1)[0]  # noqa: S311
 
                 solicitacao = Solicitacao(
                     timestamp=date
                     + timedelta(
-                        hours=random.randint(0, 23),  # nosec B311
-                        minutes=random.randint(0, 59),  # nosec B311
+                        hours=random.randint(0, 23),  # noqa: S311
+                        minutes=random.randint(0, 59),  # noqa: S311
                     ),
                     status=status,
                     # Adicionar outros campos obrigatórios se necessário

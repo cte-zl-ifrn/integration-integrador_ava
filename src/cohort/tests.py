@@ -8,13 +8,15 @@ Este módulo contém testes para:
 - Admin: Configurações do admin (RoleAdmin, CohortAdmin)
 """
 
-from django.test import TestCase, RequestFactory
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
-from unittest.mock import patch
-from cohort.models import Role, Cohort, Enrolment, MoodleUser
-from cohort.admin import RoleAdmin, CohortAdmin, EnrolmentInline
+from django.test import RequestFactory, TestCase
+
+from cohort.admin import CohortAdmin, EnrolmentInline, RoleAdmin
 from cohort.apps import CohortConfig
+from cohort.models import Cohort, Enrolment, MoodleUser, Role
 
 
 class IntegradorConfigTestCase(TestCase):
@@ -211,7 +213,9 @@ class RoleAdminTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.admin_user = User.objects.create_superuser(
-            username="admin", email="admin@test.com", password="password123"
+            username="admin",  # noqa: S106
+            email="admin@test.com",
+            password="password123",  # noqa: S106
         )
         self.role_admin = RoleAdmin(Role, None)
 
@@ -261,7 +265,9 @@ class CohortAdminTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.admin_user = User.objects.create_superuser(
-            username="admin", email="admin@test.com", password="password123"
+            username="admin",  # noqa: S106
+            email="admin@test.com",
+            password="password123",  # noqa: S106
         )
         self.cohort_admin = CohortAdmin(Cohort, None)
 

@@ -1,7 +1,7 @@
 from django.urls import path
-from .apps import IntegradorConfig
-from .views import sync_up_enrolments, sync_down_grades
 
+from .apps import IntegradorConfig
+from .views import sync_down_grades, sync_up_enrolments
 
 app_name = IntegradorConfig.name
 

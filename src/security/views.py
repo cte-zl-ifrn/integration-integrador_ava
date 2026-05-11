@@ -1,16 +1,16 @@
-from django.utils.translation import gettext as _
 import json
-import urllib
-import requests
 import logging
+import urllib
+
+import requests
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
-from django.shortcuts import redirect, render
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
 from sentry_sdk import capture_exception
-
 
 logger = logging.getLogger(__name__)
 
@@ -86,9 +86,10 @@ def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
     redirect_uri = OAUTH.get("REDIRECT_URI")
+    params = f"response_type=code&client_id={OAUTH['CLIENT_ID']}&redirect_uri={redirect_uri}"
     if not redirect_uri:
         raise ValueError("Configure OAUTH['REDIRECT_URI'] para autenticação OAuth.")
-    suap_url = f"{OAUTH['BASE_URL']}/o/authorize/?response_type=code&client_id={OAUTH['CLIENT_ID']}&redirect_uri={redirect_uri}"
+    suap_url = f"{OAUTH['BASE_URL']}/o/authorize/?{params}"
     return redirect(suap_url)  # nosemgrep: python.django.security.injection.open-redirect.open-redirect
 
 

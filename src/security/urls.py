@@ -1,7 +1,7 @@
 from django.urls import path
-from security.apps import SecurityConfig
-from security.views import login, authenticate, logout
 
+from security.apps import SecurityConfig
+from security.views import authenticate, login, logout
 
 app_name = SecurityConfig.name
 

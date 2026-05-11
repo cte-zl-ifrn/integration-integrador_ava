@@ -5,14 +5,16 @@ Isola a lógica de negócio da view.
 
 import logging
 from datetime import timedelta
+
 from django.conf import settings
+from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils.timezone import now
-from django.contrib.auth.models import User, Group
+
+from cohort.models import Cohort, Enrolment, Role
 from integrador.models import Ambiente, Solicitacao
-from cohort.models import Cohort, Role, Enrolment
 
 logger = logging.getLogger(__name__)
 

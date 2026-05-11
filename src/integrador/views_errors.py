@@ -4,10 +4,11 @@ Views customizadas para tratamento de erros.
 """
 
 import logging
+
 import sentry_sdk
-from django.views.decorators.csrf import requires_csrf_token
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import requires_csrf_token
 
 logger = logging.getLogger(__name__)
 

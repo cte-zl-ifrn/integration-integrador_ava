@@ -9,14 +9,15 @@ Este módulo contém testes para:
 - Tratamento de erros
 """
 
-from django.test import TestCase, RequestFactory, override_settings
+import json
+from unittest.mock import Mock, patch
+
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
-from unittest.mock import patch, Mock
-import json
+from django.test import RequestFactory, TestCase, override_settings
 
-from security.views import login, authenticate, logout
 from security.apps import SecurityConfig
+from security.views import authenticate, login, logout
 
 
 class SecurityAppConfigTestCase(TestCase):
@@ -390,7 +391,7 @@ class LogoutViewTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="testuser", password="password123")
+        self.user = User.objects.create_user(username="testuser", password="password123")  # noqa S106
 
     def add_session_to_request(self, request):
         """Adiciona sessão à requisição."""
@@ -430,7 +431,7 @@ class LogoutViewTestCase(TestCase):
         request = self.factory.get("/logout/")
         request.user = self.user
         self.add_session_to_request(request)
-        request.session["logout_token"] = "test_token_123"
+        request.session["logout_token"] = "test_token_123"  # noqa S105
 
         response = logout(request)
 
@@ -584,12 +585,8 @@ class EdgeCasesTestCase(TestCase):
         self.add_session_to_request(request)
         request.session["next"] = "/"
 
-        # Pode falhar devido a limite de tamanho do campo
-        try:
+        with self.assertRaises(Exception):
             authenticate(request)
-        except Exception:
-            # É esperado que falhe com username muito longo
-            pass
 
     def test_login_with_special_characters_in_next(self):
         """Testa login com caracteres especiais em next."""

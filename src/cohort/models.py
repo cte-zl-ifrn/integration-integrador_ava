@@ -1,9 +1,10 @@
+from django.db.models import PROTECT, BooleanField, CharField, ForeignKey, Model, TextField
 from django.utils.translation import gettext as _
-from django.db.models import CharField, BooleanField, ForeignKey, PROTECT, TextField
-from django.db.models import Model
-from simple_history.models import HistoricalRecords
 from django_rule_engine.fields import RuleField
+from simple_history.models import HistoricalRecords
+
 from base.models import ActiveMixin
+
 from .examples import JSON_DE_EXEMPLO
 
 
@@ -14,7 +15,8 @@ class MoodleUser(ActiveMixin, Model):
     active = BooleanField(
         _("sincronizar com o Moodle"),
         help_text=_(
-            "Indica se a sincronização do usuário com o Moodle está ativa. Inativar aqui não remove o usuário do Moodle nem o inativa no Moodle, apenas indica que ele não deve ser sincronizado."
+            "Indica se a sincronização do usuário com o Moodle está ativa. Inativar aqui não remove o usuário do "
+            "Moodle nem o inativa no Moodle, apenas indica que ele não deve ser sincronizado."
         ),
     )
 

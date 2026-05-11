@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 from sc4py.env import env
-from settings.project import *  # noqa
+
+from settings import sessions as _sessions
 from settings.apps import *  # noqa
 from settings.caches import *  # noqa
 from settings.databases import *  # noqa
-from settings.emails import *  # noqa
 from settings.developments import *  # noqa
+from settings.emails import *  # noqa
 from settings.internationalizations import *  # noqa
 from settings.loggings import *  # noqa
 from settings.middlewares import *  # noqa
 from settings.observabilities import *  # noqa
+from settings.project import *  # noqa
 from settings.routings import *  # noqa
-from settings import sessions as _sessions
 from settings.securities import *  # noqa
 from settings.templates import *  # noqa
 

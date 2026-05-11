@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from sc4py.env import env, env_as_bool, env_as_list, env_as_int
-
+from sc4py.env import env, env_as_bool, env_as_int, env_as_list
 
 SUAP_INTEGRADOR_KEY = env("SUAP_INTEGRADOR_KEY", "changeme")
 SUAP_BASE_URL = env("SUAP_BASE_URL", "https://suap.ifrn.edu.br")

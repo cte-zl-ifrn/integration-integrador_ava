@@ -1,6 +1,6 @@
 import logging
-from integrador.brokers.base import BaseBroker
 
+from integrador.brokers.base import BaseBroker
 
 logger = logging.getLogger(__name__)
 

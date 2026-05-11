@@ -1,22 +1,24 @@
-from django.utils.translation import gettext as _
 import logging
-import requests
 from functools import update_wrapper
+
+import requests
 from django.conf import settings
-from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponseRedirect
-from django.utils.html import format_html, format_html_join
-from django.utils.timezone import localtime
+from django.contrib.admin import display, register
 from django.db import transaction
-from django.urls import path, reverse
 from django.db.models import JSONField
 from django.forms import ModelForm
-from django.contrib.admin import register, display
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.urls import path, reverse
+from django.utils.html import format_html, format_html_join
+from django.utils.timezone import localtime
+from django.utils.translation import gettext as _
 from django_json_widget.widgets import JSONEditorWidget
 from import_export.resources import ModelResource
+
 from base.admin import BaseModelAdmin
-from integrador.models import Ambiente, Solicitacao
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
+from integrador.models import Ambiente, Solicitacao
 
 logger = logging.getLogger(__name__)
 

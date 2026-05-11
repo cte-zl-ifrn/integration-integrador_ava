@@ -6,17 +6,18 @@ Este módulo contém testes para:
 - admin_views: views personalizadas do admin
 """
 
-from django.test import TestCase, RequestFactory, override_settings
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from unittest.mock import patch
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils.timezone import now
-from datetime import timedelta
 
-from dashboard.storage import DashboardStorage
-from dashboard.admin_views import admin_index_dashboard
-from integrador.models import Ambiente, Solicitacao
 from cohort.models import Cohort, Role
+from dashboard.admin_views import admin_index_dashboard
+from dashboard.storage import DashboardStorage
+from integrador.models import Ambiente, Solicitacao
 
 
 class DashboardStorageTestCase(TestCase):
@@ -29,9 +30,9 @@ class DashboardStorageTestCase(TestCase):
 
         # Cria dados de teste
         self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",
+            nome="Test Ambiente",  # noqa: S106
             url="https://test.moodle.com",
-            token="test_token",
+            token="test_token",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST'",
             active=True,
         )
@@ -106,9 +107,9 @@ class DashboardStorageTestCase(TestCase):
         """Testa carregamento de ambientes com expressão inválida."""
         # Cria um ambiente com expressão inválida
         Ambiente.objects.create(
-            nome="Bad Ambiente",
+            nome="Bad Ambiente",  # noqa: S106
             url="https://bad.moodle.com",
-            token="bad_token",
+            token="bad_token",  # noqa: S106
             expressao_seletora="invalid {{expression",
             active=True,
         )
@@ -314,12 +315,18 @@ class AdminIndexDashboardTestCase(TestCase):
 
         # Cria usuário staff
         self.staff_user = User.objects.create_user(
-            username="staffuser", password="testpass123", is_staff=True, is_superuser=True
+            username="staffuser",  # noqa: S106
+            password="testpass123",  # noqa: S106
+            is_staff=True,
+            is_superuser=True,
         )
 
         # Cria usuário não-staff
         self.regular_user = User.objects.create_user(
-            username="regularuser", password="testpass123", is_staff=False, is_superuser=False
+            username="regularuser",  # noqa: S106
+            password="testpass123",  # noqa: S106
+            is_staff=False,
+            is_superuser=False,
         )
 
     def tearDown(self):

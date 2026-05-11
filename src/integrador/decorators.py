@@ -1,8 +1,10 @@
 import json
-import sentry_sdk
 from functools import wraps
-from django.http import HttpRequest, JsonResponse
+
+import sentry_sdk
 from django.conf import settings
+from django.http import HttpRequest, JsonResponse
+
 from integrador.models import Ambiente, Solicitacao
 from integrador.utils import SyncError
 

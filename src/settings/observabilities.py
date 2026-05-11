@@ -1,9 +1,9 @@
 # # -*- coding: utf-8 -*-
-from sc4py.env import env, env_as_bool, env_as_int
 import sentry_sdk
+from django.core.exceptions import DisallowedHost
+from sc4py.env import env, env_as_bool, env_as_int
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
-from django.core.exceptions import DisallowedHost
 
 if env("SENTRY_DNS", None):
     sentry_sdk.init(
@@ -17,7 +17,8 @@ if env("SENTRY_DNS", None):
         # Informe em porcentual, ou seja, 50 significa que 100% de erros serão reportados.
         traces_sample_rate=env_as_int("SENTRY_TRACES_SAMPLE_RATE", 100) / 100.0,
         # traces_sampler=
-        # If you wish to associate users to errors (assuming you are using django.contrib.auth) you may enable sending PII data.
+        # If you wish to associate users to errors (assuming you are using django.contrib.auth) you may enable sending
+        # PII data.
         send_default_pii=env_as_bool("SENTRY_SEND_DEFAULT_PII", True),
         debug=env_as_bool("SENTRY_DEBUG", False),
         environment=env("SENTRY_ENVIRONMENT", "local"),

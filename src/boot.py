@@ -1,10 +1,12 @@
+import logging
 import os
 import sys
-from settings import DATABASES
-import psycopg
 import time
-import logging
+
+import psycopg
 from sc4py.env import env_as_bool
+
+from settings import DATABASES
 
 
 def _wait_db(db):
@@ -39,7 +41,7 @@ def start_debug():
 
             if "test" not in sys.argv:  # pragma: no cover
                 execute_from_command_line([sys.argv[0], "show_urls"])  # pragma: no cover
-            debugpy.listen(("0.0.0.0", 12345))  # nosec B104
+            debugpy.listen(("0.0.0.0", 12345))  # noqa: S104
         except Exception:  # pragma: no cover
             logging.debug("Nao foi possivel iniciar debugpy")
 

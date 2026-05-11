@@ -1,4 +1,4 @@
-from django.contrib.admin.helpers import AdminForm, AdminErrorList
+from django.contrib.admin.helpers import AdminErrorList, AdminForm
 from django.contrib.admin.options import IS_POPUP_VAR, TO_FIELD_VAR
 from django.contrib.admin.utils import flatten_fieldsets, quote, unquote
 from django.core.exceptions import PermissionDenied
@@ -6,7 +6,7 @@ from django.forms.widgets import Media
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.text import capfirst
-from dsgovbr.admin import DSGovBrChangeList, DSGovBrBaseModelAdmin
+from dsgovbr.admin import DSGovBrBaseModelAdmin, DSGovBrChangeList
 from import_export.admin import ExportActionMixin, ImportExportMixin
 
 

@@ -1,4 +1,5 @@
 from ninja import NinjaAPI, Router, Schema
+
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 
 

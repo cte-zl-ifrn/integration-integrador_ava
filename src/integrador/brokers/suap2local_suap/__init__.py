@@ -1,6 +1,7 @@
 import logging
-from integrador.utils import SyncError, http_get_json, http_post_json
+
 from integrador.brokers.base import BaseBroker
+from integrador.utils import SyncError, http_get_json, http_post_json
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ class Suap2LocalSuapBroker(BaseBroker):
             raise
         except Exception as e:
             raise SyncError(
-                f"Erro ao tentar obter as coortes antes de iniciar a integração com o AVA. Contacte um administrador. Erro: {e}.",
+                "Erro ao tentar obter as coortes antes de iniciar a integração com o AVA. Contacte um administrador."
+                + f"Erro: {e}.",
                 getattr(e, "code", 525),
             )
 

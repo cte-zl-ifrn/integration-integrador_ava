@@ -1,7 +1,7 @@
 import multiprocessing
 import os
-import boot
 
+import boot
 
 wsgi_app = "wsgi:application"
 bind_port = os.getenv("VIRTUAL_PORT", "80")
@@ -9,7 +9,7 @@ bind = f"0.0.0.0:{bind_port}"
 default_web_concurrency = multiprocessing.cpu_count() * int(os.getenv("WORKER_PER_CPU", 2)) + 1
 workers = int(os.getenv("WEB_CONCURRENCY", default_web_concurrency))
 worker_class = os.getenv("WORKER_CLASS", "sync")
-worker_tmp_dir = "/dev/shm"  # nosec B108
+worker_tmp_dir = "/dev/shm"  # noqa: S108
 loglevel = "info"
 timeout = int(os.getenv("WORKER_TIMEOUT", 120))
 error_logfile = "-"

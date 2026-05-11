@@ -1,6 +1,6 @@
 import datetime
-from sc4py.env import env_as_bool, env
 
+from sc4py.env import env, env_as_bool
 
 SHOW_SUPPORT_FORM = env_as_bool("SHOW_SUPPORT_FORM", True)
 SHOW_SUPPORT_CHAT = env_as_bool("SHOW_SUPPORT_CHAT", True)

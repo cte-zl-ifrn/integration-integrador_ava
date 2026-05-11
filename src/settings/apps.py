@@ -5,7 +5,7 @@ THIRD_APPS = env_as_list(
     [
         "import_export",
         "simple_history",
-        "sass_processor",
+        # "sass_processor",
         "django_json_widget",
         "django_extensions",
         "django_rule_engine",

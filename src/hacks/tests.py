@@ -9,10 +9,11 @@ Este módulo contém testes para:
 - Unregister de modelos padrão
 """
 
-from django.test import TestCase, RequestFactory
 from django.contrib.admin.sites import AdminSite
-from django.contrib.auth.models import User, Group
-from hacks.admin import UserAdmin, GroupAdmin
+from django.contrib.auth.models import Group, User
+from django.test import RequestFactory, TestCase
+
+from hacks.admin import GroupAdmin, UserAdmin
 
 
 class UserAdminTestCase(TestCase):
@@ -25,7 +26,11 @@ class UserAdminTestCase(TestCase):
         self.admin = UserAdmin(User, self.site)
 
         self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="password123", first_name="Test", last_name="User"
+            username="testuser",  # noqa: S106
+            email="test@example.com",
+            password="password123",  # noqa: S106
+            first_name="Test",
+            last_name="User",
         )
 
     def test_user_admin_list_display(self):
@@ -363,7 +368,9 @@ class IntegrationTestCase(TestCase):
         self.site = AdminSite()
         self.user_admin = UserAdmin(User, self.site)
 
-        self.superuser = User.objects.create_superuser(username="admin", email="admin@test.com", password="password123")
+        self.superuser = User.objects.create_superuser(
+            username="admin", email="admin@test.com", password="password123"  # noqa: S106
+        )
 
     def test_complete_user_admin_workflow(self):
         """Testa fluxo completo do UserAdmin."""

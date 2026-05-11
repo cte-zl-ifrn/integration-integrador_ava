@@ -1,12 +1,27 @@
-from django.utils.translation import gettext as _
 import json
-from django.db.models import CharField, DateTimeField, JSONField, BooleanField, IntegerField, TextField
-from django.db.models import ForeignKey, PROTECT
-from django.db.models import Manager, Model
+from pathlib import Path
+
+from django.db.models import (
+    PROTECT,
+    BooleanField,
+    CharField,
+    DateTimeField,
+    ForeignKey,
+    IntegerField,
+    JSONField,
+    Manager,
+    Model,
+    TextField,
+)
 from django.utils.html import format_html
+from django.utils.translation import gettext as _
 from django_better_choices import Choices
-from sga.db.fields import PermissiveURLField
 from rule_engine import Rule
+
+from sga.db.fields import PermissiveURLField
+
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
 
 class Ambiente(Model):
@@ -19,7 +34,8 @@ class Ambiente(Model):
             return None
 
     def _c(color: str):
-        return f"""<span style='background: {color}; color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;'>{color}</span>"""
+        fix = "color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;"
+        return f"""<span style='background: {color}; {fix}'>{color}</span>"""
 
     nome = CharField(_("nome do ambiente"), max_length=255)
     url = PermissiveURLField(_("URL"), max_length=255)
@@ -92,10 +108,14 @@ class Solicitacao(Model):
 
     class Operacao(Choices):
         SYNC_UP_DIARIO = Choices.Value(
-            _("Sync UP: Diário"), value="SUDiario", schema=json.load(open("integrador/static/SUDiario.schema.json"))
+            _("Sync UP: Diário"),
+            value="SUDiario",
+            schema=json.loads((STATIC_DIR / "SUDiario.schema.json").read_text(encoding="utf-8")),
         )
         SYNC_DOWN_NOTAS = Choices.Value(
-            _("Sync DOWN: Notas"), value="SDNotas", schema=json.load(open("integrador/static/SDNotas.schema.json"))
+            _("Sync DOWN: Notas"),
+            value="SDNotas",
+            schema=json.loads((STATIC_DIR / "SDNotas.schema.json").read_text(encoding="utf-8")),
         )
 
     ambiente = ForeignKey(Ambiente, verbose_name=_("ambiente"), on_delete=PROTECT, null=True, blank=False)

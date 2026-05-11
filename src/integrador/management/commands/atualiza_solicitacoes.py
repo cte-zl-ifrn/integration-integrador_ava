@@ -1,5 +1,6 @@
 # painel/management/commands/init_local_data.py
 from django.core.management.base import BaseCommand
+
 from integrador.models import Solicitacao
 
 

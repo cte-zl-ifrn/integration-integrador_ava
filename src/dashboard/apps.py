@@ -12,6 +12,7 @@ class DashboardConfig(AppConfig):
         Aqui registramos o dashboard customizado no admin.
         """
         from django.contrib import admin
+
         from .admin_views import admin_index_dashboard
 
         # Registra a view personalizada como página inicial do admin

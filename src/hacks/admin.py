@@ -1,12 +1,12 @@
-from django.utils.translation import gettext as _
+from django.contrib.admin import display, register, site
+from django.contrib.auth.models import Group, Permission, User
 from django.utils.html import format_html, format_html_join
-from django.contrib.admin import register, display, site
-from django.contrib.auth.models import User, Group, Permission
+from django.utils.translation import gettext as _
+from import_export.fields import Field
 from import_export.resources import ModelResource
 from import_export.widgets import ManyToManyWidget
-from import_export.fields import Field
-from base.admin import BaseModelAdmin
 
+from base.admin import BaseModelAdmin
 
 ####
 # Hacks

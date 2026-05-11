@@ -1,11 +1,12 @@
-import logging
-import sc4net
 import json
+import logging
 from http.client import HTTPException
 from typing import NoReturn
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
+
+import sc4net
 
 logger = logging.getLogger(__name__)
 REQUEST_TIMEOUT_SECONDS = 10
@@ -53,11 +54,6 @@ def http_post(url, jsonbody: dict | None = None, headers: dict | None = None, en
             result.update(headers)
         return result
 
-    def _validate_web_url(url):
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            _raise_http_exception(400, "Only http/https URLs are allowed", url)
-
     def _build_post_payload(data, json_data, request_headers, encoding):
         if json_data is not None:
             payload = json.dumps(json_data).encode(encoding or "utf-8")
@@ -80,19 +76,22 @@ def http_post(url, jsonbody: dict | None = None, headers: dict | None = None, en
 
         return str(data).encode(encoding or "utf-8")
 
-    _validate_web_url(url)
     timeout = kwargs.pop("timeout", REQUEST_TIMEOUT_SECONDS)
     timeout = kwargs.get("timeout")
     request_headers = _merge_headers(headers)
     payload = _build_post_payload(None, jsonbody, request_headers, encoding)
-    request = Request(url, data=payload, headers=request_headers, method="POST")
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        _raise_http_exception(400, "Only http/https URLs are allowed", url)
+    request = Request(url, data=payload, headers=request_headers, method="POST")  # noqa: S310
     try:
-        with urlopen(request, timeout=timeout) as response:  # nosec B310
+        with urlopen(request, timeout=timeout) as response:  # noqa: S310
             byte_array_content = response.read()
     except HTTPError as exc:
         print(f"HTTPError: {exc.code} - {exc.reason} - {exc.read()}")
         _raise_http_exception(exc.code, exc.reason, url, dict(exc.headers or {}))
     except URLError as exc:
+        print(dir(exc))
         print(f"URLError: {exc.code} - {exc.reason} - {exc.read()}")
         _raise_http_exception(502, str(exc.reason), url)
 

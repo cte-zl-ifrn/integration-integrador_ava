@@ -3,7 +3,8 @@ Testes unitários para a app integrador.
 
 Este módulo contém testes para:
 - Models: Ambiente, Solicitacao
-- Decorators: json_response, exception_as_json, check_is_post, check_is_get, valid_token, check_json, try_solicitacao, detect_ambiente
+- Decorators: json_response, exception_as_json, check_is_post, check_is_get, valid_token, check_json, try_solicitacao,
+detect_ambiente
 - Views: sync_up_enrolments, sync_down_grades
 - Utils: SyncError, validate_http_response, http_get, http_post, http_get_json, http_post_json
 - Middleware: DisableCSRFForAPIMiddleware
@@ -11,39 +12,40 @@ Este módulo contém testes para:
 - Management Commands: atualiza_solicitacoes
 """
 
-from django.test import TestCase, RequestFactory, override_settings
+import io
+import json
+import logging
+from http.client import HTTPException
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.http import JsonResponse
-from unittest.mock import patch, Mock
-from http.client import HTTPException
-import json
-import io
-import logging
-from types import SimpleNamespace
+from django.test import RequestFactory, TestCase, override_settings
 
-from integrador.models import Ambiente, Solicitacao
+from cohort.models import Cohort, Enrolment, MoodleUser, Role
 from integrador.apps import IntegradorConfig
-from integrador.decorators import (
-    json_response,
-    exception_as_json,
-    check_is_post,
-    check_is_get,
-    valid_token,
-    check_json,
-    try_solicitacao,
-    detect_ambiente,
-)
-from integrador.views import sync_up_enrolments
-from integrador.utils import SyncError, validate_http_response, http_get, http_post, http_get_json, http_post_json
-from integrador.middleware import DisableCSRFForAPIMiddleware
 from integrador.brokers.base import BaseBroker
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
-from integrador.moodle_mock import MockHTTPResponse, LocalSuapHTTPMock, ToolSgaHTTPMock
-from cohort.models import Cohort, Role, MoodleUser, Enrolment
+from integrador.decorators import (
+    check_is_get,
+    check_is_post,
+    check_json,
+    detect_ambiente,
+    exception_as_json,
+    json_response,
+    try_solicitacao,
+    valid_token,
+)
+from integrador.middleware import DisableCSRFForAPIMiddleware
+from integrador.models import Ambiente, Solicitacao
+from integrador.moodle_mock import LocalSuapHTTPMock, MockHTTPResponse, ToolSgaHTTPMock
+from integrador.utils import SyncError, http_get, http_get_json, http_post, http_post_json, validate_http_response
+from integrador.views import sync_up_enrolments
 
 # Configura logging para WARNING durante testes (suprime DEBUG e INFO)
 logging.getLogger("integrador").setLevel(logging.WARNING)
@@ -71,9 +73,9 @@ class AmbienteModelTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.ambiente = Ambiente.objects.create(
-            nome="Ambiente Teste",
+            nome="Ambiente Teste",  # noqa: S106
             url="https://test.moodle.com",
-            token="test_token_123",
+            token="test_token_123",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST'",
             ordem=1,
             active=True,
@@ -82,9 +84,9 @@ class AmbienteModelTestCase(TestCase):
     def test_create_ambiente(self):
         """Testa criação de ambiente."""
         ambiente = Ambiente.objects.create(
-            nome="Outro Ambiente",
+            nome="Outro Ambiente",  # noqa: S106
             url="https://outro.moodle.com",
-            token="outro_token",
+            token="outro_token",  # noqa: S106
             expressao_seletora="campus.sigla == 'OUTRO'",
             ordem=2,
         )
@@ -136,7 +138,11 @@ class AmbienteModelTestCase(TestCase):
     def test_ambiente_ordering(self):
         """Testa ordenação de ambientes."""
         ambiente2 = Ambiente.objects.create(
-            nome="Ambiente 2", url="https://test2.com", token="token2", expressao_seletora="1=1", ordem=0
+            nome="Ambiente 2",  # noqa: S106
+            url="https://test2.com",
+            token="token2",  # noqa: S106
+            expressao_seletora="1=1",
+            ordem=0,
         )
 
         ambientes = list(Ambiente.objects.all())
@@ -197,9 +203,9 @@ class AmbienteModelTestCase(TestCase):
         """Testa que PermissiveURLField aceita URLs http e https válidas."""
         for url in ["http://localhost:8000/path", "https://example.com"]:
             ambiente = Ambiente(
-                nome=f"Ambiente {url}",
+                nome=f"Ambiente {url}",  # noqa: S106
                 url=url,
-                token="token",
+                token="token",  # noqa: S106
                 expressao_seletora="1 == 1",
                 ordem=1,
                 active=True,
@@ -209,9 +215,9 @@ class AmbienteModelTestCase(TestCase):
     def test_permissive_url_field_rejects_invalid_url(self):
         """Testa que PermissiveURLField rejeita valores sem protocolo HTTP/HTTPS."""
         ambiente = Ambiente(
-            nome="Ambiente inválido",
+            nome="Ambiente inválido",  # noqa: S106
             url="ftp://example.com",
-            token="token",
+            token="token",  # noqa: S106
             expressao_seletora="1 == 1",
             ordem=1,
             active=True,
@@ -233,9 +239,9 @@ class SolicitacaoModelTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.ambiente = Ambiente.objects.create(
-            nome="Ambiente Teste",
+            nome="Ambiente Teste",  # noqa: S106
             url="https://test.moodle.com",
-            token="test_token",
+            token="test_token",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST'",
             active=True,
         )
@@ -658,9 +664,9 @@ class AmbienteSelecaoTestCase(TestCase):
 
     def _cria_ambiente(self, nome, ordem=1, active=True, expressao="campus.sigla == 'TEST'"):
         return Ambiente.objects.create(
-            nome=nome,
+            nome=nome,  # noqa: S106
             url=f"https://{nome.lower().replace(' ', '-')}.moodle.com",
-            token="token",
+            token="token",  # noqa: S106
             expressao_seletora=expressao,
             ordem=ordem,
             active=active,
@@ -924,12 +930,17 @@ class DecoratorsTestCase(TestCase):
         request = self.factory.post("/test/", data="invalid json {{{", content_type="application/json")
 
         result = test_view(request)
-        self.assertIn("error", result)
+        self.assertIn("check_json", result)
+        self.assertIn("error", result.get("check_json", {}))
 
     def test_detect_ambiente_decorator_found(self):
         """Testa decorator detect_ambiente encontrando ambiente."""
         Ambiente.objects.create(
-            nome="Test", url="http://test.com", token="token", expressao_seletora="campus.sigla == 'TEST'", active=True
+            nome="Test",  # noqa: S106
+            url="http://test.com",
+            token="token",  # noqa: S106
+            expressao_seletora="campus.sigla == 'TEST'",
+            active=True,
         )
 
         @detect_ambiente
@@ -966,7 +977,11 @@ class TrySolicitacaoDecoratorTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.ambiente = Ambiente.objects.create(
-            nome="Test", url="http://test.com", token="token", expressao_seletora="1 ==1", active=True
+            nome="Test",  # noqa: S106
+            url="http://test.com",
+            token="token",  # noqa: S106
+            expressao_seletora="1 ==1",
+            active=True,
         )
 
     def test_try_solicitacao_success(self):
@@ -1074,7 +1089,11 @@ class BaseBrokerTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.ambiente = Ambiente.objects.create(
-            nome="Test", url="http://test.com", token="test_token_123", expressao_seletora="1 ==1", active=True
+            nome="Test",  # noqa: S106
+            url="http://test.com",
+            token="test_token_123",  # noqa: S106
+            expressao_seletora="1 ==1",
+            active=True,
         )
 
         self.solicitacao = Solicitacao.objects.create(
@@ -1190,7 +1209,11 @@ class CohortSelecaoTestCase(TestCase):
 
     def setUp(self):
         self.ambiente = Ambiente.objects.create(
-            nome="ZL", url="https://ead.zl.ifrn.edu.br", token="token", expressao_seletora="1==1", active=True
+            nome="ZL",  # noqa: S106
+            url="https://ead.zl.ifrn.edu.br",
+            token="token",  # noqa: S106
+            expressao_seletora="1==1",
+            active=True,
         )
         self.solicitacao = Solicitacao.objects.create(
             ambiente=self.ambiente,
@@ -1381,9 +1404,9 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.ambiente = Ambiente.objects.create(
-            nome="Test Moodle",
+            nome="Test Moodle",  # noqa: S106
             url="https://moodle.test.com",
-            token="test_token",
+            token="test_token",  # noqa: S106
             expressao_seletora="1 ==1",
             active=True,
         )
@@ -1463,7 +1486,11 @@ class ManagementCommandTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.ambiente = Ambiente.objects.create(
-            nome="Test", url="http://test.com", token="token", expressao_seletora="1 ==1", active=True
+            nome="Test",  # noqa: S106
+            url="http://test.com",
+            token="token",  # noqa: S106
+            expressao_seletora="1 ==1",
+            active=True,
         )
 
     def test_atualiza_solicitacoes_command_exists(self):
@@ -1750,7 +1777,7 @@ class SecurityViewsCoverageTestCase(TestCase):
 
         request = self.factory.get("/logout/")
         self._add_session(request)
-        request.session["logout_token"] = "abc123"
+        request.session["logout_token"] = "abc123"  # noqa: S105
 
         with patch.dict(
             security_views.OAUTH,
@@ -1772,9 +1799,9 @@ class IntegrationTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.ambiente = Ambiente.objects.create(
-            nome="Integration Test",
+            nome="Integration Test",  # noqa: S106
             url="https://moodle.integration.test",
-            token="integration_token",
+            token="integration_token",  # noqa: S106
             expressao_seletora="campus.sigla == 'INT'",
             active=True,
         )
@@ -1817,18 +1844,18 @@ class EdgeCasesTestCase(TestCase):
     def test_ambiente_with_multiple_matching_rules(self):
         """Testa ambiente com múltiplas regras correspondentes."""
         amb1 = Ambiente.objects.create(
-            nome="Ambiente 1",
+            nome="Ambiente 1",  # noqa: S106
             url="http://test1.com",
-            token="token1",
+            token="token1",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST'",
             ordem=1,
             active=True,
         )
 
         Ambiente.objects.create(
-            nome="Ambiente 2",
+            nome="Ambiente 2",  # noqa: S106
             url="http://test2.com",
-            token="token2",
+            token="token2",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST'",
             ordem=2,
             active=True,
@@ -1843,7 +1870,10 @@ class EdgeCasesTestCase(TestCase):
     def test_solicitacao_with_missing_json_fields(self):
         """Testa solicitação com campos JSON faltando."""
         ambiente = Ambiente.objects.create(
-            nome="Test", url="http://test.com", token="token", expressao_seletora="1 ==1"
+            nome="Test",  # noqa: S106
+            url="http://test.com",
+            token="token",  # noqa: S106
+            expressao_seletora="1 ==1",
         )
 
         # JSON incompleto
@@ -1857,9 +1887,9 @@ class EdgeCasesTestCase(TestCase):
     def test_ambiente_expressao_with_complex_logic(self):
         """Testa ambiente com expressão seletora complexa."""
         ambiente = Ambiente.objects.create(
-            nome="Complex",
+            nome="Complex",  # noqa: S106
             url="http://test.com",
-            token="token",
+            token="token",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST' and diario.tipo == 'regular'",
             active=True,
         )
@@ -1872,7 +1902,10 @@ class EdgeCasesTestCase(TestCase):
     def test_broker_with_url_ending_with_slash(self):
         """Testa broker com URL terminando em barra."""
         ambiente = Ambiente.objects.create(
-            nome="Test", url="https://moodle.test.com/", token="token", expressao_seletora="1 ==1"
+            nome="Test",  # noqa: S106
+            url="https://moodle.test.com/",
+            token="token",  # noqa: S106
+            expressao_seletora="1 ==1",
         )
 
         solicitacao = Solicitacao.objects.create(
@@ -1887,9 +1920,9 @@ class EdgeCasesTestCase(TestCase):
     def test_ambiente_manager_with_invalid_expression(self):
         """Testa manager com expressão inválida."""
         Ambiente.objects.create(
-            nome="Invalid",
+            nome="Invalid",  # noqa: S106
             url="http://test.com",
-            token="token",
+            token="token",  # noqa: S106
             expressao_seletora="invalid {{ expression",
             active=True,
         )
@@ -1958,7 +1991,11 @@ class CSRFErrorViewTestCase(TestCase):
     @patch("integrador.views_errors.sentry_sdk")
     def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
         """Testa que erro CSRF inclui informações do usuário autenticado."""
-        user = User.objects.create_user(username="testuser", email="test@example.com", password="testpass123")
+        user = User.objects.create_user(
+            username="testuser",  # noqa: S106
+            email="test@example.com",
+            password="testpass123",  # noqa: S106
+        )
 
         request = self.factory.post("/api/test/")
         request.user = user
@@ -2069,14 +2106,15 @@ class AmbienteAdminTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        from integrador.admin import AmbienteAdmin
         from django.contrib.admin.sites import AdminSite
+
+        from integrador.admin import AmbienteAdmin
 
         self.admin = AmbienteAdmin(Ambiente, AdminSite())
         self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",
+            nome="Test Ambiente",  # noqa: S106
             url="https://test.com",
-            token="test_token",
+            token="test_token",  # noqa: S106
             expressao_seletora="campus.sigla == 'TEST'",
             active=True,
         )
@@ -2139,12 +2177,17 @@ class SolicitacaoAdminTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        from integrador.admin import SolicitacaoAdmin
         from django.contrib.admin.sites import AdminSite
+
+        from integrador.admin import SolicitacaoAdmin
 
         self.admin = SolicitacaoAdmin(Solicitacao, AdminSite())
         self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente", url="https://test.com", token="test_token", active=True, expressao_seletora="1==1"
+            nome="Test Ambiente",  # noqa: S106
+            url="https://test.com",
+            token="test_token",  # noqa: S106
+            active=True,
+            expressao_seletora="1==1",
         )
         self.solicitacao = Solicitacao.objects.create(
             ambiente=self.ambiente,

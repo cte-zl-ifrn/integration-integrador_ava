@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import importlib.util
 import sys
+
 from sc4py.env import env_as_bool, env_as_list
+
 from .apps import INSTALLED_APPS
 from .middlewares import MIDDLEWARE
 

@@ -7,7 +7,6 @@ from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 
-
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -73,7 +72,7 @@ class LocalSuapHTTPMock:
       - sync_down_grades    (GET)
     """
 
-    TOKEN = "changeme"  # nosec B105
+    TOKEN = "changeme"  # noqa: S105
 
     def _validate_authentication(self, headers: dict) -> MockHTTPResponse | None:
         auth = headers.get("Authentication") or headers.get("authentication")
@@ -196,7 +195,7 @@ class ToolSgaHTTPMock:
     a definição da API do plugin `tool_sga`.
     """
 
-    TOKEN = "changeme"  # nosec B105
+    TOKEN = "changeme"  # noqa: S105
 
     PLUGIN_PATH = "/local/tool_sga/api/index.php"
 

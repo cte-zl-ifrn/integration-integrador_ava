@@ -1,7 +1,9 @@
 import re
-from django.core.exceptions import ValidationError
+
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import models
+
 from sga.db.obfuscators import mask_all
 
 

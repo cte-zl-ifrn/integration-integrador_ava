@@ -1,7 +1,7 @@
 import logging
-from integrador.models import Solicitacao
-from integrador.brokers.base import BaseBroker
 
+from integrador.brokers.base import BaseBroker
+from integrador.models import Solicitacao
 
 logger = logging.getLogger(__name__)
 

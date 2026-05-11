@@ -8,16 +8,17 @@ Este módulo contém testes para:
 - BaseChangeList: ChangeList customizado com URL de visualização
 """
 
-from django.test import TestCase, RequestFactory
+from unittest.mock import MagicMock, Mock, patch
+
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.forms.widgets import Media
-from unittest.mock import Mock, patch, MagicMock
-from base.models import ActiveMixin
-from base.admin import BasicModelAdmin, BaseModelAdmin, BaseChangeList
+from django.test import RequestFactory, TestCase
 
+from base.admin import BaseChangeList, BaseModelAdmin, BasicModelAdmin
+from base.models import ActiveMixin
 
 User = get_user_model()
 
@@ -85,7 +86,11 @@ class BaseChangeListTestCase(TestCase):
         self.factory = RequestFactory()
         self.site = AdminSite()
         self.admin = MockModelAdmin(MockModel, self.site)
-        self.user = User.objects.create_superuser(username="admin", email="admin@test.com", password="password123")
+        self.user = User.objects.create_superuser(
+            username="admin",  # noqa: S106
+            email="admin@test.com",
+            password="password123",  # noqa: S106
+        )
 
     def test_url_for_result_uses_view_url(self):
         """Testa se url_for_result usa a URL de visualização."""
@@ -136,7 +141,11 @@ class BasicModelAdminTestCase(TestCase):
         self.factory = RequestFactory()
         self.site = AdminSite()
         self.admin = MockModelAdmin(MockModel, self.site)
-        self.user = User.objects.create_superuser(username="admin", email="admin@test.com", password="password123")
+        self.user = User.objects.create_superuser(
+            username="admin",  # noqa: S106
+            email="admin@test.com",
+            password="password123",  # noqa: S106
+        )
 
     def test_get_changelist_returns_base_changelist(self):
         """Testa se get_changelist retorna BaseChangeList."""
@@ -353,7 +362,11 @@ class IntegrationTestCase(TestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
         self.site = AdminSite()
-        self.user = User.objects.create_superuser(username="admin", email="admin@test.com", password="password123")
+        self.user = User.objects.create_superuser(
+            username="admin",  # noqa: S106
+            email="admin@test.com",
+            password="password123",  # noqa: S106
+        )
 
     def test_basic_model_admin_full_workflow(self):
         """Testa o fluxo completo do BasicModelAdmin."""
@@ -394,7 +407,11 @@ class EdgeCasesTestCase(TestCase):
         self.factory = RequestFactory()
         self.site = AdminSite()
         self.admin = MockModelAdmin(MockModel, self.site)
-        self.user = User.objects.create_superuser(username="admin", email="admin@test.com", password="password123")
+        self.user = User.objects.create_superuser(
+            username="admin",  # noqa: S106
+            email="admin@test.com",
+            password="password123",  # noqa: S106
+        )
 
     @patch.object(MockModelAdmin, "get_object")
     def test_preview_view_with_none_object(self, mock_get_object):

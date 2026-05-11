@@ -1,19 +1,21 @@
 import logging
+
 from django.db import transaction
 from django.http import HttpRequest
-from integrador.models import Solicitacao
+
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
 from integrador.brokers.suap2tool_sga import Suap2ToolSgaBroker
 from integrador.decorators import (
-    json_response,
-    exception_as_json,
-    check_is_post,
     check_is_get,
-    valid_token,
+    check_is_post,
     check_json,
-    try_solicitacao,
     detect_ambiente,
+    exception_as_json,
+    json_response,
+    try_solicitacao,
+    valid_token,
 )
+from integrador.models import Solicitacao
 
 logger = logging.getLogger(__name__)
 
