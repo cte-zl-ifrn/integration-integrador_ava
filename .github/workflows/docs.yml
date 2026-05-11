@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-pages:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.14"
 
       - name: Install dependencies
         run: |
@@ -43,7 +43,7 @@ jobs:
         with:
           path: docs/_build/html
 
-  deploy:
+  deploy-pages:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
