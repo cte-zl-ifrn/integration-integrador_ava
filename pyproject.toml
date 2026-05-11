@@ -1,41 +1,47 @@
-# https://beta.ruff.rs/docs/settings/
-# https://google.github.io/styleguide/pyguide.html
+[project]
+name = "integrador-ava"
+version = "1.1.040"
+description = "É um middleware que conecta Sistemas de Gestão Acadêmica (SGA) ao Moodle."
+readme = "README.md"
+license = { file = "LICENSE.md" }
+authors = [{ name = "IFRN - DEAD", email = "dead.zl@ifrn.edu.br" }]
+requires-python = ">=3.14"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+]
+
+dependencies = [
+    "avaintegration-metapackage==6.0.5.26",
+]
+
+[project.urls]
+Homepage = "https://github.com/cte-zl-ifrn/integration-integrador_ava"
+Source = "https://github.com/cte-zl-ifrn/integration-integrador_ava"
+"Bug Tracker" = "https://github.com/cte-zl-ifrn/integration-integrador_ava/issues"
+Download = "https://github.com/cte-zl-ifrn/integration-integrador_ava/releases/"
+Docs = "https://cte-zl-ifrn.github.io/integration-integrador_ava/"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["integrador_ava"]
+
+[tool.coverage.run]
+source = ["integrador_ava"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
 
 [tool.ruff]
 line-length = 120
-# select = [
-#     "F401",
-#     "F403",
-# ]
-target-version = "py312"
 
-[tool.ruff.lint.flake8-annotations]
-allow-star-arg-any = true
-
-[tool.ruff.lint.mccabe]
-max-complexity = 5
-
-[tool.ruff.lint.pycodestyle]
-max-doc-length = 120
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "S"]
 
 [tool.black]
 line-length = 120
-
-# [tool.ruff.per-file-ignores]
-# "path/to/file.py" = ["E402"]
-# "path/to/file.py" = ["E402"]
-
-[tool.pytest.ini_options]
-minversion = "6.0"
-# addopts="-ra --cov-report term --cov-report html:coverage --cov-report xml:coverage/cobertura-coverage.xml --cov=."
-addopts="-p no:warnings -ra  ."
-filterwarnings="ignore::urllib3.exceptions.InsecureRequestWarning"
-
-[tool.djlint]
-profile = "django"
-extension = "html"
-# H016/H030/H031 geram falso positivo frequente em templates herdados com {% extends %}.
-ignore = "H016,H030,H031"
