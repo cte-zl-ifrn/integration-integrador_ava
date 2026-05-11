@@ -15,35 +15,35 @@ cd ~/projetos/IFRN/ava/workspace
 
 ## Apps e seus TestCases
 
-| App          | Arquivo de referência     | Principais TestCases                                                 |
-|--------------|---------------------------|----------------------------------------------------------------------|
-| `base`       | [base.md](base.md)        | `ActiveMixinTestCase`, `BasicModelAdminTestCase`, `BaseModelAdminTestCase` |
-| `coorte`     | [coorte.md](coorte.md)    | `EnrolmentModelTestCase`, `RoleAdminTestCase`, `CohortAdminTestCase` |
-| `health`     | [health.md](health.md)    | `HealthViewTestCase`, `HealthURLsTestCase`, `HealthMonitoringTestCase` |
-| `integrador` | [integrador.md](integrador.md) | Ver tabela abaixo                                               |
-| `security`   | [security.md](security.md)| `LoginViewTestCase`, `AuthenticateViewTestCase`, `LogoutViewTestCase` |
-| `settings`   | [settings.md](settings.md)| `SettingsAppsTestCase`, `SettingsSecuritiesTestCase`                 |
+| App          | Arquivo de referência       | Principais TestCases                                                    |
+|--------------|-----------------------------|-------------------------------------------------------------------------|
+| `base`       | [base](base.md)             | `ActiveMixinTestCase`,`BasicModelAdminTestCase`,`BaseModelAdminTestCase`|
+| `coorte`     | [coorte](coorte.md)         | `EnrolmentModelTestCase`, `RoleAdminTestCase`, `CohortAdminTestCase`    |
+| `health`     | [health](health.md)         | `HealthViewTestCase`, `HealthURLsTestCase`, `HealthMonitoringTestCase`  |
+| `integrador` | [integrador](integrador.md) | Ver tabela abaixo                                                       |
+| `security`   | [security](security.md)     | `LoginViewTestCase`, `AuthenticateViewTestCase`, `LogoutViewTestCase`   |
+| `settings`   | [settings](settings.md)     | `SettingsAppsTestCase`, `SettingsSecuritiesTestCase`                    |
 
 ### App `integrador` — TestCases detalhados
 
-| TestCase                        | O que testa                                                              |
-|---------------------------------|--------------------------------------------------------------------------|
-| `AmbienteModelTestCase`         | Modelo `Ambiente`, `expressao_seletora`, `seleciona_ambiente`            |
-| `SolicitacaoModelTestCase`      | Modelo `Solicitacao`, auto-populate no `save()`, `status_merged`         |
-| `SyncErrorTestCase`             | Classe `SyncError` com código HTTP customizado                           |
-| `UtilsFunctionsTestCase`        | `http_get`, `http_post`, `http_get_json`, `http_post_json`, `validate_http_response` |
-| `LocalSuapHTTPMockTestCase`     | Mock HTTP do plugin `local_suap`: auth, endpoints, 422, sync_up/down     |
-| `ToolSgaHTTPMockTestCase`       | Mock HTTP do plugin `tool_sga`: 400/401/404/501 (stub)                   |
-| `AmbienteSelecaoTestCase`       | Seleção de ambiente: múltiplas regras, ordem, sem ambiente, inativo      |
-| `CohortSelecaoTestCase`         | Seleção de cohorts via `rule_diario` e `rule_coordenacao`                |
-| `DecoratorsTestCase`            | 8 decorators: `json_response`, `valid_token`, `check_is_post`, etc.     |
-| `TrySolicitacaoDecoratorTestCase`| `try_solicitacao`: criação de `Solicitacao`, tratamento de exceções     |
-| `MiddlewareTestCase`            | `DisableCSRFForAPIMiddleware` com padrões de URL para isenção            |
-| `BaseBrokerTestCase`            | `BaseBroker`: credentials, `get_cohort`, métodos abstratos               |
-| `Suap2LocalSuapBrokerTestCase`  | Broker `suap2local_suap`: `sync_up_enrolments`, `sync_down_grades`, 422  |
-| `ManagementCommandTestCase`     | `atualiza_solicitacoes` (migração de registros antigos)                  |
-| `IntegrationTestCase`           | Fluxo completo de `sync_up_enrolments` com todos os decorators           |
-| `EdgeCasesTestCase`             | Múltiplos ambientes, JSON incompleto, expressões complexas               |
+| TestCase                         | O que testa                                                                       |
+|----------------------------------|-----------------------------------------------------------------------------------|
+| `AmbienteModelTestCase`          | Modelo `Ambiente`, `expressao_seletora`, `seleciona_ambiente`                     |
+| `SolicitacaoModelTestCase`       | Modelo `Solicitacao`, auto-populate no `save()`, `status_merged`                  |
+| `SyncErrorTestCase`              | Classe `SyncError` com código HTTP customizado                                    |
+| `UtilsFunctionsTestCase`         | `http_get`, `http_post`,`http_get_json`,`http_post_json`,`validate_http_response` |
+| `LocalSuapHTTPMockTestCase`      | Mock HTTP do plugin `local_suap`: auth, endpoints, 422, sync_up/down              |
+| `ToolSgaHTTPMockTestCase`        | Mock HTTP do plugin `tool_sga`: 400/401/404/501 (stub)                            |
+| `AmbienteSelecaoTestCase`        | Seleção de ambiente: múltiplas regras, ordem, sem ambiente, inativo               |
+| `CohortSelecaoTestCase`          | Seleção de cohorts via `rule_diario` e `rule_coordenacao`                         |
+| `DecoratorsTestCase`             | 8 decorators: `json_response`, `valid_token`, `check_is_post`, etc.               |
+| `TrySolicitacaoDecoratorTestCase`| `try_solicitacao`: criação de `Solicitacao`, tratamento de exceções               |
+| `MiddlewareTestCase`             | `DisableCSRFForAPIMiddleware` com padrões de URL para isenção                     |
+| `BaseBrokerTestCase`             | `BaseBroker`: credentials, `get_cohort`, métodos abstratos                        |
+| `Suap2LocalSuapBrokerTestCase`   | Broker `suap2local_suap`: `sync_up_enrolments`, `sync_down_grades`, 422           |
+| `ManagementCommandTestCase`      | `atualiza_solicitacoes` (migração de registros antigos)                           |
+| `IntegrationTestCase`            | Fluxo completo de `sync_up_enrolments` com todos os decorators                    |
+| `EdgeCasesTestCase`              | Múltiplos ambientes, JSON incompleto, expressões complexas                        |
 
 > **Alias:** `MoodleHTTPMockTestCase = LocalSuapHTTPMockTestCase` (mantido para compatibilidade).
 

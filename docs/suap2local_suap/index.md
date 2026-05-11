@@ -9,13 +9,13 @@ o broker que recebe payloads no **padrão Suap** e os envia ao plugin Moodle **`
 
 ## Visão geral
 
-| Item                  | Valor                                              |
-|-----------------------|----------------------------------------------------|
-| Plugin Moodle         | [`local_suap`](https://github.com/cte-zl-ifrn/moodle-local_suap) |
-| Endpoint Moodle       | `/local/suap/api/index.php`                        |
+| Item                  | Valor                                                              |
+|-----------------------|--------------------------------------------------------------------|
+| Plugin Moodle         | [`local_suap`](https://github.com/cte-zl-ifrn/moodle-local_suap)   |
+| Endpoint Moodle       | `/local/suap/api/index.php`                                        |
 | Broker (classe)       | `Suap2LocalSuapBroker` (`src/integrador/brokers/suap2local_suap/`) |
-| Autenticação Moodle   | `Authentication: Token <token_do_ambiente>`        |
-| Autenticação cliente  | `Authentication: Token <SUAP_INTEGRADOR_KEY>`      |
+| Autenticação Moodle   | `Authentication: Token <token_do_ambiente>`                        |
+| Autenticação cliente  | `Authentication: Token <SUAP_INTEGRADOR_KEY>`                      |
 
 ---
 
@@ -25,7 +25,7 @@ o broker que recebe payloads no **padrão Suap** e os envia ao plugin Moodle **`
 
 Sincroniza matrículas, papéis e coortes no Moodle para um diário.
 
-#### Headers obrigatórios
+#### Headers obrigatórios 1
 
 ```http
 Authentication: Token <SUAP_INTEGRADOR_KEY>
@@ -108,7 +108,7 @@ ao Moodle:
 }
 ```
 
-#### Resposta de sucesso (HTTP 200)
+#### Resposta de sucesso (HTTP 200) 1
 
 O Integrador adiciona `ambiente` à resposta do plugin:
 
@@ -121,7 +121,7 @@ O Integrador adiciona `ambiente` à resposta do plugin:
 }
 ```
 
-#### Respostas de erro
+#### Respostas de erro 1
 
 | Código | Condição                                                         |
 |--------|------------------------------------------------------------------|
@@ -130,7 +130,7 @@ O Integrador adiciona `ambiente` à resposta do plugin:
 | 404    | Nenhum Ambiente ativo corresponde ao payload                     |
 | 422    | Payload com campos obrigatórios ausentes                         |
 | 525    | Erro ao obter coortes (falha interna antes de chamar o Moodle)   |
-| 5xx    | Erro do Moodle ou falha de comunicação                            |
+| 5xx    | Erro do Moodle ou falha de comunicação                           |
 
 Corpo do erro (exemplo 422):
 
@@ -148,7 +148,7 @@ Corpo do erro (exemplo 422):
 
 Baixa as notas de um diário do Moodle.
 
-#### Headers obrigatórios
+#### Headers obrigatórios 2
 
 ```http
 Authentication: Token <SUAP_INTEGRADOR_KEY>
@@ -156,10 +156,10 @@ Authentication: Token <SUAP_INTEGRADOR_KEY>
 
 #### Query parameters
 
-| Parâmetro     | Tipo   | Obrigatório | Descrição                              |
-|---------------|--------|-------------|----------------------------------------|
+| Parâmetro     | Tipo   | Obrigatório | Descrição                                  |
+|---------------|--------|-------------|--------------------------------------------|
 | `campus_sigla`| string | Sim         | Sigla do campus (para seleção do ambiente) |
-| `diario_id`   | int    | Sim         | ID do diário no SUAP                   |
+| `diario_id`   | int    | Sim         | ID do diário no SUAP                       |
 
 Exemplo:
 
@@ -168,7 +168,7 @@ GET /api/baixar_notas/?campus_sigla=ZL&diario_id=2
 Authentication: Token <SUAP_INTEGRADOR_KEY>
 ```
 
-#### Resposta de sucesso (HTTP 200)
+#### Resposta de sucesso (HTTP 200) 2
 
 ```json
 [
@@ -180,14 +180,14 @@ Authentication: Token <SUAP_INTEGRADOR_KEY>
 ]
 ```
 
-#### Respostas de erro
+#### Respostas de erro 2
 
 | Código | Condição                                                  |
 |--------|-----------------------------------------------------------|
 | 400    | Método não é GET                                          |
 | 401    | Header `Authentication` ausente ou token inválido         |
 | 404    | Nenhum Ambiente ativo corresponde ao `campus_sigla`       |
-| 5xx    | Erro do Moodle ou falha de comunicação                     |
+| 5xx    | Erro do Moodle ou falha de comunicação                    |
 
 ---
 
@@ -197,7 +197,7 @@ As views são compostas por decorators aplicados de fora para dentro:
 
 ### `sync_up_enrolments`
 
-```
+``` text
 @transaction.atomic
 @json_response         ← garante JsonResponse na saída
 @exception_as_json     ← captura exceções → JSON + Sentry
@@ -210,7 +210,7 @@ As views são compostas por decorators aplicados de fora para dentro:
 
 ### `sync_down_grades`
 
-```
+``` text
 @transaction.atomic
 @json_response
 @exception_as_json
@@ -224,7 +224,7 @@ As views são compostas por decorators aplicados de fora para dentro:
 
 ## Fluxo completo — `sync_up_enrolments`
 
-```
+``` text
 SGA (SUAP)
   │  POST /api/enviar_diarios/
   │  Authentication: Token <SUAP_INTEGRADOR_KEY>
@@ -287,13 +287,13 @@ Documentação completa do mock: [docs/tests/moodle_mock.md](../tests/moodle_moc
 
 ## Referências de código
 
-| Artefato                  | Caminho                                             |
-|---------------------------|-----------------------------------------------------|
-| Broker                    | `src/integrador/brokers/suap2local_suap/__init__.py`|
-| Base do broker            | `src/integrador/brokers/base/__init__.py`           |
-| Views                     | `src/integrador/views.py`                           |
-| URLs                      | `src/integrador/urls.py`                            |
-| Decorators                | `src/integrador/decorators.py`                      |
-| Mock HTTP                 | `src/integrador/moodle_mock.py`                     |
+| Artefato                  | Caminho                                                                                 |
+|---------------------------|-----------------------------------------------------------------------------------------|
+| Broker                    | `src/integrador/brokers/suap2local_suap/__init__.py`                                    |
+| Base do broker            | `src/integrador/brokers/base/__init__.py`                                               |
+| Views                     | `src/integrador/views.py`                                                               |
+| URLs                      | `src/integrador/urls.py`                                                                |
+| Decorators                | `src/integrador/decorators.py`                                                          |
+| Mock HTTP                 | `src/integrador/moodle_mock.py`                                                         |
 | Testes                    | `src/integrador/tests.py` → `Suap2LocalSuapBrokerTestCase`, `LocalSuapHTTPMockTestCase` |
-| Exemplo de requisição     | `requests.http` (raiz do projeto)                   |
+| Exemplo de requisição     | `requests.http` (raiz do projeto)                                                       |

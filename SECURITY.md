@@ -2,11 +2,22 @@
 
 Obrigado por ajudar a manter este projeto e sua comunidade mais **segura**.
 
-Este documento descreve como relatar vulnerabilidades de segurança, quais versões são suportadas e quais são as nossas práticas gerais de segurança.
+Este documento descreve como relatar vulnerabilidades de segurança, quais versões são suportadas e quais são as nossas
+práticas gerais de segurança.
 
 ## Versões suportadas
 
 Versões deste projeto que estão atualmente recebendo atualizações de segurança.
+
+Seguindo a política oficial do Django de suporte de segurança para versões LTS e estáveis, priorizamos correções
+para: [web:14]
+
+- A versão principal atual do projeto.
+- Versão anterior major/minor, se ainda em uso ativo.
+- Qualquer versão LTS explicitamente marcada na documentação do projeto.
+
+Versões antigas ou descontinuadas podem não receber correções de segurança. Recomendamos sempre atualizar para uma
+versão suportada.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -18,7 +29,7 @@ Se você encontrar uma possível vulnerabilidade de segurança no projeto, **nã
 
 Use um destes canais privados:
 
-- E‑mail: dead.zl@ifrn.edu.br
+- E‑mail: <dead.zl@ifrn.edu.br>
 - Título sugerido: "[SEGURANÇA] Descrição resumida da vulnerabilidade"
 
 Ao relatar, inclua sempre:
@@ -61,16 +72,6 @@ Não estão incluídos:
 - Erros em bibliotecas de terceiros (relate diretamente aos projetos originais).
 - Problemas na infraestrutura onde o projeto é implantado (servidores, proxies, DNS, etc.).
 
-## Versões suportadas
-
-Seguindo a política oficial do Django de suporte de segurança para versões LTS e estáveis, priorizamos correções para: [web:14]
-
-- A versão principal atual do projeto.
-- Versão anterior major/minor, se ainda em uso ativo.
-- Qualquer versão LTS explicitamente marcada na documentação do projeto.
-
-Versões antigas ou descontinuadas podem não receber correções de segurança. Recomendamos sempre atualizar para uma versão suportada.
-
 ## Boas práticas específicas de Django
 
 Recomendamos que deploys baseados neste projeto sigam práticas mínimas de segurança para Django: [web:14]
@@ -81,11 +82,13 @@ Recomendamos que deploys baseados neste projeto sigam práticas mínimas de segu
 - Configurar `ALLOWED_HOSTS` adequadamente.
 - Manter o Django e dependências atualizados com as últimas correções de segurança.
 
-Se você identificar qualquer ponto da documentação ou configuração padrão deste projeto que possa induzir a práticas inseguras, considere isso como um problema de segurança e reporte pelos canais acima.
+Se você identificar qualquer ponto da documentação ou configuração padrão deste projeto que possa induzir a práticas
+inseguras, considere isso como um problema de segurança e reporte pelos canais acima.
 
 ## Agradecimentos
 
-Agradecemos a todos os pesquisadores e usuários que dedicam tempo para relatar vulnerabilidades de forma responsável. Seu esforço ajuda a manter o ecossistema de software livre mais **resiliente** e confiável.
+Agradecemos a todos os pesquisadores e usuários que dedicam tempo para relatar vulnerabilidades de forma responsável.
+Seu esforço ajuda a manter o ecossistema de software livre mais **resiliente** e confiável.
 
 ## Reporting a Vulnerability
 
@@ -110,11 +113,17 @@ declined, etc.
 
 1. **Vulnerabilidade 1** — Consumo Descontrolado de Recursos (Denial of Service)
     1. **Severidade**: Alta
-    2. **Descrição**: Foi descoberto que `URLField.to_python()` chama `urllib.parse.urlsplit()`, que realiza normalização NFKC no Windows de forma desproporcionalmente lenta para determinados caracteres Unicode. Isso permite que um atacante remoto cause negação de serviço (DoS) fornecendo grandes entradas de URL contendo esses caracteres especiais.
+    2. **Descrição**: Foi descoberto que `URLField.to_python()` chama `urllib.parse.urlsplit()`, que realiza
+       normalização NFKC no Windows de forma desproporcionalmente lenta para determinados caracteres Unicode. Isso
+       permite que um atacante remoto cause negação de serviço (DoS) fornecendo grandes entradas de URL contendo esses
+       caracteres especiais.
     3. **Impacto**: Negação de serviço via entradas maliciosas em campos de URL.
     4. **Crédito**: Seokchan Yoon.
 2. **Vulnerabilidade 2** — Condição de Corrida (Race Condition)
     1. **Severidade**: Média
-    2. **Descrição**: Foi descoberta uma condição de corrida nos backends de armazenamento em sistema de arquivos e de cache baseado em arquivos do Django. Em ambientes multi-thread, a mudança temporária de umask feita por uma thread pode afetar outras threads, resultando na criação de objetos no sistema de arquivos com permissões incorretas durante requisições concorrentes.
+    2. **Descrição**: Foi descoberta uma condição de corrida nos backends de armazenamento em sistema de arquivos e de
+       cache baseado em arquivos do Django. Em ambientes multi-thread, a mudança temporária de umask feita por uma
+       thread pode afetar outras threads, resultando na criação de objetos no sistema de arquivos com permissões
+       incorretas durante requisições concorrentes.
     3. **Impacto**: Criação de arquivos com permissões incorretas em ambientes multi-thread.
     4. **Crédito**: Tarek Nakkouch.

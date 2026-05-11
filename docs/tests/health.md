@@ -1,4 +1,5 @@
-🧪 Testes para App Health
+# Testes para App Health
+
 Cobertura:
 
 1. HealthViewTestCase - View de health check

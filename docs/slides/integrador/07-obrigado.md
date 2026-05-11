@@ -1,3 +1,3 @@
-# Obrigado!
+# Obrigado
 
-DEAD - dead.zl@ifrn.edu.br
+DEAD - <dead.zl@ifrn.edu.br>

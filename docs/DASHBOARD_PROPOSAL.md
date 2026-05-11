@@ -2,7 +2,8 @@
 
 ## Visão Geral
 
-Implementei uma proposta de **dashboard executivo** melhorado para a página inicial do projeto, substituindo o padrão genérico do Django Admin por uma interface informativa que integra dados dos principais modelos do sistema.
+Implementei uma proposta de **dashboard executivo** melhorado para a página inicial do projeto, substituindo o padrão
+genérico do Django Admin por uma interface informativa que integra dados dos principais modelos do sistema.
 
 ## Arquitetura
 
@@ -27,7 +28,7 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 
 ### Card 1: Clientes
 
-```
+``` text
 ├─ Total de Clientes
 ├─ Ativos (badge verde)
 └─ Inativos (badge vermelho)
@@ -35,7 +36,7 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 
 ### Card 2: Ambientes de Integração
 
-```
+``` text
 ├─ Total de Ambientes
 ├─ Ativos (badge verde)
 └─ Com Erros de Expressão (badge vermelho)
@@ -43,7 +44,7 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 
 ### Card 3: Solicitações de Integração
 
-```
+``` text
 ├─ Últimas 24 horas
 ├─ Sucesso (badge verde)
 ├─ Falhas (badge vermelho)
@@ -52,14 +53,14 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 
 ### Card 4: Taxa de Sucesso
 
-```
+``` text
 ├─ Percentual de Integrações bem-sucedidas
 └─ Total de Solicitações Processadas
 ```
 
 ### Card 5: Ações Rápidas
 
-```
+``` text
 ├─ Ver solicitações
 ├─ Configurar coortes
 ├─ Configurar ambientes
@@ -69,7 +70,7 @@ Implementei uma proposta de **dashboard executivo** melhorado para a página ini
 
 ## 🔄 Fluxo de Dados
 
-```
+``` text
 admin/index.html (view padrão do Django)
     ↓
 admin_views.admin_index_dashboard (nossa view personalizada)
@@ -98,9 +99,9 @@ Template renderizado com dados contextualizados
 
 - Efeito hover nos cards (elevação com sombra)
 - Cores semanticamente significativas:
-    - 🟢 Verde: Sucesso/Ativo
-    - 🔴 Vermelho: Falha/Inativo
-    - 🟡 Amarelo: Processando/Atenção
+  - 🟢 Verde: Sucesso/Ativo
+  - 🔴 Vermelho: Falha/Inativo
+  - 🟡 Amarelo: Processando/Atenção
 
 ### Tipografia
 

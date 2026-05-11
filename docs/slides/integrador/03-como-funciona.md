@@ -1,6 +1,7 @@
 # Como funciona
 
-O **Integrador AVA** recebe dados de um SGA e os sincroniza com o Moodle usando 2 padrões de payload (Suap e SGA genérico) e 3 estratégias de integração (brokers).
+O **Integrador AVA** recebe dados de um SGA e os sincroniza com o Moodle usando 2 padrões de payload (Suap e SGA
+genérico) e 3 estratégias de integração (brokers).
 
 | Payload recebido | Broker de integração | Plugin Moodle | Status         |
 |------------------|----------------------|---------------|----------------|

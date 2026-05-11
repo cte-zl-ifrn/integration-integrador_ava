@@ -90,11 +90,11 @@ Retorno:
 
 | Situação                        | HTTP | Corpo                                                        |
 |---------------------------------|------|--------------------------------------------------------------|
-| Endpoint não reconhecido        | 404  | `{"error": "Endpoint Moodle mock não reconhecido."}`        |
-| Serviço desconhecido            | 404  | `{"error": {"code": 404, "message": "Serviço não existe"}}` |
-| Sem cabeçalho `Authentication`  | 400  | `{"error": {"code": 400, "message": "...not informed"}}`    |
-| Token incorreto                 | 401  | `{"error": {"code": 401, "message": "Unauthorized"}}`       |
-| Serviço não implementado        | 501  | `{"error": {"code": 501, "message": "Não implementado"}}`   |
+| Endpoint não reconhecido        | 404  | `{"error": "Endpoint Moodle mock não reconhecido."}`         |
+| Serviço desconhecido            | 404  | `{"error": {"code": 404, "message": "Serviço não existe"}}`  |
+| Sem cabeçalho `Authentication`  | 400  | `{"error": {"code": 400, "message": "...not informed"}}`     |
+| Token incorreto                 | 401  | `{"error": {"code": 401, "message": "Unauthorized"}}`        |
+| Serviço não implementado        | 501  | `{"error": {"code": 501, "message": "Não implementado"}}`    |
 
 ### Uso em testes
 
@@ -167,7 +167,7 @@ fluxos de interface sem provisionar dados no Moodle.
 | Token incorreto                 | 401  |
 | Qualquer serviço autenticado    | 501  |
 
-### Uso em testes
+### Uso em testes do suap2tool_sga
 
 ```python
 from integrador.moodle_mock import ToolSgaHTTPMock
@@ -222,16 +222,16 @@ Use Moodle real quando:
 ## Troubleshooting
 
 - Sintoma: integração continua chamando Moodle real.
-    - Verifique `MOODLE_HTTP_MOCK_ENABLED=true`.
-    - Confirme se a URL chamada contém o path correto do plugin.
+  - Verifique `MOODLE_HTTP_MOCK_ENABLED=true`.
+  - Confirme se a URL chamada contém o path correto do plugin.
 
 - Sintoma: porta do mock em conflito.
-    - Ajuste `MOODLE_HTTP_MOCK_PORT`.
+  - Ajuste `MOODLE_HTTP_MOCK_PORT`.
 
 - Sintoma: servidor mock não sobe em background.
-    - Verifique se `DJANGO_DEBUG=true`.
-    - Verifique `MOODLE_HTTP_MOCK_BACKGROUND=true`.
-    - Confira logs da app `integrador`.
+  - Verifique se `DJANGO_DEBUG=true`.
+  - Verifique `MOODLE_HTTP_MOCK_BACKGROUND=true`.
+  - Confira logs da app `integrador`.
 
 ---
 

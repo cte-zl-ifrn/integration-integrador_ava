@@ -18,4 +18,3 @@ nav:
   - slides/integrador/06-0-sga2tool_sga.md
   - slides/integrador/07-obrigado.md
 ```
-

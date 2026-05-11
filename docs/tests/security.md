@@ -1,6 +1,9 @@
+# Security tests
+
 - SecurityAppConfigTestCase: Configuração da app
 - LoginViewTestCase: Redirecionamento OAuth, parâmetro next, construção de URI
-- AuthenticateViewTestCase: Fluxo completo OAuth, criação/atualização de usuários, primeiro usuário como superuser, tratamento de erros
+- AuthenticateViewTestCase: Fluxo completo OAuth, criação/atualização de usuários, primeiro usuário como superuser,
+  tratamento de erros
 - LogoutViewTestCase: Redirecionamento para SUAP, parâmetros next e token
 - SecurityURLsTestCase: Acessibilidade das URLs
 - IntegrationTestCase: Fluxo completo de autenticação end-to-end

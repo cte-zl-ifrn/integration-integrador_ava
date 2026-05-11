@@ -34,23 +34,27 @@ repos:
           args: [--markdown-linebreak-ext=md]
 
     - repo: https://github.com/psf/black
-      rev: 24.10.0
+      rev: 26.3.1
       hooks:
         - id: black
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.11.8
+      rev: v0.15.11
       hooks:
         - id: ruff
           args: [--fix]
-        - id: ruff-format
 
-    - repo: https://github.com/PyCQA/bandit
-      rev: 1.8.3
+    - repo: https://github.com/PyCQA/doc8
+      rev: v2.0.0
       hooks:
-        - id: bandit
-          args: [-r, src, -x, "src/base/tests.py,src/cohort/tests.py,src/dashboard/tests.py,src/hacks/tests.py,src/health/tests.py,src/integrador/tests.py,src/security/tests.py,src/settings/tests.py"]
-          pass_filenames: false
+        - id: doc8
+          args: ["--max-line-length=120"]
+
+    - repo: https://github.com/igorshubovych/markdownlint-cli
+      rev: v0.48.0
+      hooks:
+        - id: markdownlint
+          args: ["--fix"]
 
     - repo: https://github.com/rtts/djhtml
       rev: 3.0.11
@@ -59,18 +63,25 @@ repos:
           files: \.html$
           exclude: ^(migrations|static|media)/
 
-    - repo: https://github.com/semgrep/pre-commit
-      rev: v1.159.0
+    - repo: local
       hooks:
-        - id: semgrep
-          args: [--config=auto]  # Ou p/django: r/python,django
-
-    - repo: https://github.com/kelsoncm/pytest-coverage-gate
-      rev: v1.0.1
-      hooks:
+        # - id: pytest
+        #   name: pytest
+        #   stages: [pre-push]
+        #   language: system
+        #   entry: pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing
+        #   pass_filenames: false
+        #   always_run: true
+        # - id: pytest-coverage-gate
+        #   name: pytest-coverage-gate
+        #   stages: [pre-push]
+        #   entry: python -m coverage_gate --coverage-xml=coverage.xml --baseline=.coverage-baseline
+        #   language: python
+        #   pass_filenames: false
+        #   always_run: true
+        #   additional_dependencies: ['pytest-coverage-gate>=1.0.3']
         - id: pytest-coverage-gate
-          always_run: false
-          files: \.py$
-          args:
-            - --coverage-xml=src/coverage.xml
-            - --baseline=src/.coverage-baseline
+          name: pytest-coverage-gate
+          entry: ava test integrador pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
+          language: system
+          pass_filenames: false

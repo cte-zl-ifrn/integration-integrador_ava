@@ -1,8 +1,6 @@
 # Integrador AVA
 
-## Integração entre sistemas acadêmicos e Moodle
-
-**Agenda**
+## Agenda
 
 1. Quem somos
 2. Visão geral do **Integrador AVA**

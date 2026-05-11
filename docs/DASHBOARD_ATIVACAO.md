@@ -11,7 +11,8 @@
 
 ### Opção 1: Automática (Recomendado)
 
-O arquivo `admin.py` já está criado. Você só precisa garantir que ele seja importado. Adicione ao arquivo `__init__.py` do app:
+O arquivo `admin.py` já está criado. Você só precisa garantir que ele seja importado. Adicione ao arquivo `__init__.py`
+do app:
 
 ```python
 # src/dsgovbr/__init__.py
@@ -144,7 +145,7 @@ cache.clear()
 
 Estrutura criada:
 
-```
+``` text
 dsgovbr/
 ├── admin.py          ← Novo (registra dashboard)
 ├── admin_views.py    ← Novo (lógica do dashboard)

@@ -90,13 +90,27 @@ Após instalar o plugin no Moodle, configure:
 Passo 2 — Configurar as variáveis de ambiente do Integrador
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-===================== =========== ======================================================================= =======================================
-Variável              Obrigatória Descrição                                                               Padrão
-===================== =========== ======================================================================= =======================================
-`SUAP_INTEGRADOR_KEY` Sim         Token que o SGA deve enviar no header `Authentication`                  `changeme`
-`DJANGO_SECRET_KEY`   Sim         Chave secreta Django (use valor aleatório em produção)                  `changeme`
-`SUAP_BASE_URL`       Não         URL base do SUAP (usada para redirect de logout)                        `https://suap.ifrn.edu.br`
-===================== =========== ======================================================================= =======================================
+.. list-table::
+   :header-rows: 1
+   :widths: 20 10 50 20
+
+   * - Variável
+     - Obrigatória
+     - Descrição
+     - Padrão
+   * - ``SUAP_INTEGRADOR_KEY``
+     - Sim
+     - Token que o SGA deve enviar no header ``Authentication``
+     - ``changeme``
+   * - ``DJANGO_SECRET_KEY``
+     - Sim
+     - Chave secreta Django (use valor aleatório em produção)
+     - ``changeme``
+   * - ``SUAP_BASE_URL``
+     - Não
+     - URL base do SUAP (usada para redirect de logout)
+     - ``https://suap.ifrn.edu.br``
+
 
 > **Atenção:** troque `changeme` por valores secretos reais antes de ir para produção.
 
@@ -132,22 +146,24 @@ O SGA deve chamar os endpoints com:
 Exemplo completo para `suap2local_suap`:
 
 .. code-block:: http
-  POST https://<integrador>/api/enviar_diarios/
-  Authentication: Token <SUAP_INTEGRADOR_KEY>
-  Content-Type: application/json
 
-  {
-      "campus":     {"id": 1,  "sigla": "ZL",      "descricao": "Campus Zona Leste"},
-      "curso":      {"id": 1,  "codigo": "15806",  "nome": "Sistemas Operacionais Abertos"},
-      "turma":      {"id": 2,  "codigo": "20261.6.15806.1E"},
-      "componente": {"id": 1,  "sigla": "TEC.1023","descricao": "Bancos de Dados"},
-      "diario":     {"id": 2,  "sigla": "TEC.1023","situacao": "Aberto"}
-  }
+    POST https://<integrador>/api/enviar_diarios/
+    Authentication: Token <SUAP_INTEGRADOR_KEY>
+    Content-Type: application/json
+
+    {
+        "campus":     {"id": 1,  "sigla": "ZL",      "descricao": "Campus Zona Leste"},
+        "curso":      {"id": 1,  "codigo": "15806",  "nome": "Sistemas Operacionais Abertos"},
+        "turma":      {"id": 2,  "codigo": "20261.6.15806.1E"},
+        "componente": {"id": 1,  "sigla": "TEC.1023","descricao": "Bancos de Dados"},
+        "diario":     {"id": 2,  "sigla": "TEC.1023","situacao": "Aberto"}
+    }
 
 
 .. code-block:: http
-  GET https://<integrador>/api/baixar_notas/?campus_sigla=ZL&diario_id=2
-  Authentication: Token <SUAP_INTEGRADOR_KEY>
+
+    GET https://<integrador>/api/baixar_notas/?campus_sigla=ZL&diario_id=2
+    Authentication: Token <SUAP_INTEGRADOR_KEY>
 
 
 Para exemplos completos de payload, consulte `requests.http` na raiz do projeto.

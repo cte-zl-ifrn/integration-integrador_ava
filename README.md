@@ -1,8 +1,14 @@
 # Integrador AVA
 
-O Integrador AVA é um middleware que conecta Sistemas de Gestão Acadêmica (SGA) ao Moodle. Suporta o Suap como padrão principal — pronto de fábrica para o IFRN — e o padrão SGA genérico para instituições que usam SIGAA, qAcadêmico ou outro sistema acadêmico.
+O Integrador AVA é um middleware que conecta Sistemas de Gestão Acadêmica (SGA) ao Moodle. Suporta o Suap como padrão
+principal — pronto de fábrica para o IFRN — e o padrão SGA genérico para instituições que usam SIGAA, qAcadêmico ou
+outro sistema acadêmico.
 
-> Neste projeto usamos Git, Python 3.12+, [Docker](https://docs.docker.com/engine/install/) e o [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/#:~:text=%20Install%20the%20plugin%20manually%20%F0%9F%94%97%20%201,of%20Compose%20you%20want%20to%20use.%20More%20). O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
+> Neste projeto usamos Git, Python 3.12+, [Docker](https://docs.docker.com/engine/install/) e o
+> [Docker Compose Plugin](https://docs.docker.com/compose/install/compose-plugin/).
+> O setup foi todo testado usando o Linux (inclusive WSL2) e Mac OS.
+
+Atenção!
 
 > Não confundir com o [Painel AVA](https://github.com/cte-zl-ifrn/integration-painel_ava) que tem outra função.
 
@@ -11,11 +17,11 @@ O Integrador AVA é um middleware que conecta Sistemas de Gestão Acadêmica (SG
 O Integrador AVA recebe dados de um SGA e os sincroniza com o Moodle via três estratégias
 de integração (brokers) e dois padrões de payload (Suap e SGA genérico).
 
-| Broker            | Payload recebido | Plugin Moodle | Status         |
-|-------------------|-----------------|---------------|----------------|
-| `suap2local_suap` | Suap            | `local_suap`  | Implementado   |
-| `suap2tool_sga`   | Suap            | `tool_sga`    | Em elaboração  |
-| `sga2tool_sga`    | SGA (genérico)  | `tool_sga`    | Em elaboração  |
+| Broker            | Payload recebido | Plugin Moodle  | Status         |
+|-------------------|------------------|----------------|----------------|
+| `suap2local_suap` | Suap             | `local_suap`   | Implementado   |
+| `suap2tool_sga`   | Suap             | `tool_sga`     | Em elaboração  |
+| `sga2tool_sga`    | SGA (genérico)   | `tool_sga`     | Em elaboração  |
 
 Documentação completa (arquitetura, configuração, referência de API):
 
@@ -26,8 +32,6 @@ Documentação completa (arquitetura, configuração, referência de API):
 Para testar localmente sem Moodle real:
 
 - [docs/MOODLE_HTTP_MOCK.md](docs/MOODLE_HTTP_MOCK.md)
-
-
 
 ## Como implantar
 
@@ -40,12 +44,14 @@ O projeto está configurado para deploy automático no Docker Hub via GitHub Act
 1. No repositório GitHub, vá para **Settings > Secrets and variables > Actions**.
 2. Adicione os seguintes secrets:
     - `DOCKER_USERNAME`: Seu nome de usuário no Docker Hub (ctezlifrn).
-    - `DOCKER_PASSWORD`: Seu token de acesso do Docker Hub (gerado em Docker Hub > Account Settings > Security > New Access Token).
+    - `DOCKER_PASSWORD`: Seu token de acesso do Docker Hub (gerado em Docker Hub > Account Settings > Security >
+       New Access Token).
 
 **Deploy automático:**
 
 - O workflow é acionado em push para a branch `main`.
-- A imagem é construída para o estágio `production` e enviada para `ctezlifrn/avaintegrador:latest` e `ctezlifrn/avaintegrador:<commit-sha>`.
+- A imagem é construída para o estágio `production` e enviada para `ctezlifrn/avaintegrador:latest` e
+   `ctezlifrn/avaintegrador:<commit-sha>`.
 
 ### Manualmente
 
@@ -86,15 +92,30 @@ O projeto usa gates de qualidade locais (pre-commit/pre-push) e no CI.
 
 ```bash
 cd ~/projetos/IFRN/ava/integration/integrador_ava
-python -m pip install -r requirements-dev.txt
+pyenv install 3.14
+pyenv local 3.14
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade uv pip
+uv pip install --upgrade
+uv pip install --upgrade -e ".[dev]"
 pre-commit install --hook-type pre-commit --hook-type pre-push
+
+# Para saber se  pré commit vai passar
+pre-commit run --all-files
+
+# Para saber se  pré push vai passar
+pre-commit run --hook-stage pre-push --all-files
+
 ```
 
 ### 1.1) Usar commits pela interface do VS Code
 
-Se o `pre-commit` funciona no terminal, mas falha ao fazer commit pela interface do VS Code, o problema costuma ser o ambiente do processo que abriu o VS Code.
+Se o `pre-commit` funciona no terminal, mas falha ao fazer commit pela interface do VS Code, o problema costuma ser o
+ambiente do processo que abriu o VS Code.
 
-Importante: selecionar o interpretador em **Python: Select Interpreter** ajuda o editor, mas não muda o `PATH` usado pelo Git da interface do VS Code. Hooks com `language: system`, como o `semgrep-local`, dependem desse `PATH`.
+Importante: selecionar o interpretador em **Python: Select Interpreter** ajuda o editor, mas não muda o `PATH` usado
+pelo Git da interface do VS Code. Hooks com `language: system`, como o `semgrep-local`, dependem desse `PATH`.
 
 Fluxo recomendado:
 
@@ -111,7 +132,8 @@ Depois, na janela aberta por esse comando:
 - selecione a interpreter `.venv` em **Python: Select Interpreter**;
 - faça os commits pela aba **Source Control** normalmente.
 
-Se o VS Code já estiver aberto por launcher/menu, feche essa janela do projeto e reabra com `code .` a partir da shell com a `.venv` ativa.
+Se o VS Code já estiver aberto por launcher/menu, feche essa janela do projeto e reabra com `code .` a partir da shell
+com a `.venv` ativa.
 
 Para validar manualmente todos os arquivos:
 
@@ -193,16 +215,17 @@ As regras de status do Codecov ficam em `codecov.yml`:
 
 Acesse **Ambientes > Adicionar**.
 
-**Identificação**
+#### Identificação
 
 - **Nome do ambiente:** Escolha um nome à sua escolha
 
-**Integração**
+#### Integração
 
 - **Ativo?:** Marque este campo
 - **URL:** `http://moodle`
 - **Token:** `changeme`
-- **Expressão seletora:** `campus.sigla == "ZL"` (sintaxe [rule_engine](https://zerosteiner.github.io/rule-engine/), avaliada sobre o JSON recebido)
+- **Expressão seletora:** `campus.sigla == "ZL"` (sintaxe [rule_engine](https://zerosteiner.github.io/rule-engine/),
+  avaliada sobre o JSON recebido)
 - **Ordem:** `0`
 
 ---

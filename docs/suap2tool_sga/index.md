@@ -11,9 +11,9 @@
 
 | Item                  | Valor                                                          |
 |-----------------------|----------------------------------------------------------------|
-| Plugin Moodle         | [`tool_sga`](https://github.com/cte-zl-ifrn/moodle-tool_sga) |
+| Plugin Moodle         | [`tool_sga`](https://github.com/cte-zl-ifrn/moodle-tool_sga)   |
 | Endpoint Moodle       | `/local/tool_sga/api/index.php`                                |
-| Broker (classe)       | `Suap2ToolSgaBroker` (`src/integrador/brokers/suap2tool_sga/`)|
+| Broker (classe)       | `Suap2ToolSgaBroker` (`src/integrador/brokers/suap2tool_sga/`) |
 | Status                | **Não implementado** — métodos levantam `NotImplementedError`  |
 
 ## Propósito

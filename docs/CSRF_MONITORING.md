@@ -2,7 +2,8 @@
 
 ## Visão Geral
 
-Foi implementado um sistema de monitoramento de erros CSRF que captura e envia automaticamente informações detalhadas para o Sentry sempre que uma requisição falha na verificação CSRF.
+Foi implementado um sistema de monitoramento de erros CSRF que captura e envia automaticamente informações detalhadas
+para o Sentry sempre que uma requisição falha na verificação CSRF.
 
 ## Arquivos Modificados/Criados
 

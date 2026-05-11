@@ -1,3 +1,5 @@
+# Coortes
+
 - IntegradorConfigTestCase: Configuração da app
 - EnrolmentModelTestCase: Vínculos entre colaboradores e cohorts
 - RoleAdminTestCase: Configuração do admin (list_display, filters, resources, import/export)

@@ -1,4 +1,4 @@
-⚙️ Testes para App Settings
+# Testes para App Settings
 
 Cobertura:
 

@@ -32,21 +32,21 @@ base na `expressao_seletora` avaliada sobre o payload recebido.
 
 Acesse `/admin/integrador/ambiente/add/` e preencha:
 
-| Campo                | Descrição                                                                                       | Exemplo                       |
-|----------------------|-------------------------------------------------------------------------------------------------|-------------------------------|
-| **Nome**             | Nome descritivo (identificação interna)                                                         | `Moodle Produção ZL`          |
-| **URL**              | URL base do Moodle, **sem barra final**                                                         | `https://ava.zl.ifrn.edu.br`  |
-| **Token**            | Token configurado no plugin Moodle (`local_suap` ou `tool_sga`). Deve ser idêntico ao do plugin | `token_super_secreto`         |
-| **Expressão seletora** | Expressão `rule_engine` que determina quando este ambiente é escolhido (ver abaixo)           | `campus.sigla == "ZL"`        |
-| **Ordem**            | Prioridade de seleção: menor valor = maior prioridade. Use 0 para o ambiente principal          | `1`                           |
-| **Ativo**            | Desmarque para desativar o ambiente sem excluí-lo                                               | ✓                             |
+| Campo                  | Descrição                                                                                       | Exemplo                        |
+|------------------------|-------------------------------------------------------------------------------------------------|--------------------------------|
+| **Nome**               | Nome descritivo (identificação interna)                                                         | `Moodle Produção ZL`           |
+| **URL**                | URL base do Moodle, **sem barra final**                                                         | `https://ava.zl.ifrn.edu.br`   |
+| **Token**              | Token configurado no plugin Moodle (`local_suap` ou `tool_sga`). Deve ser idêntico ao do plugin | `token_super_secreto`          |
+| **Expressão seletora** | Expressão `rule_engine` que determina quando este ambiente é escolhido (ver abaixo)             | `campus.sigla == "ZL"`         |
+| **Ordem**              | Prioridade de seleção: menor valor = maior prioridade. Use 0 para o ambiente principal          | `1`                            |
+| **Ativo**              | Desmarque para desativar o ambiente sem excluí-lo                                               | ✓                              |
 
 #### Expressão seletora — exemplos
 
 A expressão é avaliada sobre o JSON recebido na requisição. Sintaxe da biblioteca
 [`rule_engine`](https://zerosteiner.github.io/rule-engine/).
 
-```
+``` python
 # Campus específico
 campus.sigla == "ZL"
 
@@ -141,15 +141,15 @@ base em regras configuradas.
 
 Acesse `/admin/coorte/cohort/add/`:
 
-| Campo              | Descrição                                                              |
-|--------------------|------------------------------------------------------------------------|
-| **Nome**           | Nome do cohort no Moodle                                               |
-| **Idnumber**       | Identificador único do cohort no Moodle                                |
-| **Descrição**      | Texto descritivo                                                       |
-| **Role**           | Papel (role) associado ao cohort                                       |
-| **rule_diario**    | Expressão `rule_engine` avaliada sobre o payload para cohorts de diário |
-| **rule_coordenacao** | Expressão `rule_engine` avaliada para cohorts de coordenação         |
-| **Ativo**          | Se o cohort está ativo para seleção                                    |
+| Campo                | Descrição                                                               |
+|----------------------|-------------------------------------------------------------------------|
+| **Nome**             | Nome do cohort no Moodle                                                |
+| **Idnumber**         | Identificador único do cohort no Moodle                                 |
+| **Descrição**        | Texto descritivo                                                        |
+| **Role**             | Papel (role) associado ao cohort                                        |
+| **rule_diario**      | Expressão `rule_engine` avaliada sobre o payload para cohorts de diário |
+| **rule_coordenacao** | Expressão `rule_engine` avaliada para cohorts de coordenação            |
+| **Ativo**            | Se o cohort está ativo para seleção                                     |
 
 ### Roles
 
@@ -160,9 +160,9 @@ Os Roles representam papéis no Moodle (ex.: `editingteacher`, `student`). Acess
 
 ## Referências
 
-| Artefato          | Caminho                                      |
-|-------------------|----------------------------------------------|
-| Admin integrador  | `src/integrador/admin.py`                    |
-| Admin coorte      | `src/coorte/admin.py`                        |
-| Modelos           | [docs/model/](../model/index.md                     |
-| Configuração completa | [docs/](../index.md) → "Configuração"          |
+| Artefato              | Caminho                               |
+|-----------------------|---------------------------------------|
+| Admin integrador      | `src/integrador/admin.py`             |
+| Admin coorte          | `src/coorte/admin.py`                 |
+| Modelos               | [docs/model/](../model/index.md       |
+| Configuração completa | [docs/](../index.md) → "Configuração" |

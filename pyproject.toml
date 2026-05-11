@@ -14,9 +14,22 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
 ]
-
 dependencies = [
     "avaintegration-metapackage==6.0.5.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=4.6.0",
+    "black>=26.3.1",
+    "ruff>=0.15.11",
+    "doc8>=2.0.0",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "python-dotenv>=1.2.2",
+    "pytest-coverage-gate>=1.0.3",
+    "pytest-django>=4.12.0",
+    "django-sass-processor==1.4.2",
 ]
 
 [project.urls]
@@ -43,5 +56,17 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "S"]
 
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*.py" = ["E501"]
+
 [tool.black]
 line-length = 120
+
+[tool.markdownlint]
+"MD013" = { line_length = 120, tables = false, code_blocks = false }
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "settings"
+python_files = ["tests.py", "test_*.py", "*_test.py"]
+testpaths = ["src"]
+pythonpath = [".", "src"]
