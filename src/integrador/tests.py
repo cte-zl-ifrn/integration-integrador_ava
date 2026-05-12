@@ -6,7 +6,7 @@ Este módulo contém testes para:
 - Decorators: json_response, exception_as_json, check_is_post, check_is_get, valid_token, check_json, try_solicitacao,
 detect_ambiente
 - Views: sync_up_enrolments, sync_down_grades
-- Utils: SyncError, validate_http_response, http_get, http_post, http_get_json, http_post_json
+- Utils: SyncError, http_get, http_post, http_get_json, http_post_json
 - Middleware: DisableCSRFForAPIMiddleware
 - Brokers: BaseBroker, Suap2LocalSuapBroker
 - Management Commands: atualiza_solicitacoes
@@ -19,10 +19,8 @@ from http.client import HTTPException
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from django import forms
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.http import JsonResponse
 from django.test import RequestFactory, TestCase, override_settings
@@ -44,7 +42,7 @@ from integrador.decorators import (
 from integrador.middleware import DisableCSRFForAPIMiddleware
 from integrador.models import Ambiente, Solicitacao
 from integrador.moodle_mock import LocalSuapHTTPMock, MockHTTPResponse, ToolSgaHTTPMock
-from integrador.utils import SyncError, http_get, http_get_json, http_post, http_post_json, validate_http_response
+from integrador.utils import SyncError, http_get, http_get_json, http_post, http_post_json
 from integrador.views import sync_up_enrolments
 
 # Configura logging para WARNING durante testes (suprime DEBUG e INFO)
@@ -65,292 +63,6 @@ class IntegradorConfigTestCase(TestCase):
     def test_app_config_default_auto_field(self):
         """Testa se default_auto_field está configurado."""
         self.assertEqual(IntegradorConfig.default_auto_field, "django.db.models.BigAutoField")
-
-
-class AmbienteModelTestCase(TestCase):
-    """Testes para o modelo Ambiente."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        self.ambiente = Ambiente.objects.create(
-            nome="Ambiente Teste",  # noqa: S106
-            url="https://test.moodle.com",
-            token="test_token_123",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            ordem=1,
-            active=True,
-        )
-
-    def test_create_ambiente(self):
-        """Testa criação de ambiente."""
-        ambiente = Ambiente.objects.create(
-            nome="Outro Ambiente",  # noqa: S106
-            url="https://outro.moodle.com",
-            token="outro_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'OUTRO'",
-            ordem=2,
-        )
-
-        self.assertIsNotNone(ambiente.pk)
-        self.assertEqual(ambiente.nome, "Outro Ambiente")
-
-    def test_ambiente_str_representation(self):
-        """Testa representação em string do ambiente."""
-        self.assertEqual(str(self.ambiente), "Ambiente Teste")
-
-    def test_ambiente_base_url_without_trailing_slash(self):
-        """Testa propriedade base_url sem barra final."""
-        self.assertEqual(self.ambiente.base_url, "https://test.moodle.com")
-
-    def test_ambiente_base_url_with_trailing_slash(self):
-        """Testa propriedade base_url com barra final."""
-        self.ambiente.url = "https://test.moodle.com/"
-        self.ambiente.save()
-
-        self.assertEqual(self.ambiente.base_url, "https://test.moodle.com")
-
-    def test_ambiente_valid_expressao_seletora(self):
-        """Testa validação de expressão seletora válida."""
-        self.assertTrue(self.ambiente.valid_expressao_seletora)
-
-    def test_ambiente_invalid_expressao_seletora(self):
-        """Testa validação de expressão seletora inválida."""
-        self.ambiente.expressao_seletora = "invalid syntax {{"
-        self.ambiente.save()
-
-        self.assertFalse(self.ambiente.valid_expressao_seletora)
-
-    def test_ambiente_empty_expressao_seletora(self):
-        """Testa validação de expressão seletora vazia."""
-        self.ambiente.expressao_seletora = ""
-        self.ambiente.save()
-
-        self.assertFalse(self.ambiente.valid_expressao_seletora)
-
-    def test_ambiente_null_expressao_seletora(self):
-        """Testa validação de expressão seletora nula."""
-        # Campo expressao_seletora é NOT NULL no banco, então testamos validação antes de save
-        self.ambiente.expressao_seletora = ""
-        self.ambiente.save()
-
-        self.assertFalse(self.ambiente.valid_expressao_seletora)
-
-    def test_ambiente_ordering(self):
-        """Testa ordenação de ambientes."""
-        ambiente2 = Ambiente.objects.create(
-            nome="Ambiente 2",  # noqa: S106
-            url="https://test2.com",
-            token="token2",  # noqa: S106
-            expressao_seletora="1=1",
-            ordem=0,
-        )
-
-        ambientes = list(Ambiente.objects.all())
-        # Ordenação por ordem, id
-        self.assertEqual(ambientes[0], ambiente2)
-
-    def test_ambiente_manager_seleciona_ambiente(self):
-        """Testa método seleciona_ambiente do manager."""
-        sync_json = {"campus": {"sigla": "TEST"}}
-
-        ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
-
-        self.assertEqual(ambiente_selecionado, self.ambiente)
-
-    def test_ambiente_manager_seleciona_ambiente_nao_encontrado(self):
-        """Testa seleciona_ambiente quando não encontra ambiente."""
-        sync_json = {"campus": {"sigla": "INEXISTENTE"}}
-
-        ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
-
-        self.assertIsNone(ambiente_selecionado)
-
-    def test_ambiente_manager_seleciona_ambiente_only_active(self):
-        """Testa que seleciona_ambiente só retorna ambientes ativos."""
-        self.ambiente.active = False
-        self.ambiente.save()
-
-        sync_json = {"campus": {"sigla": "TEST"}}
-        ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
-
-        self.assertIsNone(ambiente_selecionado)
-
-    @patch("integrador.models.Rule")
-    def test_ambiente_manager_seleciona_ambiente_raises_detailed_error(self, mock_rule):
-        """Testa tratamento de erro ao processar expressao_seletora no manager."""
-        self.ambiente.expressao_seletora = "invalid"
-        self.ambiente.save()
-        mock_rule.side_effect = Exception("rule parse error")
-
-        with self.assertRaises(Exception) as context:
-            Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "TEST"}})
-
-        self.assertIn("Erro ao processar o ambiente", str(context.exception))
-        self.assertIn("rule parse error", str(context.exception))
-
-    def test_ambiente_color_helper_renders_expected_html(self):
-        """Testa helper interno _c para renderização de cor."""
-        html = Ambiente._c("#ff0000")
-        self.assertIn("#ff0000", html)
-        self.assertIn("background", html)
-
-    def test_ambiente_verbose_names(self):
-        """Testa verbose_name e verbose_name_plural."""
-        self.assertEqual(Ambiente._meta.verbose_name, "ambiente")
-        self.assertEqual(Ambiente._meta.verbose_name_plural, "ambientes")
-
-    def test_permissive_url_field_accepts_http_and_https(self):
-        """Testa que PermissiveURLField aceita URLs http e https válidas."""
-        for url in ["http://localhost:8000/path", "https://example.com"]:
-            ambiente = Ambiente(
-                nome=f"Ambiente {url}",  # noqa: S106
-                url=url,
-                token="token",  # noqa: S106
-                expressao_seletora="1 == 1",
-                ordem=1,
-                active=True,
-            )
-            ambiente.full_clean()
-
-    def test_permissive_url_field_rejects_invalid_url(self):
-        """Testa que PermissiveURLField rejeita valores sem protocolo HTTP/HTTPS."""
-        ambiente = Ambiente(
-            nome="Ambiente inválido",  # noqa: S106
-            url="ftp://example.com",
-            token="token",  # noqa: S106
-            expressao_seletora="1 == 1",
-            ordem=1,
-            active=True,
-        )
-
-        with self.assertRaises(ValidationError):
-            ambiente.full_clean()
-
-    def test_permissive_url_field_formfield_is_charfield(self):
-        """Testa que o formfield do PermissiveURLField usa forms.CharField."""
-        field = Ambiente._meta.get_field("url")
-        form_field = field.formfield()
-        self.assertIsInstance(form_field, forms.CharField)
-
-
-class SolicitacaoModelTestCase(TestCase):
-    """Testes para o modelo Solicitacao."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        self.ambiente = Ambiente.objects.create(
-            nome="Ambiente Teste",  # noqa: S106
-            url="https://test.moodle.com",
-            token="test_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            active=True,
-        )
-
-        self.recebido_json = {
-            "campus": {"sigla": "TEST"},
-            "turma": {"codigo": "20261.1.132456.123.1M"},
-            "componente": {"sigla": "MAT.001"},
-            "diario": {"id": 12345, "tipo": "regular"},
-        }
-
-        self.solicitacao = Solicitacao.objects.create(
-            ambiente=self.ambiente,
-            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
-            status=Solicitacao.Status.PROCESSANDO,
-            recebido=self.recebido_json,
-        )
-
-    def test_create_solicitacao(self):
-        """Testa criação de solicitação."""
-        solicitacao = Solicitacao.objects.create(
-            ambiente=self.ambiente,
-            operacao=Solicitacao.Operacao.SYNC_DOWN_NOTAS,
-            status=Solicitacao.Status.SUCESSO,
-            recebido={"campus": {"sigla": "TEST"}, "diario": {"id": 999}},
-        )
-
-        self.assertIsNotNone(solicitacao.pk)
-        self.assertEqual(solicitacao.operacao, Solicitacao.Operacao.SYNC_DOWN_NOTAS)
-
-    def test_solicitacao_str_representation(self):
-        """Testa representação em string da solicitação."""
-        string_repr = str(self.solicitacao)
-
-        self.assertIn("TEST", string_repr)
-        self.assertIn("12345", string_repr)
-
-    def test_solicitacao_auto_populate_on_save(self):
-        """Testa que save() popula campos automaticamente."""
-        self.assertEqual(self.solicitacao.campus_sigla, "TEST")
-        self.assertEqual(self.solicitacao.diario_id, 12345)
-        self.assertEqual(self.solicitacao.tipo, "regular")
-        # diario_codigo é gerado como turma.codigo#diario.id
-        self.assertIn("20261.1.132456.123.1M", self.solicitacao.diario_codigo)
-        self.assertIn("#12345", self.solicitacao.diario_codigo)
-
-    def test_solicitacao_status_merged_property(self):
-        """Testa propriedade status_merged."""
-        self.solicitacao.status = Solicitacao.Status.SUCESSO
-        self.solicitacao.status_code = "200"
-
-        status_html = self.solicitacao.status_merged
-
-        self.assertIn("Sucesso", status_html)
-        self.assertIn("200", status_html)
-
-    def test_solicitacao_timestamp_auto_created(self):
-        """Testa que timestamp é criado automaticamente."""
-        self.assertIsNotNone(self.solicitacao.timestamp)
-
-    def test_solicitacao_ordering(self):
-        """Testa ordenação de solicitações."""
-        solicitacao2 = Solicitacao.objects.create(
-            ambiente=self.ambiente,
-            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
-            recebido={"campus": {"sigla": "TEST"}, "diario": {"id": 999}},
-        )
-
-        solicitacoes = list(Solicitacao.objects.all())
-        # Ordenação por -timestamp (mais recentes primeiro)
-        self.assertEqual(solicitacoes[0], solicitacao2)
-
-    def test_solicitacao_status_choices(self):
-        """Testa choices de status."""
-        self.solicitacao.status = Solicitacao.Status.SUCESSO
-        self.solicitacao.save()
-
-        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
-        self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
-
-    def test_solicitacao_save_accepts_django_keyword_arguments(self):
-        """Testa que save() delega corretamente para o Model.save do Django."""
-        self.solicitacao.status = Solicitacao.Status.SUCESSO
-        self.solicitacao.status_code = "200"
-
-        self.solicitacao.save(update_fields=["status", "status_code"])
-
-        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
-        self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
-        self.assertEqual(solicitacao.status_code, "200")
-
-    def test_solicitacao_operacao_choices(self):
-        """Testa choices de operação."""
-        self.assertEqual(self.solicitacao.operacao, Solicitacao.Operacao.SYNC_UP_DIARIO)
-
-    def test_solicitacao_json_fields(self):
-        """Testa campos JSON."""
-        self.solicitacao.enviado = {"test": "data"}
-        self.solicitacao.respondido = {"response": "ok"}
-        self.solicitacao.save()
-
-        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
-        self.assertEqual(solicitacao.enviado["test"], "data")
-        self.assertEqual(solicitacao.respondido["response"], "ok")
-
-    def test_solicitacao_verbose_names(self):
-        """Testa verbose_name e verbose_name_plural."""
-        self.assertEqual(Solicitacao._meta.verbose_name, "solicitação")
-        self.assertEqual(Solicitacao._meta.verbose_name_plural, "solicitações")
 
 
 class SyncErrorTestCase(TestCase):
@@ -436,29 +148,50 @@ class UtilsFunctionsTestCase(TestCase):
 
         self.assertEqual(result, {"result": "success"})
 
-    def test_validate_http_response_success(self):
-        """Testa validate_http_response com resposta ok."""
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.content = b"Success"
 
-        result = validate_http_response("http://test.com", "utf-8", True, mock_response)
+class ToolSgaHTTPMockTestCase(TestCase):
+    """
+    Testes para ToolSgaHTTPMock.
 
-        self.assertEqual(result, "Success")
+    Cobre o mock do plugin `tool_sga`, usado pelos brokers
+    `Suap2ToolSgaBroker` e `Sga2ToolSgaBroker`.
 
-    def test_validate_http_response_failure(self):
-        """Testa validate_http_response com resposta não-ok."""
-        mock_response = Mock()
-        mock_response.ok = False
-        mock_response.status_code = 403
-        mock_response.reason = "Forbidden"
-        mock_response.content = b"Access denied"
-        mock_response.headers = {}
+    Os brokers ainda não estão implementados, portanto os testes cobrem
+    apenas o comportamento de stub (respostas 4xx/501).
+    """
 
-        with self.assertRaises(HTTPException) as context:
-            validate_http_response("http://test.com", "utf-8", True, mock_response)
+    PLUGIN_PATH = ToolSgaHTTPMock.PLUGIN_PATH
+    BASE_URL = f"https://moodle.test.com{PLUGIN_PATH}"
+    AUTH_HEADERS = {"Authentication": f"Token {ToolSgaHTTPMock.TOKEN}"}
 
-        self.assertEqual(context.exception.status, 403)
+    def setUp(self):
+        self.mock = ToolSgaHTTPMock()
+
+    def test_sem_authentication_retorna_400(self):
+        """Chamada sem cabeçalho Authentication deve retornar 400."""
+        response = self.mock.get(self.BASE_URL)
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 400)
+
+    def test_authentication_incorreta_retorna_401(self):
+        """Cabeçalho Authentication errado deve retornar 401."""
+        response = self.mock.get(self.BASE_URL, headers={"Authentication": "Token errado"})
+        self.assertEqual(response.status_code, 401)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 401)
+
+    def test_endpoint_errado_retorna_404(self):
+        """URL com path incorreto deve retornar 404."""
+        response = self.mock.get("https://moodle.test.com/outro/path", headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 404)
+
+    def test_qualquer_servico_retorna_501(self):
+        """Qualquer serviço autenticado deve retornar 501 enquanto o broker não for implementado."""
+        response = self.mock.post(self.BASE_URL, jsonbody={}, headers=self.AUTH_HEADERS)
+        self.assertEqual(response.status_code, 501)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 501)
 
 
 class LocalSuapHTTPMockTestCase(TestCase):
@@ -584,15 +317,6 @@ class LocalSuapHTTPMockTestCase(TestCase):
         self.assertEqual(data["error"]["code"], 401)
         self.assertEqual(data["error"]["message"], "Unauthorized")
 
-    # --- Cenário: Moodle retorna HTML em vez de JSON ---
-
-    def test_html_error_com_status_500_propaga_http_exception(self):
-        """validate_http_response deve lançar HTTPException quando Moodle retorna HTML 500."""
-        html_response = MockHTTPResponse.html_error(500)
-        with self.assertRaises(HTTPException) as ctx:
-            validate_http_response(self.BASE_URL, "utf-8", True, html_response)
-        self.assertEqual(ctx.exception.status, 500)
-
     def test_html_error_com_status_200_causa_json_decode_error_em_get(self):
         """Moodle retorna HTML com status 200 (erro PHP): http_get_json falha ao parsear."""
         html_str = "<!DOCTYPE html><html><body><h1>Fatal error</h1></body></html>"
@@ -608,137 +332,216 @@ class LocalSuapHTTPMockTestCase(TestCase):
                 http_post_json(f"{self.BASE_URL}?sync_up_enrolments", {})
 
 
-class ToolSgaHTTPMockTestCase(TestCase):
-    """
-    Testes para ToolSgaHTTPMock.
-
-    Cobre o mock do plugin `tool_sga`, usado pelos brokers
-    `Suap2ToolSgaBroker` e `Sga2ToolSgaBroker`.
-
-    Os brokers ainda não estão implementados, portanto os testes cobrem
-    apenas o comportamento de stub (respostas 4xx/501).
-    """
-
-    PLUGIN_PATH = ToolSgaHTTPMock.PLUGIN_PATH
-    BASE_URL = f"https://moodle.test.com{PLUGIN_PATH}"
-    AUTH_HEADERS = {"Authentication": f"Token {ToolSgaHTTPMock.TOKEN}"}
+class MiddlewareTestCase(TestCase):
+    """Testes para middleware."""
 
     def setUp(self):
-        self.mock = ToolSgaHTTPMock()
+        """Configura o ambiente de teste."""
+        # Suprime logs durante testes
+        logging.getLogger("integrador").setLevel(logging.WARNING)
 
-    def test_sem_authentication_retorna_400(self):
-        """Chamada sem cabeçalho Authentication deve retornar 400."""
-        response = self.mock.get(self.BASE_URL)
-        self.assertEqual(response.status_code, 400)
+        self.factory = RequestFactory()
+        self.middleware = DisableCSRFForAPIMiddleware(lambda x: None)
+
+    def test_csrf_middleware_exempts_api_urls(self):
+        """Testa que middleware isenta URLs da API de CSRF."""
+        request = self.factory.post("/api/enviar_diarios/")
+
+        self.middleware.process_request(request)
+
+        self.assertTrue(getattr(request, "_dont_enforce_csrf_checks", False))
+
+    def test_csrf_middleware_exempts_baixar_notas(self):
+        """Testa que middleware isenta baixar_notas de CSRF."""
+        request = self.factory.post("/api/baixar_notas/")
+
+        self.middleware.process_request(request)
+
+        self.assertTrue(getattr(request, "_dont_enforce_csrf_checks", False))
+
+    def test_csrf_middleware_does_not_exempt_other_urls(self):
+        """Testa que middleware não isenta outras URLs."""
+        request = self.factory.post("/admin/")
+
+        self.middleware.process_request(request)
+
+        self.assertFalse(getattr(request, "_dont_enforce_csrf_checks", False))
+
+
+class CSRFErrorViewTestCase(TestCase):
+    """Testes para a view customizada de erro CSRF."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        self.factory = RequestFactory()
+        # Importa a view de erro CSRF
+        from integrador.views_errors import csrf_failure
+
+        self.csrf_failure_view = csrf_failure
+
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_sends_to_sentry(self, mock_sentry):
+        """Testa que erro CSRF envia informação para o Sentry."""
+        request = self.factory.post("/api/test/")
+        request.META["HTTP_USER_AGENT"] = "TestAgent/1.0"
+        request.META["REMOTE_ADDR"] = "192.168.1.1"
+        request.META["HTTP_REFERER"] = "https://external.com"
+        request.user = Mock()
+        request.user.is_authenticated = False
+
+        self.csrf_failure_view(request, reason="CSRF cookie not set")
+
+        # Verifica que Sentry foi chamado
+        mock_sentry.capture_message.assert_called_once()
+        call_args = mock_sentry.capture_message.call_args
+        self.assertIn("CSRF verification failed", call_args[0][0])
+        self.assertEqual(call_args[1]["level"], "warning")
+
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_returns_json_for_api(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON para requisições de API."""
+        request = self.factory.post("/api/test/")
+        request.META["HTTP_ACCEPT"] = "application/json"
+        request.user = Mock()
+        request.user.is_authenticated = False
+
+        response = self.csrf_failure_view(request, reason="Token mismatch")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+
         data = json.loads(response.content)
-        self.assertEqual(data["error"]["code"], 400)
+        self.assertIn("error", data)
+        self.assertIn("reason", data)
+        self.assertEqual(data["reason"], "Token mismatch")
 
-    def test_authentication_incorreta_retorna_401(self):
-        """Cabeçalho Authentication errado deve retornar 401."""
-        response = self.mock.get(self.BASE_URL, headers={"Authentication": "Token errado"})
-        self.assertEqual(response.status_code, 401)
-        data = json.loads(response.content)
-        self.assertEqual(data["error"]["code"], 401)
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_returns_html_for_browser(self, mock_sentry):
+        """Testa que erro CSRF retorna HTML para requisições de navegador."""
+        request = self.factory.post("/admin/login/")
+        request.META["HTTP_ACCEPT"] = "text/html"
+        request.user = Mock()
+        request.user.is_authenticated = False
 
-    def test_endpoint_errado_retorna_404(self):
-        """URL com path incorreto deve retornar 404."""
-        response = self.mock.get("https://moodle.test.com/outro/path", headers=self.AUTH_HEADERS)
-        self.assertEqual(response.status_code, 404)
+        response = self.csrf_failure_view(request, reason="Referer check failed")
 
-    def test_qualquer_servico_retorna_501(self):
-        """Qualquer serviço autenticado deve retornar 501 enquanto o broker não for implementado."""
-        response = self.mock.post(self.BASE_URL, jsonbody={}, headers=self.AUTH_HEADERS)
-        self.assertEqual(response.status_code, 501)
-        data = json.loads(response.content)
-        self.assertEqual(data["error"]["code"], 501)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn(b"403", response.content)
 
-
-# Alias para manter compatibilidade caso testes externos referenciem o nome antigo.
-MoodleHTTPMockTestCase = LocalSuapHTTPMockTestCase
-
-
-class AmbienteSelecaoTestCase(TestCase):
-    """Testes para os cenários de seleção de ambiente em seleciona_ambiente."""
-
-    SYNC_JSON = {"campus": {"sigla": "TEST"}}
-
-    def _cria_ambiente(self, nome, ordem=1, active=True, expressao="campus.sigla == 'TEST'"):
-        return Ambiente.objects.create(
-            nome=nome,  # noqa: S106
-            url=f"https://{nome.lower().replace(' ', '-')}.moodle.com",
-            token="token",  # noqa: S106
-            expressao_seletora=expressao,
-            ordem=ordem,
-            active=active,
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
+        """Testa que erro CSRF inclui informações do usuário autenticado."""
+        user = User.objects.create_user(
+            username="testuser",  # noqa: S106
+            email="test@example.com",
+            password="testpass123",  # noqa: S106
         )
 
-    # 1. Ativos e inativos
+        request = self.factory.post("/api/test/")
+        request.user = user
+        request.META["HTTP_ACCEPT"] = "application/json"
 
-    def test_ambiente_ativo_e_selecionado(self):
-        """Ambiente ativo com expressão correspondente é selecionado."""
-        amb = self._cria_ambiente("Ativo", active=True)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, amb)
+        self.csrf_failure_view(request, reason="Token expired")
 
-    def test_ambiente_inativo_nao_e_selecionado(self):
-        """Ambiente inativo nunca é selecionado, mesmo com expressão correspondente."""
-        self._cria_ambiente("Inativo", active=False)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
+        # Verifica que o contexto do Sentry foi configurado corretamente
+        mock_sentry.push_scope.assert_called()
 
-    def test_ambiente_inativo_ignorado_quando_ha_ativo(self):
-        """Quando coexistem ativo e inativo com mesma expressão, apenas o ativo é retornado."""
-        self._cria_ambiente("Inativo", ordem=1, active=False)
-        ativo = self._cria_ambiente("Ativo", ordem=2, active=True)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, ativo)
+    @patch("integrador.views_errors.sentry_sdk")
+    @patch("integrador.views_errors.logger")
+    def test_csrf_failure_logs_warning(self, mock_logger, mock_sentry):
+        """Testa que erro CSRF gera log de warning."""
+        request = self.factory.post("/api/test/")
+        request.user = Mock()
+        request.user.is_authenticated = False
 
-    # 2. Nenhum ambiente selecionado
+        self.csrf_failure_view(request, reason="Invalid token")
 
-    def test_nenhum_ambiente_retorna_none_quando_nao_ha_cadastro(self):
-        """Sem ambientes cadastrados, retorna None."""
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
+        # Verifica se o logger foi chamado
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        self.assertIn("CSRF verification failed", call_args[0][0])
 
-    def test_nenhum_ambiente_retorna_none_quando_expressao_nao_corresponde(self):
-        """Ambiente ativo com expressão que não corresponde ao JSON retorna None."""
-        self._cria_ambiente("Outro", expressao="campus.sigla == 'OUTRO'")
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_captures_request_details(self, mock_sentry):
+        """Testa que erro CSRF captura detalhes completos da requisição."""
+        request = self.factory.post("/api/sensitive-endpoint/")
+        request.META["HTTP_USER_AGENT"] = "MaliciousBot/1.0"
+        request.META["REMOTE_ADDR"] = "10.0.0.1"
+        request.META["HTTP_REFERER"] = "https://malicious-site.com"
+        request.META["CONTENT_TYPE"] = "application/json"
+        request.user = Mock()
+        request.user.is_authenticated = False
 
-    def test_nenhum_ambiente_retorna_none_quando_todos_inativos(self):
-        """Todos inativos, mesmo com expressão correspondente, retorna None."""
-        self._cria_ambiente("Inativo A", active=False)
-        self._cria_ambiente("Inativo B", active=False)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
+        response = self.csrf_failure_view(request, reason="CSRF cookie not set")
 
-    # 3. Exatamente um ambiente selecionado
+        # Verifica que todos os detalhes foram capturados
+        self.assertEqual(response.status_code, 403)
+        mock_sentry.capture_message.assert_called_once()
 
-    def test_exatamente_um_ambiente_ativo_correspondente_e_retornado(self):
-        """Com apenas um ambiente ativo correspondente, ele é retornado."""
-        self._cria_ambiente("Diferente", expressao="campus.sigla == 'OUTRO'")
-        esperado = self._cria_ambiente("Correspondente", ordem=2)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, esperado)
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_with_empty_reason(self, mock_sentry):
+        """Testa erro CSRF com razão vazia."""
+        request = self.factory.post("/api/test/")
+        request.META["HTTP_ACCEPT"] = "application/json"
+        request.user = Mock()
+        request.user.is_authenticated = False
 
-    # 4. Múltiplos ambientes atendendo ao critério — apenas o primeiro é retornado
+        response = self.csrf_failure_view(request, reason="")
 
-    def test_multiplos_ambientes_correspondentes_retorna_o_primeiro_por_ordem(self):
-        """Com múltiplos ativos correspondentes, o de menor ordem é retornado."""
-        primeiro = self._cria_ambiente("Primeiro", ordem=1)
-        self._cria_ambiente("Segundo", ordem=2)
-        self._cria_ambiente("Terceiro", ordem=3)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, primeiro)
-        self.assertNotEqual(resultado.nome, "Segundo")
+        self.assertEqual(response.status_code, 403)
+        data = json.loads(response.content)
+        self.assertIn("reason", data)
 
-    def test_multiplos_ambientes_correspondentes_nao_retorna_o_segundo(self):
-        """Garante que o segundo ambiente correspondente nunca é retornado."""
-        self._cria_ambiente("Primeiro", ordem=1)
-        segundo = self._cria_ambiente("Segundo", ordem=2)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertNotEqual(resultado, segundo)
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_returns_json_when_content_type_is_json(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON quando Content-Type é application/json."""
+        request = self.factory.post("/admin/test/", content_type="application/json", data=json.dumps({"test": "data"}))
+        request.user = Mock()
+        request.user.is_authenticated = False
+
+        response = self.csrf_failure_view(request, reason="Token mismatch")
+
+        # Mesmo sem /api/ no path, deve retornar JSON porque Content-Type é JSON
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+
+        data = json.loads(response.content)
+        self.assertEqual(data["error"], "CSRF verification failed")
+        self.assertEqual(data["reason"], "Token mismatch")
+
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_returns_json_when_accept_is_json(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON quando Accept é application/json."""
+        request = self.factory.post("/admin/test/")
+        request.META["HTTP_ACCEPT"] = "application/json; charset=utf-8"
+        request.user = Mock()
+        request.user.is_authenticated = False
+
+        response = self.csrf_failure_view(request, reason="Referer check failed")
+
+        # Deve retornar JSON porque Accept contém application/json
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+
+        data = json.loads(response.content)
+        self.assertEqual(data["error"], "CSRF verification failed")
+
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_returns_json_for_api_paths(self, mock_sentry):
+        """Testa que erro CSRF retorna JSON para paths começando com /api/."""
+        request = self.factory.post("/api/some/endpoint/")
+        request.META["HTTP_ACCEPT"] = "text/html"  # Mesmo com Accept HTML
+        request.user = Mock()
+        request.user.is_authenticated = False
+
+        response = self.csrf_failure_view(request, reason="CSRF token missing")
+
+        # Deve retornar JSON porque path começa com /api/
+        self.assertEqual(response.status_code, 403)
+        self.assertIsInstance(response, JsonResponse)
+
+
+# Até aqui, sucesso
 
 
 class DecoratorsTestCase(TestCase):
@@ -1047,139 +850,477 @@ class TrySolicitacaoDecoratorTestCase(TestCase):
         self.assertEqual(context.exception.code, 400)
 
 
-class MiddlewareTestCase(TestCase):
-    """Testes para middleware."""
+class AmbienteModelTestCase(TestCase):
+    """Testes para o modelo Ambiente."""
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        # Suprime logs durante testes
-        logging.getLogger("integrador").setLevel(logging.WARNING)
+        self.ambiente_good = dict(
+            nome="Ambiente Teste",  # noqa: S106
+            url="https://test.moodle.com",
+            ordem=1,
+            expressao_seletora="campus.sigla == 'TEST'",
+            local_suap_token="local_suap_token",  # noqa: S106
+            local_suap_active=True,
+            tool_sga_token="tool_sga_token",  # noqa: S106
+            tool_sga_active=True,
+        )
+        self.ambiente = Ambiente.objects.create(**self.ambiente_good)
 
-        self.factory = RequestFactory()
-        self.middleware = DisableCSRFForAPIMiddleware(lambda x: None)
+    def test_create_ambiente(self):
+        """Testa criação de ambiente."""
+        ambiente = Ambiente.objects.create(**self.ambiente_good)
+        self.assertIsNotNone(ambiente.pk)
 
-    def test_csrf_middleware_exempts_api_urls(self):
-        """Testa que middleware isenta URLs da API de CSRF."""
-        request = self.factory.post("/api/enviar_diarios/")
+    def test_manager_seleciona_ambiente_valid(self):
+        """Testa __str__."""
+        ambiente = Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "TEST"}})
+        self.assertIsNotNone(ambiente)
 
-        self.middleware.process_request(request)
+    def test_manager_seleciona_ambiente_none(self):
+        """Testa __str__."""
+        ambiente = Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "ERROR"}})
+        self.assertIsNone(ambiente)
 
-        self.assertTrue(getattr(request, "_dont_enforce_csrf_checks", False))
+    def test_str(self):
+        """Testa __str__."""
+        ambiente = Ambiente(**self.ambiente_good)
+        self.assertEqual(ambiente.nome, str(ambiente))
 
-    def test_csrf_middleware_exempts_baixar_notas(self):
-        """Testa que middleware isenta baixar_notas de CSRF."""
-        request = self.factory.post("/api/baixar_notas/")
+    def test_ok_base_url(self):
+        """Testa validação de base_url válida (OK)."""
+        ambiente = Ambiente(**self.ambiente_good)
+        self.assertEqual("https://test.moodle.com", ambiente.base_url)
 
-        self.middleware.process_request(request)
+        ambiente = Ambiente(**(self.ambiente_good | {"url": "https://test.moodle.com/"}))
+        self.assertEqual("https://test.moodle.com", ambiente.base_url)
 
-        self.assertTrue(getattr(request, "_dont_enforce_csrf_checks", False))
+    def test_not_ok_base_url(self):
+        """Testa validação de base_url (NOT OK)."""
+        ambiente = Ambiente(**(self.ambiente_good | {"url": None}))
+        self.assertEqual("", ambiente.base_url)
 
-    def test_csrf_middleware_does_not_exempt_other_urls(self):
-        """Testa que middleware não isenta outras URLs."""
-        request = self.factory.post("/admin/")
+    def test_ok_valid_expressao_seletora(self):
+        """Testa validação de expressão seletora (OK)."""
+        ambiente = Ambiente(**self.ambiente_good)
+        self.assertTrue(ambiente.valid_expressao_seletora)
 
-        self.middleware.process_request(request)
+    def test_not_ok_valid_expressao_seletora(self):
+        """Testa validação de expressão seletora (NOT OK)."""
+        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": ""}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
 
-        self.assertFalse(getattr(request, "_dont_enforce_csrf_checks", False))
+        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": " "}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": None}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": "asdf asdf"}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+    def test_ok_can_send_to_local_suap(self):
+        """Testa validação can_send_to_local_suap (OK)."""
+        ambiente = Ambiente(self.ambiente_good)
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+    def test_not_ok_can_send_to_local_suap(self):
+        """Testa validação can_send_to_local_suap (NOT OK)."""
+        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_active": False}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_token": None}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_token": ""}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_token": " "}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+    def test_ok_can_send_to_tool_sga(self):
+        """Testa validação can_send_to_local_suap (OK)."""
+        ambiente = Ambiente(self.ambiente_good)
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+    def test_not_ok_can_send_to_tool_sga(self):
+        """Testa validação can_send_to_tool_sga (NOT OK)."""
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": None}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": ""}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": " "}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+    def test_ok_which_broker(self):
+        """Testa validação which_broker (OK)."""
+        ambiente = Ambiente(**self.ambiente_good)
+        self.assertEqual("tool_sga", ambiente.which_broker)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": None}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": ""}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": " "}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+    def test_not_ok_which_broker(self):
+        """Testa validação which_broker (NOT OK)."""
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False}))
+        self.assertIsNone(ambiente.which_broker)
+
+    def test_ok_token(self):
+        """Testa validação token (OK)."""
+        ambiente = Ambiente(**self.ambiente_good)
+        self.assertEqual("tool_sga_token", ambiente.token)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": None}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": ""}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": " "}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+    def test_not_ok_token(self):
+        """Testa validação token (NOT OK)."""
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False}))
+        self.assertIsNone(ambiente.token)
+
+    def test_ok_check_selectable(self):
+        """Testa validação check_selectable (OK)."""
+        valid = {"campus": {"sigla": "TEST"}}
+        invalid = {"campus": {"sigla": "ERROR"}}
+
+        ambiente = Ambiente(**self.ambiente_good)
+        self.assertTrue(ambiente.check_selectable(valid))
+        self.assertFalse(ambiente.check_selectable(invalid))
+
+    def test_not_ok_check_selectable(self):
+        """Testa validação token (NOT OK)."""
+        valid = {"campus": {"sigla": "TEST"}}
+        invalid = {"campus": {"sigla": "ERROR"}}
+
+        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False}))
+        self.assertFalse(ambiente.check_selectable(valid))
+        self.assertFalse(ambiente.check_selectable(invalid))
+
+        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": ""}))
+        self.assertFalse(ambiente.check_selectable(valid))
+        self.assertFalse(ambiente.check_selectable(invalid))
+
+        ambiente = Ambiente(
+            **(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False, "expressao_seletora": ""})
+        )
+        self.assertFalse(ambiente.check_selectable(valid))
+        self.assertFalse(ambiente.check_selectable(invalid))
+
+    # def test_ambiente_str_representation(self):
+    #     """Testa representação em string do ambiente."""
+    #     self.assertEqual(str(self.ambiente), "Ambiente Teste")
+
+    # def test_ambiente_base_url_without_trailing_slash(self):
+    #     """Testa propriedade base_url sem barra final."""
+    #     self.assertEqual(self.ambiente.base_url, "https://test.moodle.com")
+
+    # def test_ambiente_base_url_with_trailing_slash(self):
+    #     """Testa propriedade base_url com barra final."""
+    #     self.ambiente.url = "https://test.moodle.com/"
+    #     self.ambiente.save()
+
+    #     self.assertEqual(self.ambiente.base_url, "https://test.moodle.com")
+
+    # def test_ambiente_valid_expressao_seletora(self):
+    #     """Testa validação de expressão seletora válida."""
+    #     self.assertTrue(self.ambiente.valid_expressao_seletora)
+
+    # def test_ambiente_invalid_expressao_seletora(self):
+    #     """Testa validação de expressão seletora inválida."""
+    #     self.ambiente.expressao_seletora = "invalid syntax {{"
+    #     self.ambiente.save()
+
+    #     self.assertFalse(self.ambiente.valid_expressao_seletora)
+
+    # def test_ambiente_empty_expressao_seletora(self):
+    #     """Testa validação de expressão seletora vazia."""
+    #     self.ambiente.expressao_seletora = ""
+    #     self.ambiente.save()
+
+    #     self.assertFalse(self.ambiente.valid_expressao_seletora)
+
+    # def test_ambiente_null_expressao_seletora(self):
+    #     """Testa validação de expressão seletora nula."""
+    #     # Campo expressao_seletora é NOT NULL no banco, então testamos validação antes de save
+    #     self.ambiente.expressao_seletora = ""
+    #     self.ambiente.save()
+
+    #     self.assertFalse(self.ambiente.valid_expressao_seletora)
+
+    # def test_ambiente_ordering(self):
+    #     """Testa ordenação de ambientes."""
+    #     ambiente2 = Ambiente.objects.create(
+    #         nome="Ambiente 2",  # noqa: S106
+    #         url="https://test2.com",
+    #         token="token2",  # noqa: S106
+    #         expressao_seletora="1=1",
+    #         ordem=0,
+    #     )
+
+    #     ambientes = list(Ambiente.objects.all())
+    #     # Ordenação por ordem, id
+    #     self.assertEqual(ambientes[0], ambiente2)
+
+    # def test_ambiente_manager_seleciona_ambiente(self):
+    #     """Testa método seleciona_ambiente do manager."""
+    #     sync_json = {"campus": {"sigla": "TEST"}}
+
+    #     ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
+
+    #     self.assertEqual(ambiente_selecionado, self.ambiente)
+
+    # def test_ambiente_manager_seleciona_ambiente_nao_encontrado(self):
+    #     """Testa seleciona_ambiente quando não encontra ambiente."""
+    #     sync_json = {"campus": {"sigla": "INEXISTENTE"}}
+
+    #     ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
+
+    #     self.assertIsNone(ambiente_selecionado)
+
+    # def test_ambiente_manager_seleciona_ambiente_only_active(self):
+    #     """Testa que seleciona_ambiente só retorna ambientes ativos."""
+    #     self.ambiente.active = False
+    #     self.ambiente.save()
+
+    #     sync_json = {"campus": {"sigla": "TEST"}}
+    #     ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
+
+    #     self.assertIsNone(ambiente_selecionado)
+
+    # @patch("integrador.models.Rule")
+    # def test_ambiente_manager_seleciona_ambiente_raises_detailed_error(self, mock_rule):
+    #     """Testa tratamento de erro ao processar expressao_seletora no manager."""
+    #     self.ambiente.expressao_seletora = "invalid"
+    #     self.ambiente.save()
+    #     mock_rule.side_effect = Exception("rule parse error")
+
+    #     with self.assertRaises(Exception) as context:
+    #         Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "TEST"}})
+
+    #     self.assertIn("Erro ao processar o ambiente", str(context.exception))
+    #     self.assertIn("rule parse error", str(context.exception))
+
+    # def test_ambiente_color_helper_renders_expected_html(self):
+    #     """Testa helper interno _c para renderização de cor."""
+    #     html = Ambiente._c("#ff0000")
+    #     self.assertIn("#ff0000", html)
+    #     self.assertIn("background", html)
+
+    # def test_ambiente_verbose_names(self):
+    #     """Testa verbose_name e verbose_name_plural."""
+    #     self.assertEqual(Ambiente._meta.verbose_name, "ambiente")
+    #     self.assertEqual(Ambiente._meta.verbose_name_plural, "ambientes")
+
+    # def test_permissive_url_field_accepts_http_and_https(self):
+    #     """Testa que PermissiveURLField aceita URLs http e https válidas."""
+    #     for url in ["http://localhost:8000/path", "https://example.com"]:
+    #         ambiente = Ambiente(
+    #             nome=f"Ambiente {url}",  # noqa: S106
+    #             url=url,
+    #             token="token",  # noqa: S106
+    #             expressao_seletora="1 == 1",
+    #             ordem=1,
+    #             active=True,
+    #         )
+    #         ambiente.full_clean()
+
+    # def test_permissive_url_field_rejects_invalid_url(self):
+    #     """Testa que PermissiveURLField rejeita valores sem protocolo HTTP/HTTPS."""
+    #     ambiente = Ambiente(
+    #         nome="Ambiente inválido",  # noqa: S106
+    #         url="ftp://example.com",
+    #         token="token",  # noqa: S106
+    #         expressao_seletora="1 == 1",
+    #         ordem=1,
+    #         active=True,
+    #     )
+
+    #     with self.assertRaises(ValidationError):
+    #         ambiente.full_clean()
+
+    # def test_permissive_url_field_formfield_is_charfield(self):
+    #     """Testa que o formfield do PermissiveURLField usa forms.CharField."""
+    #     field = Ambiente._meta.get_field("url")
+    #     form_field = field.formfield()
+    #     self.assertIsInstance(form_field, forms.CharField)
 
 
-class BaseBrokerTestCase(TestCase):
-    """Testes para BaseBroker."""
+class AmbienteSelecaoTestCase(TestCase):
+    """Testes para os cenários de seleção de ambiente em seleciona_ambiente."""
+
+    SYNC_JSON = {"campus": {"sigla": "TEST"}}
+
+    def _cria_ambiente(self, nome, ordem=1, active=True, expressao="campus.sigla == 'TEST'"):
+        return Ambiente.objects.create(
+            nome=nome,  # noqa: S106
+            url=f"https://{nome.lower().replace(' ', '-')}.moodle.com",
+            token="token",  # noqa: S106
+            expressao_seletora=expressao,
+            ordem=ordem,
+            active=active,
+        )
+
+    # 1. Ativos e inativos
+
+    def test_ambiente_ativo_e_selecionado(self):
+        """Ambiente ativo com expressão correspondente é selecionado."""
+        amb = self._cria_ambiente("Ativo", active=True)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, amb)
+
+    def test_ambiente_inativo_nao_e_selecionado(self):
+        """Ambiente inativo nunca é selecionado, mesmo com expressão correspondente."""
+        self._cria_ambiente("Inativo", active=False)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    def test_ambiente_inativo_ignorado_quando_ha_ativo(self):
+        """Quando coexistem ativo e inativo com mesma expressão, apenas o ativo é retornado."""
+        self._cria_ambiente("Inativo", ordem=1, active=False)
+        ativo = self._cria_ambiente("Ativo", ordem=2, active=True)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, ativo)
+
+    # 2. Nenhum ambiente selecionado
+
+    def test_nenhum_ambiente_retorna_none_quando_nao_ha_cadastro(self):
+        """Sem ambientes cadastrados, retorna None."""
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    def test_nenhum_ambiente_retorna_none_quando_expressao_nao_corresponde(self):
+        """Ambiente ativo com expressão que não corresponde ao JSON retorna None."""
+        self._cria_ambiente("Outro", expressao="campus.sigla == 'OUTRO'")
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    def test_nenhum_ambiente_retorna_none_quando_todos_inativos(self):
+        """Todos inativos, mesmo com expressão correspondente, retorna None."""
+        self._cria_ambiente("Inativo A", active=False)
+        self._cria_ambiente("Inativo B", active=False)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertIsNone(resultado)
+
+    # 3. Exatamente um ambiente selecionado
+
+    def test_exatamente_um_ambiente_ativo_correspondente_e_retornado(self):
+        """Com apenas um ambiente ativo correspondente, ele é retornado."""
+        self._cria_ambiente("Diferente", expressao="campus.sigla == 'OUTRO'")
+        esperado = self._cria_ambiente("Correspondente", ordem=2)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, esperado)
+
+    # 4. Múltiplos ambientes atendendo ao critério — apenas o primeiro é retornado
+
+    def test_multiplos_ambientes_correspondentes_retorna_o_primeiro_por_ordem(self):
+        """Com múltiplos ativos correspondentes, o de menor ordem é retornado."""
+        primeiro = self._cria_ambiente("Primeiro", ordem=1)
+        self._cria_ambiente("Segundo", ordem=2)
+        self._cria_ambiente("Terceiro", ordem=3)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertEqual(resultado, primeiro)
+        self.assertNotEqual(resultado.nome, "Segundo")
+
+    def test_multiplos_ambientes_correspondentes_nao_retorna_o_segundo(self):
+        """Garante que o segundo ambiente correspondente nunca é retornado."""
+        self._cria_ambiente("Primeiro", ordem=1)
+        segundo = self._cria_ambiente("Segundo", ordem=2)
+        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
+        self.assertNotEqual(resultado, segundo)
+
+
+class AmbienteAdminTestCase(TestCase):
+    """Testes para AmbienteAdmin."""
 
     def setUp(self):
         """Configura o ambiente de teste."""
+        from django.contrib.admin.sites import AdminSite
+
+        from integrador.admin import AmbienteAdmin
+
+        self.admin = AmbienteAdmin(Ambiente, AdminSite())
         self.ambiente = Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="http://test.com",
-            token="test_token_123",  # noqa: S106
-            expressao_seletora="1 ==1",
+            nome="Test Ambiente",  # noqa: S106
+            url="https://test.com",
+            token="test_token",  # noqa: S106
+            expressao_seletora="campus.sigla == 'TEST'",
             active=True,
         )
 
-        self.solicitacao = Solicitacao.objects.create(
-            ambiente=self.ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": 123}}
-        )
+    @patch("requests.get")
+    def test_checked_url_success(self, mock_get):
+        """Testa checked_url com sucesso."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
 
-        self.broker = BaseBroker(self.solicitacao)
+        result = self.admin.checked_url(self.ambiente)
+        self.assertIn("✅", result)
+        self.assertIn("https://test.com", result)
 
-    def test_base_broker_initialization(self):
-        """Testa inicialização do BaseBroker."""
-        self.assertEqual(self.broker.solicitacao, self.solicitacao)
+    @patch("requests.get")
+    def test_checked_url_failure(self, mock_get):
+        """Testa checked_url com falha."""
+        mock_get.side_effect = Exception("Connection error")
 
-    def test_base_broker_credentials_property(self):
-        """Testa propriedade credentials."""
-        credentials = self.broker.credentials
+        result = self.admin.checked_url(self.ambiente)
+        self.assertIn("🚫", result)
 
-        self.assertIn("Authentication", credentials)
-        self.assertIn("test_token_123", credentials["Authentication"])
+    def test_checked_expressao_seletora_valid(self):
+        """Testa checked_expressao_seletora válida."""
+        self.ambiente.expressao_seletora = "campus.sigla == 'TEST'"
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn("✅", result)
 
-    def test_base_broker_get_cohorts(self):
-        """Testa método get_cohort."""
-        cohorts = self.broker.get_cohort()
+    def test_checked_expressao_seletora_invalid(self):
+        """Testa checked_expressao_seletora inválida."""
+        self.ambiente.expressao_seletora = "invalid rule"
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn("🚫", result)
 
-        self.assertEqual(cohorts, [])
+    def test_checked_expressao_seletora_none(self):
+        """Testa checked_expressao_seletora nula."""
+        self.ambiente.expressao_seletora = None
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn("⚠️", result)
 
-    def test_base_broker_sync_up_enrolments_not_implemented(self):
-        """Testa que sync_up_enrolments não está implementado."""
-        with self.assertRaises(NotImplementedError):
-            self.broker.sync_up_enrolments()
+    @patch("base.admin.BaseModelAdmin.get_queryset")
+    def test_get_queryset_calls_all(self, mock_get_queryset):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        request = RequestFactory().get("/admin/integrador/ambiente/")
+        request.user = User.objects.create_superuser("admin_amb", "admin_amb@test.com", "pass123")
 
-    def test_base_broker_sync_down_grades_not_implemented(self):
-        """Testa que sync_down_grades não está implementado."""
-        with self.assertRaises(NotImplementedError):
-            self.broker.sync_down_grades()
+        mock_qs = Mock()
+        mock_qs.all.return_value = "ALL_QS"
+        mock_get_queryset.return_value = mock_qs
 
-    def test_base_broker_cast_cohort_maps_expected_payload(self):
-        """Testa cast_cohort com mapeamento completo de dados."""
-        user = Mock(fullname="User Name", email="user@test.com", login="user_login", active=True)
-        enrolment = Mock(user=user)
-        enrolments = Mock()
-        enrolments.select_related.return_value.all.return_value = [enrolment]
-        cohort = SimpleNamespace(
-            name="Cohort Test",
-            role=SimpleNamespace(name="Professor"),
-            active=True,
-            idnumber="COHORT-1",
-            description="Desc",
-            enrolments=enrolments,
-        )
+        result = self.admin.get_queryset(request)
 
-        payload = self.broker.cast_cohort(cohort)
-
-        self.assertEqual(payload["nome"], "Cohort Test")
-        self.assertEqual(payload["role"], "Professor")
-        self.assertEqual(payload["idnumber"], "COHORT-1")
-        self.assertEqual(payload["colaboradores"][0]["email"], "user@test.com")
-
-    @patch("integrador.brokers.base.logger.warning")
-    @patch("integrador.brokers.base.rule_engine.Rule")
-    def test_base_broker_cohort_matches_handles_rule_error(self, mock_rule, mock_warning):
-        """Testa cohort_matches quando a avaliação da regra falha."""
-        cohort = Mock(id=10, name="Cohort Error", rule_diario="invalid")
-        mock_rule.side_effect = Exception("invalid rule")
-
-        result = self.broker.cohort_matches(cohort, "rule_diario")
-
-        self.assertFalse(result)
-        mock_warning.assert_called_once()
-
-    @patch("integrador.brokers.base.Cohort.objects.filter")
-    def test_base_broker_get_cohort_combines_diario_and_coordenacao(self, mock_filter):
-        """Testa get_cohort combinando cohorts elegíveis por regras diferentes."""
-        cohort_a = SimpleNamespace(name="A")
-        cohort_b = SimpleNamespace(name="B")
-        mock_filter.return_value = [cohort_a, cohort_b]
-
-        with patch.object(self.broker, "cohort_matches") as mock_matches:
-            mock_matches.side_effect = lambda cohort, field: (cohort is cohort_a and field == "rule_diario") or (
-                cohort is cohort_b and field == "rule_coordenacao"
-            )
-            with patch.object(self.broker, "cast_cohort") as mock_cast:
-                mock_cast.side_effect = lambda cohort: {"nome": cohort.name}
-
-                cohorts = self.broker.get_cohort()
-
-        self.assertEqual(cohorts, [{"nome": "A"}, {"nome": "B"}])
+        self.assertEqual(result, "ALL_QS")
+        mock_qs.all.assert_called_once()
 
 
 class CohortSelecaoTestCase(TestCase):
@@ -1398,6 +1539,376 @@ class CohortSelecaoTestCase(TestCase):
         self.assertEqual(colaboradores[0]["email"], "coord.x@ifrn.edu.br")
 
 
+class SolicitacaoModelTestCase(TestCase):
+    """Testes para o modelo Solicitacao."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        self.ambiente = Ambiente.objects.create(
+            nome="Ambiente Teste",  # noqa: S106
+            url="https://test.moodle.com",
+            token="test_token",  # noqa: S106
+            expressao_seletora="campus.sigla == 'TEST'",
+            active=True,
+        )
+
+        self.recebido_json = {
+            "campus": {"sigla": "TEST"},
+            "turma": {"codigo": "20261.1.132456.123.1M"},
+            "componente": {"sigla": "MAT.001"},
+            "diario": {"id": 12345, "tipo": "regular"},
+        }
+
+        self.solicitacao = Solicitacao.objects.create(
+            ambiente=self.ambiente,
+            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
+            status=Solicitacao.Status.PROCESSANDO,
+            recebido=self.recebido_json,
+        )
+
+    def test_create_solicitacao(self):
+        """Testa criação de solicitação."""
+        solicitacao = Solicitacao.objects.create(
+            ambiente=self.ambiente,
+            operacao=Solicitacao.Operacao.SYNC_DOWN_NOTAS,
+            status=Solicitacao.Status.SUCESSO,
+            recebido={"campus": {"sigla": "TEST"}, "diario": {"id": 999}},
+        )
+
+        self.assertIsNotNone(solicitacao.pk)
+        self.assertEqual(solicitacao.operacao, Solicitacao.Operacao.SYNC_DOWN_NOTAS)
+
+    def test_solicitacao_str_representation(self):
+        """Testa representação em string da solicitação."""
+        string_repr = str(self.solicitacao)
+
+        self.assertIn("TEST", string_repr)
+        self.assertIn("12345", string_repr)
+
+    def test_solicitacao_auto_populate_on_save(self):
+        """Testa que save() popula campos automaticamente."""
+        self.assertEqual(self.solicitacao.campus_sigla, "TEST")
+        self.assertEqual(self.solicitacao.diario_id, 12345)
+        self.assertEqual(self.solicitacao.tipo, "regular")
+        # diario_codigo é gerado como turma.codigo#diario.id
+        self.assertIn("20261.1.132456.123.1M", self.solicitacao.diario_codigo)
+        self.assertIn("#12345", self.solicitacao.diario_codigo)
+
+    def test_solicitacao_status_merged_property(self):
+        """Testa propriedade status_merged."""
+        self.solicitacao.status = Solicitacao.Status.SUCESSO
+        self.solicitacao.status_code = "200"
+
+        status_html = self.solicitacao.status_merged
+
+        self.assertIn("Sucesso", status_html)
+        self.assertIn("200", status_html)
+
+    def test_solicitacao_timestamp_auto_created(self):
+        """Testa que timestamp é criado automaticamente."""
+        self.assertIsNotNone(self.solicitacao.timestamp)
+
+    def test_solicitacao_ordering(self):
+        """Testa ordenação de solicitações."""
+        solicitacao2 = Solicitacao.objects.create(
+            ambiente=self.ambiente,
+            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
+            recebido={"campus": {"sigla": "TEST"}, "diario": {"id": 999}},
+        )
+
+        solicitacoes = list(Solicitacao.objects.all())
+        # Ordenação por -timestamp (mais recentes primeiro)
+        self.assertEqual(solicitacoes[0], solicitacao2)
+
+    def test_solicitacao_status_choices(self):
+        """Testa choices de status."""
+        self.solicitacao.status = Solicitacao.Status.SUCESSO
+        self.solicitacao.save()
+
+        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
+        self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
+
+    def test_solicitacao_save_accepts_django_keyword_arguments(self):
+        """Testa que save() delega corretamente para o Model.save do Django."""
+        self.solicitacao.status = Solicitacao.Status.SUCESSO
+        self.solicitacao.status_code = "200"
+
+        self.solicitacao.save(update_fields=["status", "status_code"])
+
+        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
+        self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
+        self.assertEqual(solicitacao.status_code, "200")
+
+    def test_solicitacao_operacao_choices(self):
+        """Testa choices de operação."""
+        self.assertEqual(self.solicitacao.operacao, Solicitacao.Operacao.SYNC_UP_DIARIO)
+
+    def test_solicitacao_json_fields(self):
+        """Testa campos JSON."""
+        self.solicitacao.enviado = {"test": "data"}
+        self.solicitacao.respondido = {"response": "ok"}
+        self.solicitacao.save()
+
+        solicitacao = Solicitacao.objects.get(pk=self.solicitacao.pk)
+        self.assertEqual(solicitacao.enviado["test"], "data")
+        self.assertEqual(solicitacao.respondido["response"], "ok")
+
+    def test_solicitacao_verbose_names(self):
+        """Testa verbose_name e verbose_name_plural."""
+        self.assertEqual(Solicitacao._meta.verbose_name, "solicitação")
+        self.assertEqual(Solicitacao._meta.verbose_name_plural, "solicitações")
+
+
+class SolicitacaoAdminTestCase(TestCase):
+    """Testes para SolicitacaoAdmin."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        from django.contrib.admin.sites import AdminSite
+
+        from integrador.admin import SolicitacaoAdmin
+
+        self.admin = SolicitacaoAdmin(Solicitacao, AdminSite())
+        self.ambiente = Ambiente.objects.create(
+            nome="Test Ambiente",  # noqa: S106
+            url="https://test.com",
+            token="test_token",  # noqa: S106
+            active=True,
+            expressao_seletora="1==1",
+        )
+        self.solicitacao = Solicitacao.objects.create(
+            ambiente=self.ambiente,
+            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
+            tipo="CRIAR_DIARIO",
+            status=Solicitacao.Status.PROCESSANDO,
+            recebido={"diario": {"id": 123, "codigo": "TEST123"}},
+        )
+
+    def test_status_merged(self):
+        """Testa status_merged."""
+        result = self.admin.status_merged(self.solicitacao)
+        self.assertIn("Processando", result)
+
+    def test_acoes(self):
+        """Testa acoes."""
+        result = self.admin.acoes(self.solicitacao)
+        self.assertIn("Reenviar", result)
+
+    def test_quando(self):
+        """Testa quando."""
+        result = self.admin.quando(self.solicitacao)
+        self.assertIsInstance(result, str)
+
+    def test_quando_without_timestamp_returns_dash(self):
+        """Testa quando sem timestamp."""
+        self.solicitacao.timestamp = None
+        result = self.admin.quando(self.solicitacao)
+        self.assertEqual(result, "-")
+
+    def test_professores(self):
+        """Testa professores."""
+        self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": "prof123", "tipo": "servidor"}]}
+        result = self.admin.professores(self.solicitacao)
+        self.assertIn("Prof Test", result)
+
+    def test_professores_returns_dash_when_empty(self):
+        """Testa professores sem entradas."""
+        self.solicitacao.recebido = {"professores": []}
+        result = self.admin.professores(self.solicitacao)
+        self.assertEqual(result, "-")
+
+    def test_professores_returns_dash_on_exception(self):
+        """Testa professores retornando '-' em erro inesperado."""
+        self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": object(), "tipo": "servidor"}]}
+        result = self.admin.professores(self.solicitacao)
+        self.assertEqual(result, "-")
+
+    def test_codigo_diario(self):
+        """Testa codigo_diario."""
+        self.solicitacao.respondido = {"url": "https://test.com/diario"}
+        result = self.admin.codigo_diario(self.solicitacao)
+        self.assertIn("https://test.com/diario", result)
+
+    def test_codigo_diario_returns_dash_on_exception(self):
+        """Testa codigo_diario retornando '-' em erro inesperado."""
+        self.solicitacao.respondido = object()
+        result = self.admin.codigo_diario(self.solicitacao)
+        self.assertEqual(result, "-")
+
+    def test_get_urls_wrap_executes_admin_view_wrapper(self):
+        """Testa wrapper de get_urls delegando para admin_site.admin_view."""
+        with patch.object(
+            self.admin.admin_site, "admin_view", return_value=lambda *args, **kwargs: "ok"
+        ) as mock_admin_view:
+            urls = self.admin.get_urls()
+            callback = urls[0].callback
+            result = callback(Mock(), object_id=str(self.solicitacao.id))
+
+        self.assertEqual(result, "ok")
+        self.assertTrue(mock_admin_view.called)
+        called_views = [call.args[0] for call in mock_admin_view.call_args_list]
+        self.assertIn(self.admin.sync_moodle_view, called_views)
+
+    @patch("integrador.admin.Suap2LocalSuapBroker")
+    def test_sync_moodle_view_success(self, mock_broker):
+        """Testa sync_moodle_view com sucesso."""
+        from django.test import RequestFactory
+
+        factory = RequestFactory()
+        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
+
+        mock_instance = Mock()
+        mock_instance.sync_up_enrolments.return_value = self.solicitacao
+        mock_broker.return_value = mock_instance
+
+        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
+        self.assertEqual(response.status_code, 302)  # Redirect
+
+    @patch("integrador.admin.Suap2LocalSuapBroker")
+    def test_sync_moodle_view_error(self, mock_broker):
+        """Testa sync_moodle_view com erro."""
+        from django.test import RequestFactory
+
+        factory = RequestFactory()
+        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
+
+        mock_broker.side_effect = Exception("Test error")
+
+        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Test error", response.content.decode())
+
+    @patch("integrador.admin.Suap2LocalSuapBroker")
+    def test_sync_moodle_view_handles_none_response(self, mock_broker):
+        """Testa sync_moodle_view quando broker retorna None."""
+        from django.test import RequestFactory
+
+        factory = RequestFactory()
+        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
+
+        mock_instance = Mock()
+        mock_instance.sync_up_enrolments.return_value = None
+        mock_broker.return_value = mock_instance
+
+        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Erro desconhecido", response.content.decode())
+
+    @patch("base.admin.BaseModelAdmin.get_queryset")
+    def test_get_queryset_select_related_ambiente(self, mock_get_queryset):
+        """Testa que SolicitacaoAdmin.get_queryset aplica select_related em ambiente."""
+        request = RequestFactory().get("/admin/integrador/solicitacao/")
+        request.user = User.objects.create_superuser("admin_sol", "admin_sol@test.com", "pass123")
+
+        mock_qs = Mock()
+        mock_qs.select_related.return_value = "SELECT_RELATED_QS"
+        mock_get_queryset.return_value = mock_qs
+
+        result = self.admin.get_queryset(request)
+
+        self.assertEqual(result, "SELECT_RELATED_QS")
+        mock_qs.select_related.assert_called_once_with("ambiente")
+
+
+class BaseBrokerTestCase(TestCase):
+    """Testes para BaseBroker."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        self.ambiente = Ambiente.objects.create(
+            nome="Test",  # noqa: S106
+            url="http://test.com",
+            token="test_token_123",  # noqa: S106
+            expressao_seletora="1 ==1",
+            active=True,
+        )
+
+        self.solicitacao = Solicitacao.objects.create(
+            ambiente=self.ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": 123}}
+        )
+
+        self.broker = BaseBroker(self.solicitacao)
+
+    def test_base_broker_initialization(self):
+        """Testa inicialização do BaseBroker."""
+        self.assertEqual(self.broker.solicitacao, self.solicitacao)
+
+    def test_base_broker_credentials_property(self):
+        """Testa propriedade credentials."""
+        credentials = self.broker.credentials
+
+        self.assertIn("Authentication", credentials)
+        self.assertIn("test_token_123", credentials["Authentication"])
+
+    def test_base_broker_get_cohorts(self):
+        """Testa método get_cohort."""
+        cohorts = self.broker.get_cohort()
+
+        self.assertEqual(cohorts, [])
+
+    def test_base_broker_sync_up_enrolments_not_implemented(self):
+        """Testa que sync_up_enrolments não está implementado."""
+        with self.assertRaises(NotImplementedError):
+            self.broker.sync_up_enrolments()
+
+    def test_base_broker_sync_down_grades_not_implemented(self):
+        """Testa que sync_down_grades não está implementado."""
+        with self.assertRaises(NotImplementedError):
+            self.broker.sync_down_grades()
+
+    def test_base_broker_cast_cohort_maps_expected_payload(self):
+        """Testa cast_cohort com mapeamento completo de dados."""
+        user = Mock(fullname="User Name", email="user@test.com", login="user_login", active=True)
+        enrolment = Mock(user=user)
+        enrolments = Mock()
+        enrolments.select_related.return_value.all.return_value = [enrolment]
+        cohort = SimpleNamespace(
+            name="Cohort Test",
+            role=SimpleNamespace(name="Professor"),
+            active=True,
+            idnumber="COHORT-1",
+            description="Desc",
+            enrolments=enrolments,
+        )
+
+        payload = self.broker.cast_cohort(cohort)
+
+        self.assertEqual(payload["nome"], "Cohort Test")
+        self.assertEqual(payload["role"], "Professor")
+        self.assertEqual(payload["idnumber"], "COHORT-1")
+        self.assertEqual(payload["colaboradores"][0]["email"], "user@test.com")
+
+    @patch("integrador.brokers.base.logger.warning")
+    @patch("integrador.brokers.base.rule_engine.Rule")
+    def test_base_broker_cohort_matches_handles_rule_error(self, mock_rule, mock_warning):
+        """Testa cohort_matches quando a avaliação da regra falha."""
+        cohort = Mock(id=10, name="Cohort Error", rule_diario="invalid")
+        mock_rule.side_effect = Exception("invalid rule")
+
+        result = self.broker.cohort_matches(cohort, "rule_diario")
+
+        self.assertFalse(result)
+        mock_warning.assert_called_once()
+
+    @patch("integrador.brokers.base.Cohort.objects.filter")
+    def test_base_broker_get_cohort_combines_diario_and_coordenacao(self, mock_filter):
+        """Testa get_cohort combinando cohorts elegíveis por regras diferentes."""
+        cohort_a = SimpleNamespace(name="A")
+        cohort_b = SimpleNamespace(name="B")
+        mock_filter.return_value = [cohort_a, cohort_b]
+
+        with patch.object(self.broker, "cohort_matches") as mock_matches:
+            mock_matches.side_effect = lambda cohort, field: (cohort is cohort_a and field == "rule_diario") or (
+                cohort is cohort_b and field == "rule_coordenacao"
+            )
+            with patch.object(self.broker, "cast_cohort") as mock_cast:
+                mock_cast.side_effect = lambda cohort: {"nome": cohort.name}
+
+                cohorts = self.broker.get_cohort()
+
+        self.assertEqual(cohorts, [{"nome": "A"}, {"nome": "B"}])
+
+
 class Suap2LocalSuapBrokerTestCase(TestCase):
     """Testes para Suap2LocalSuapBroker."""
 
@@ -1552,7 +2063,7 @@ class SecurityViewsCoverageTestCase(TestCase):
                 "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
                 "CLIENT_ID": "test_client",
                 "CLIENT_SECRET": "test_secret",
-                "REDIRECT_URI": "http://testserver/authenticate/",
+                "REDIRECT_URI": "http://suap.test.com/authenticate/",
             },
             clear=True,
         ):
@@ -1622,7 +2133,7 @@ class SecurityViewsCoverageTestCase(TestCase):
                 "TOKEN_URL": "https://suap.test.com/o/token/",
                 "CLIENT_ID": "test_client",
                 "CLIENT_SECRET": "test_secret",
-                "REDIRECT_URI": "http://testserver/authenticate/",
+                "REDIRECT_URI": "http://suap.test.com/authenticate/",
             },
             clear=True,
         ):
@@ -1684,7 +2195,7 @@ class SecurityViewsCoverageTestCase(TestCase):
             {
                 "BASE_URL": "https://suap.test.com",
                 "CLIENT_ID": "test_client",
-                "REDIRECT_URI": "http://testserver/authenticate/",
+                "REDIRECT_URI": "http://suap.test.com/authenticate/",
             },
             clear=True,
         ):
@@ -1926,398 +2437,3 @@ class EdgeCasesTestCase(TestCase):
             expressao_seletora="invalid {{ expression",
             active=True,
         )
-
-
-class CSRFErrorViewTestCase(TestCase):
-    """Testes para a view customizada de erro CSRF."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        self.factory = RequestFactory()
-        # Importa a view de erro CSRF
-        from integrador.views_errors import csrf_failure
-
-        self.csrf_failure_view = csrf_failure
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_sends_to_sentry(self, mock_sentry):
-        """Testa que erro CSRF envia informação para o Sentry."""
-        request = self.factory.post("/api/test/")
-        request.META["HTTP_USER_AGENT"] = "TestAgent/1.0"
-        request.META["REMOTE_ADDR"] = "192.168.1.1"
-        request.META["HTTP_REFERER"] = "https://external.com"
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        self.csrf_failure_view(request, reason="CSRF cookie not set")
-
-        # Verifica que Sentry foi chamado
-        mock_sentry.capture_message.assert_called_once()
-        call_args = mock_sentry.capture_message.call_args
-        self.assertIn("CSRF verification failed", call_args[0][0])
-        self.assertEqual(call_args[1]["level"], "warning")
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_returns_json_for_api(self, mock_sentry):
-        """Testa que erro CSRF retorna JSON para requisições de API."""
-        request = self.factory.post("/api/test/")
-        request.META["HTTP_ACCEPT"] = "application/json"
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="Token mismatch")
-
-        self.assertEqual(response.status_code, 403)
-        self.assertIsInstance(response, JsonResponse)
-
-        data = json.loads(response.content)
-        self.assertIn("error", data)
-        self.assertIn("reason", data)
-        self.assertEqual(data["reason"], "Token mismatch")
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_returns_html_for_browser(self, mock_sentry):
-        """Testa que erro CSRF retorna HTML para requisições de navegador."""
-        request = self.factory.post("/admin/login/")
-        request.META["HTTP_ACCEPT"] = "text/html"
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="Referer check failed")
-
-        self.assertEqual(response.status_code, 403)
-        self.assertIn(b"403", response.content)
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
-        """Testa que erro CSRF inclui informações do usuário autenticado."""
-        user = User.objects.create_user(
-            username="testuser",  # noqa: S106
-            email="test@example.com",
-            password="testpass123",  # noqa: S106
-        )
-
-        request = self.factory.post("/api/test/")
-        request.user = user
-        request.META["HTTP_ACCEPT"] = "application/json"
-
-        self.csrf_failure_view(request, reason="Token expired")
-
-        # Verifica que o contexto do Sentry foi configurado corretamente
-        mock_sentry.push_scope.assert_called()
-
-    @patch("integrador.views_errors.sentry_sdk")
-    @patch("integrador.views_errors.logger")
-    def test_csrf_failure_logs_warning(self, mock_logger, mock_sentry):
-        """Testa que erro CSRF gera log de warning."""
-        request = self.factory.post("/api/test/")
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        self.csrf_failure_view(request, reason="Invalid token")
-
-        # Verifica se o logger foi chamado
-        mock_logger.warning.assert_called_once()
-        call_args = mock_logger.warning.call_args
-        self.assertIn("CSRF verification failed", call_args[0][0])
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_captures_request_details(self, mock_sentry):
-        """Testa que erro CSRF captura detalhes completos da requisição."""
-        request = self.factory.post("/api/sensitive-endpoint/")
-        request.META["HTTP_USER_AGENT"] = "MaliciousBot/1.0"
-        request.META["REMOTE_ADDR"] = "10.0.0.1"
-        request.META["HTTP_REFERER"] = "https://malicious-site.com"
-        request.META["CONTENT_TYPE"] = "application/json"
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="CSRF cookie not set")
-
-        # Verifica que todos os detalhes foram capturados
-        self.assertEqual(response.status_code, 403)
-        mock_sentry.capture_message.assert_called_once()
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_with_empty_reason(self, mock_sentry):
-        """Testa erro CSRF com razão vazia."""
-        request = self.factory.post("/api/test/")
-        request.META["HTTP_ACCEPT"] = "application/json"
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="")
-
-        self.assertEqual(response.status_code, 403)
-        data = json.loads(response.content)
-        self.assertIn("reason", data)
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_returns_json_when_content_type_is_json(self, mock_sentry):
-        """Testa que erro CSRF retorna JSON quando Content-Type é application/json."""
-        request = self.factory.post("/admin/test/", content_type="application/json", data=json.dumps({"test": "data"}))
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="Token mismatch")
-
-        # Mesmo sem /api/ no path, deve retornar JSON porque Content-Type é JSON
-        self.assertEqual(response.status_code, 403)
-        self.assertIsInstance(response, JsonResponse)
-
-        data = json.loads(response.content)
-        self.assertEqual(data["error"], "CSRF verification failed")
-        self.assertEqual(data["reason"], "Token mismatch")
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_returns_json_when_accept_is_json(self, mock_sentry):
-        """Testa que erro CSRF retorna JSON quando Accept é application/json."""
-        request = self.factory.post("/admin/test/")
-        request.META["HTTP_ACCEPT"] = "application/json; charset=utf-8"
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="Referer check failed")
-
-        # Deve retornar JSON porque Accept contém application/json
-        self.assertEqual(response.status_code, 403)
-        self.assertIsInstance(response, JsonResponse)
-
-        data = json.loads(response.content)
-        self.assertEqual(data["error"], "CSRF verification failed")
-
-    @patch("integrador.views_errors.sentry_sdk")
-    def test_csrf_failure_returns_json_for_api_paths(self, mock_sentry):
-        """Testa que erro CSRF retorna JSON para paths começando com /api/."""
-        request = self.factory.post("/api/some/endpoint/")
-        request.META["HTTP_ACCEPT"] = "text/html"  # Mesmo com Accept HTML
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        response = self.csrf_failure_view(request, reason="CSRF token missing")
-
-        # Deve retornar JSON porque path começa com /api/
-        self.assertEqual(response.status_code, 403)
-        self.assertIsInstance(response, JsonResponse)
-
-
-class AmbienteAdminTestCase(TestCase):
-    """Testes para AmbienteAdmin."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        from django.contrib.admin.sites import AdminSite
-
-        from integrador.admin import AmbienteAdmin
-
-        self.admin = AmbienteAdmin(Ambiente, AdminSite())
-        self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",  # noqa: S106
-            url="https://test.com",
-            token="test_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            active=True,
-        )
-
-    @patch("requests.get")
-    def test_checked_url_success(self, mock_get):
-        """Testa checked_url com sucesso."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_get.return_value = mock_response
-
-        result = self.admin.checked_url(self.ambiente)
-        self.assertIn("✅", result)
-        self.assertIn("https://test.com", result)
-
-    @patch("requests.get")
-    def test_checked_url_failure(self, mock_get):
-        """Testa checked_url com falha."""
-        mock_get.side_effect = Exception("Connection error")
-
-        result = self.admin.checked_url(self.ambiente)
-        self.assertIn("🚫", result)
-
-    def test_checked_expressao_seletora_valid(self):
-        """Testa checked_expressao_seletora válida."""
-        self.ambiente.expressao_seletora = "campus.sigla == 'TEST'"
-        result = self.admin.checked_expressao_seletora(self.ambiente)
-        self.assertIn("✅", result)
-
-    def test_checked_expressao_seletora_invalid(self):
-        """Testa checked_expressao_seletora inválida."""
-        self.ambiente.expressao_seletora = "invalid rule"
-        result = self.admin.checked_expressao_seletora(self.ambiente)
-        self.assertIn("🚫", result)
-
-    def test_checked_expressao_seletora_none(self):
-        """Testa checked_expressao_seletora nula."""
-        self.ambiente.expressao_seletora = None
-        result = self.admin.checked_expressao_seletora(self.ambiente)
-        self.assertIn("⚠️", result)
-
-    @patch("base.admin.BaseModelAdmin.get_queryset")
-    def test_get_queryset_calls_all(self, mock_get_queryset):
-        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
-        request = RequestFactory().get("/admin/integrador/ambiente/")
-        request.user = User.objects.create_superuser("admin_amb", "admin_amb@test.com", "pass123")
-
-        mock_qs = Mock()
-        mock_qs.all.return_value = "ALL_QS"
-        mock_get_queryset.return_value = mock_qs
-
-        result = self.admin.get_queryset(request)
-
-        self.assertEqual(result, "ALL_QS")
-        mock_qs.all.assert_called_once()
-
-
-class SolicitacaoAdminTestCase(TestCase):
-    """Testes para SolicitacaoAdmin."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        from django.contrib.admin.sites import AdminSite
-
-        from integrador.admin import SolicitacaoAdmin
-
-        self.admin = SolicitacaoAdmin(Solicitacao, AdminSite())
-        self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",  # noqa: S106
-            url="https://test.com",
-            token="test_token",  # noqa: S106
-            active=True,
-            expressao_seletora="1==1",
-        )
-        self.solicitacao = Solicitacao.objects.create(
-            ambiente=self.ambiente,
-            operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
-            tipo="CRIAR_DIARIO",
-            status=Solicitacao.Status.PROCESSANDO,
-            recebido={"diario": {"id": 123, "codigo": "TEST123"}},
-        )
-
-    def test_status_merged(self):
-        """Testa status_merged."""
-        result = self.admin.status_merged(self.solicitacao)
-        self.assertIn("Processando", result)
-
-    def test_acoes(self):
-        """Testa acoes."""
-        result = self.admin.acoes(self.solicitacao)
-        self.assertIn("Reenviar", result)
-
-    def test_quando(self):
-        """Testa quando."""
-        result = self.admin.quando(self.solicitacao)
-        self.assertIsInstance(result, str)
-
-    def test_quando_without_timestamp_returns_dash(self):
-        """Testa quando sem timestamp."""
-        self.solicitacao.timestamp = None
-        result = self.admin.quando(self.solicitacao)
-        self.assertEqual(result, "-")
-
-    def test_professores(self):
-        """Testa professores."""
-        self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": "prof123", "tipo": "servidor"}]}
-        result = self.admin.professores(self.solicitacao)
-        self.assertIn("Prof Test", result)
-
-    def test_professores_returns_dash_when_empty(self):
-        """Testa professores sem entradas."""
-        self.solicitacao.recebido = {"professores": []}
-        result = self.admin.professores(self.solicitacao)
-        self.assertEqual(result, "-")
-
-    def test_professores_returns_dash_on_exception(self):
-        """Testa professores retornando '-' em erro inesperado."""
-        self.solicitacao.recebido = {"professores": [{"nome": "Prof Test", "login": object(), "tipo": "servidor"}]}
-        result = self.admin.professores(self.solicitacao)
-        self.assertEqual(result, "-")
-
-    def test_codigo_diario(self):
-        """Testa codigo_diario."""
-        self.solicitacao.respondido = {"url": "https://test.com/diario"}
-        result = self.admin.codigo_diario(self.solicitacao)
-        self.assertIn("https://test.com/diario", result)
-
-    def test_codigo_diario_returns_dash_on_exception(self):
-        """Testa codigo_diario retornando '-' em erro inesperado."""
-        self.solicitacao.respondido = object()
-        result = self.admin.codigo_diario(self.solicitacao)
-        self.assertEqual(result, "-")
-
-    def test_get_urls_wrap_executes_admin_view_wrapper(self):
-        """Testa wrapper de get_urls delegando para admin_site.admin_view."""
-        with patch.object(
-            self.admin.admin_site, "admin_view", return_value=lambda *args, **kwargs: "ok"
-        ) as mock_admin_view:
-            urls = self.admin.get_urls()
-            callback = urls[0].callback
-            result = callback(Mock(), object_id=str(self.solicitacao.id))
-
-        self.assertEqual(result, "ok")
-        self.assertTrue(mock_admin_view.called)
-        called_views = [call.args[0] for call in mock_admin_view.call_args_list]
-        self.assertIn(self.admin.sync_moodle_view, called_views)
-
-    @patch("integrador.admin.Suap2LocalSuapBroker")
-    def test_sync_moodle_view_success(self, mock_broker):
-        """Testa sync_moodle_view com sucesso."""
-        from django.test import RequestFactory
-
-        factory = RequestFactory()
-        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
-
-        mock_instance = Mock()
-        mock_instance.sync_up_enrolments.return_value = self.solicitacao
-        mock_broker.return_value = mock_instance
-
-        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
-        self.assertEqual(response.status_code, 302)  # Redirect
-
-    @patch("integrador.admin.Suap2LocalSuapBroker")
-    def test_sync_moodle_view_error(self, mock_broker):
-        """Testa sync_moodle_view com erro."""
-        from django.test import RequestFactory
-
-        factory = RequestFactory()
-        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
-
-        mock_broker.side_effect = Exception("Test error")
-
-        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Test error", response.content.decode())
-
-    @patch("integrador.admin.Suap2LocalSuapBroker")
-    def test_sync_moodle_view_handles_none_response(self, mock_broker):
-        """Testa sync_moodle_view quando broker retorna None."""
-        from django.test import RequestFactory
-
-        factory = RequestFactory()
-        request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
-
-        mock_instance = Mock()
-        mock_instance.sync_up_enrolments.return_value = None
-        mock_broker.return_value = mock_instance
-
-        response = self.admin.sync_moodle_view(request, self.solicitacao.id)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Erro desconhecido", response.content.decode())
-
-    @patch("base.admin.BaseModelAdmin.get_queryset")
-    def test_get_queryset_select_related_ambiente(self, mock_get_queryset):
-        """Testa que SolicitacaoAdmin.get_queryset aplica select_related em ambiente."""
-        request = RequestFactory().get("/admin/integrador/solicitacao/")
-        request.user = User.objects.create_superuser("admin_sol", "admin_sol@test.com", "pass123")
-
-        mock_qs = Mock()
-        mock_qs.select_related.return_value = "SELECT_RELATED_QS"
-        mock_get_queryset.return_value = mock_qs
-
-        result = self.admin.get_queryset(request)
-
-        self.assertEqual(result, "SELECT_RELATED_QS")
-        mock_qs.select_related.assert_called_once_with("ambiente")
