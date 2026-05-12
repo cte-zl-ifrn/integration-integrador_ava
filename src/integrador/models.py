@@ -33,9 +33,9 @@ class Ambiente(Model):
                     return a
             return None
 
-    def _c(color: str):
-        fix = "color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;"
-        return f"""<span style='background: {color}; {fix}'>{color}</span>"""
+    # def _c(color: str):
+    #     fix = "color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;"
+    #     return f"""<span style='background: {color}; {fix}'>{color}</span>"""
 
     nome = CharField(_("nome do ambiente"), max_length=255)
     url = PermissiveURLField(_("URL"), max_length=255)
@@ -58,7 +58,8 @@ class Ambiente(Model):
 
     @property
     def base_url(self):
-        return self.url if self.url[-1:] != "/" else self.url[:-1]
+        url = self.url or ""
+        return url if url[-1:] != "/" else url[:-1]
 
     @property
     def valid_expressao_seletora(self):
@@ -71,32 +72,32 @@ class Ambiente(Model):
             return False
 
     @property
-    def can_send_to_local_suap(self):
-        return self.local_suap_active and (self.local_suap_token or "") != ""
+    def can_send_to_tool_sga(self):
+        return self.tool_sga_active and (self.tool_sga_token or "").strip() != ""
 
     @property
-    def can_send_to_tool_sga(self):
-        return self.tool_sga_active and (self.tool_sga_token or "") != ""
-
-    def check_selectable(self, sync_json: dict):
-        if not (self.can_send_to_local_suap or self.can_send_to_tool_sga) and not self.valid_expressao_seletora:
-            return False
-        try:
-            return Rule(self.expressao_seletora).matches(sync_json)
-        except Exception:
-            return False
+    def can_send_to_local_suap(self):
+        return self.local_suap_active and (self.local_suap_token or "").strip() != ""
 
     @property
     def which_broker(self):
-        if self.can_send_to_local_suap:
-            return "local_suap"
         if self.can_send_to_tool_sga:
             return "tool_sga"
+        if self.can_send_to_local_suap:
+            return "local_suap"
         return None
 
     @property
     def token(self):
         return getattr(self, f"{self.which_broker}_token", None)
+
+    def check_selectable(self, sync_json: dict):
+        if (not self.can_send_to_local_suap and not self.can_send_to_tool_sga) or not self.valid_expressao_seletora:
+            return False
+        try:
+            return Rule(self.expressao_seletora).matches(sync_json)
+        except Exception:
+            return False
 
 
 class Solicitacao(Model):
