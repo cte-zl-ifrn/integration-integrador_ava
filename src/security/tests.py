@@ -600,7 +600,8 @@ class EdgeCasesTestCase(TestCase):
         """Testa autenticação com username muito longo."""
         mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
 
-        long_username = "a" * 200
+        username_max_length = User._meta.get_field("username").max_length
+        long_username = "a" * (username_max_length + 50)
         mock_get.return_value = Mock(
             text=json.dumps({"identificacao": long_username, "primeiro_nome": "Long", "ultimo_nome": "User"})
         )
