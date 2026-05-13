@@ -40,7 +40,14 @@ def _get_tokens(request):
         timeout=REQUEST_TIMEOUT_SECONDS,
     )
     logger.info("OAuth endpoint response status %s", response.status_code)
-    data = json.loads(response.text)
+    if not response.ok:
+        raise ValueError(
+            f"Falha ao obter token no OAuth (status {response.status_code}): {response.text[:200]}"
+        )
+    try:
+        data = json.loads(response.text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Resposta inválida do endpoint de token: conteúdo não é JSON válido.") from exc
     if data.get("error_description") == "Mismatching redirect URI.":
         raise ValueError(
             "O administrador do sistema configurou errado o 'Redirect uris' no SUAP-Login ou no OAUTH_REDIRECT_URI."
