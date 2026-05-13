@@ -15,6 +15,7 @@ detect_ambiente
 import io
 import json
 import logging
+import uuid
 from http.client import HTTPException
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -445,10 +446,11 @@ class CSRFErrorViewTestCase(TestCase):
     @patch("integrador.views_errors.sentry_sdk")
     def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
         """Testa que erro CSRF inclui informações do usuário autenticado."""
+        test_password = f"test-{uuid.uuid4().hex}"
         user = User.objects.create_user(
-            username="testuser",  # noqa: S106
+            username="testuser",
             email="test@example.com",
-            password="testpass123",  # noqa: S106
+            password=test_password,
         )
 
         request = self.factory.post("/api/test/")
