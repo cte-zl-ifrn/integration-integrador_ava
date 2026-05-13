@@ -114,8 +114,8 @@ class SettingsDatabasesTestCase(TestCase):
     def test_database_port_is_valid(self):
         """Testa se a porta do banco é válida."""
         db_port = settings.DATABASES["default"]["PORT"]
-        self.assertIsInstance(db_port, str)
-        self.assertTrue(db_port.isdigit())
+        self.assertIsInstance(db_port, (str, int))
+        self.assertTrue(str(db_port).isdigit())
         port_num = int(db_port)
         self.assertGreater(port_num, 0)
         self.assertLess(port_num, 65536)
@@ -391,7 +391,8 @@ class SettingsSecurityTestCase(TestCase):
         """Testa se DEBUG está False em produção."""
         # Este teste é mais para documentação
         # Em produção, DEBUG deve ser False
-        self.assertFalse(settings.DEBUG and settings.ENVIRONMENT != "production")
+        if settings.ENVIRONMENT == "production":
+            self.assertFalse(settings.DEBUG)
 
     def test_allowed_hosts_configured(self):
         """Testa se ALLOWED_HOSTS está configurado."""

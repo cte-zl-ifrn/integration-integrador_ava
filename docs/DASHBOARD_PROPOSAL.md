@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-Implementei uma proposta de **dashboard executivo** melhorado para a página inicial do projeto, substituindo o padrão
+Esta proposta implementa um **dashboard executivo** melhorado para a página inicial do projeto, substituindo o padrão
 genérico do Django Admin por uma interface informativa que integra dados dos principais modelos do sistema.
 
 ## Arquitetura
@@ -205,7 +205,7 @@ admin.site.index = admin_index_dashboard
 
 ### Internacionalização
 
-- Todos os textos usam `{% raw %}{% translate %}{% endraw %}`
+- Todos os textos usam tag `translate`
 - Suporta múltiplos idiomas
 
 ---
@@ -216,6 +216,7 @@ admin.site.index = admin_index_dashboard
 | ----------- | ---------- | -------------------------------- |
 | Ambiente    | integrador | Total, Ativos, Com Erro          |
 | Solicitação | integrador | 24h, Sucesso, Falha, Processando |
+| Cliente     | gestao     | Total, Ativos                    |
 
 ---
 

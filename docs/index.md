@@ -68,7 +68,7 @@ Em elaboração.
 Após instalar o plugin no Moodle, configure:
 
 - **Token de autenticação:** valor livre, mas deve ser idêntico ao
-  campo `token` do Ambienteno Integrador (Passo 3).
+  campo `token` do Ambiente no Integrador (Passo 3).
 - Demais parâmetros conforme a documentação do respectivo plugin.
 
 ### Passo 2 — Configurar as variáveis de ambiente do Integrador

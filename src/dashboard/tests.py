@@ -111,7 +111,7 @@ class DashboardStorageTestCase(TestCase):
     def test_load_ambientes_with_invalid_expressao(self):
         """Testa carregamento de ambientes com expressão inválida."""
         # Cria um ambiente com expressão inválida
-        Ambiente.objects.create(**(AMBIENTE_GOOD | {"expressao_seletora": "invalid 8expression"}))
+        Ambiente.objects.create(**(AMBIENTE_GOOD | {"expressao_seletora": "invalid expression"}))
 
         storage = DashboardStorage()
         context = storage.get_context()
@@ -144,7 +144,7 @@ class DashboardStorageTestCase(TestCase):
 
     def test_load_papeis_with_inactive(self):
         """Testa carregamento de papéis inativos."""
-        Role.objects.create(shortname="ROL02", name="Inactive Role", active=False)
+        Role.objects.create(shortname="coordenadordecurso", name="Inactive Role", active=False)
 
         storage = DashboardStorage()
         context = storage.get_context()

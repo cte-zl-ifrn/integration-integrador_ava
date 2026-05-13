@@ -27,15 +27,13 @@ from . import admin  # noqa
 Se preferir registrar via URLs, edite o `urls.py` principal:
 
 ```python
-from dsgovbr.admin_views import admin_index_dashboard
-
 urlpatterns = [
     # ... suas urls
     path('admin/', admin.site.urls),
 ]
 
 # ANTES do admin.site.urls, substitua a view padrão:
-admin.site.index = admin_index_dashboard
+admin.site.index_template = "admin/index.html"
 ```
 
 ### Opção 3: Via Settings
