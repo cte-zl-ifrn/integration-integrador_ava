@@ -99,6 +99,7 @@ jobs:
 
       - name: Test with coverage
         run: |
+          cd src
           coverage run manage.py test --verbosity 1
           coverage report --fail-under=98
           coverage xml -o coverage.xml
@@ -111,9 +112,9 @@ jobs:
         with:
           name: coverage-reports-py${{ matrix.python-version }}
           path: |
-            htmlcov/
-            coverage.xml
-            .coverage
+            src/htmlcov/
+            src/coverage.xml
+            src/.coverage
           if-no-files-found: error
           retention-days: 14
 
