@@ -457,12 +457,12 @@ class LogoutViewTestCase(TestCase):
         request = self.factory.get("/logout/")
         request.user = self.user
         self.add_session_to_request(request)
-        request.session["logout_token"] = TEST_LOGOUT_TOKEN
+        request.session["logout_token"] = TEST_TOKEN_VALUE
 
         response = logout(request)
 
         # Verifica que URL contém token
-        self.assertIn(f"token={TEST_LOGOUT_TOKEN}", response.url)
+        self.assertIn(f"token={TEST_TOKEN_VALUE}", response.url)
 
     def test_logout_with_empty_logout_token(self):
         """Testa logout sem logout_token na sessão."""
