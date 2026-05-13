@@ -71,10 +71,14 @@ def _save_user(userinfo):
     username = userinfo["identificacao"]
     user = User.objects.filter(username=username).first()
 
+    identificacao = userinfo.get("identificacao")
+    email_preferencial = userinfo.get("email_preferencial")
+    email = email_preferencial or (f"{identificacao}@ifrn.edu.br" if identificacao else "")
+
     defaults = {
         "first_name": userinfo.get("primeiro_nome"),
         "last_name": userinfo.get("ultimo_nome"),
-        "email": userinfo.get("email_preferencial") or userinfo.get("identificacao") + "@ifrn.edu.br",
+        "email": email,
     }
 
     if user is None:
