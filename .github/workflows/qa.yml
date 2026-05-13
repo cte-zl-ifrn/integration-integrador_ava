@@ -93,15 +93,23 @@ jobs:
 
       - name: Test with coverage
         run: |
-          pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
+          coverage run manage.py test --verbosity 1
+          coverage report --fail-under=98
+          coverage xml -o coverage.xml
+          coverage html
+          ./check_coverage_gate.py --coverage-xml /app/src/coverage.xml --baseline-file /app/src/.coverage-baseline --min 98 --ideal 100 --write-baseline
           pytest-coverage-gate --coverage-xml=coverage.xml --baseline=.coverage-baseline
 
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v7
         with:
           name: coverage-reports-py${{ matrix.python-version }}
-          path: coverage.xml
+          path: |
+            htmlcov/
+            coverage.xml
+            .coverage
           if-no-files-found: error
+          retention-days: 14
 
       - name: Upload coverage to Codecov
         if: github.event_name == 'push' || github.event_name == 'schedule'
