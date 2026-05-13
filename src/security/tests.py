@@ -19,7 +19,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from security.apps import SecurityConfig
 from security.views import authenticate, login, logout
 
-TEST_LOGOUT_TOKEN = "test_token_123"  # noqa S105
+TEST_TOKEN_VALUE = "test_token_123"
 
 
 class SecurityAppConfigTestCase(TestCase):
