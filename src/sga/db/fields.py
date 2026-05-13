@@ -38,9 +38,6 @@ class ObfuscatedCharField(models.CharField):
     def from_db_value(self, value, expression, connection):
         return self.get_obfuscated_value(value)
 
-    def to_python(self, value):
-        return super().to_python(value)
-
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         if self.obfuscator != mask_all:
