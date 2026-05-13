@@ -68,7 +68,9 @@ def _get_userinfo(request_data):
 
 
 def _save_user(userinfo):
-    username = userinfo["identificacao"]
+    username = userinfo.get("identificacao")
+    if not username:
+        raise ValueError("Resposta do OAuth inválida: campo obrigatório 'identificacao' ausente.")
     user = User.objects.filter(username=username).first()
 
     identificacao = userinfo.get("identificacao")
