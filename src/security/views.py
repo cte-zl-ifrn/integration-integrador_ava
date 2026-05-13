@@ -38,6 +38,7 @@ def _get_tokens(request):
             "client_secret": OAUTH["CLIENT_SECRET"],
         },
         timeout=REQUEST_TIMEOUT_SECONDS,
+        verify=True,
     )
     logger.info("OAuth endpoint response status %s", response.status_code)
     if not response.ok:
