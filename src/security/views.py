@@ -154,6 +154,7 @@ def logout(request: HttpRequest) -> HttpResponse:
 
     auth.logout(request)
 
+    encoded_logout_token = urllib.parse.quote_plus(logout_token)
     next_url = urllib.parse.quote_plus(settings.LOGIN_REDIRECT_URL)
     separator = "&" if urllib.parse.urlsplit(logout_url).query else "?"
-    return redirect(f"{logout_url}{separator}token={logout_token}&next={next_url}")
+    return redirect(f"{logout_url}{separator}token={encoded_logout_token}&next={next_url}")
