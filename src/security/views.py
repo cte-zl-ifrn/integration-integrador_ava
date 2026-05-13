@@ -63,6 +63,7 @@ def _get_userinfo(request_data):
             "x-api-key": OAUTH["CLIENT_SECRET"],
         },
         timeout=REQUEST_TIMEOUT_SECONDS,
+        verify=True,
     )
     logger.info("_get_userinfo response received with status %s", response.status_code)
     if not response.ok:
