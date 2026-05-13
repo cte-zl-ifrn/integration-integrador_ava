@@ -30,7 +30,7 @@ class ObfuscatedCharField(models.CharField):
             return None
         if self.obfuscator is not None:
             return self.obfuscator(value)
-        return "****" + value[-4:]
+        return "****" + value[-4:] if len(value) >= 4 else "****"
 
     def from_db_value(self, value, expression, connection):
         return self.get_obfuscated_value(value)
