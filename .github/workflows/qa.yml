@@ -93,7 +93,7 @@ jobs:
 
       - name: Test with coverage
         run: |
-          pytest --cov=django_abrasileirado --cov-report=xml:coverage.xml --cov-report=term-missing
+          pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
           pytest-coverage-gate --coverage-xml=coverage.xml --baseline=.coverage-baseline
 
       - name: Upload coverage artifacts
