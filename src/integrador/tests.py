@@ -619,7 +619,7 @@ class AmbienteModelTestCase(TestCase):
 
     def test_ok_can_send_to_local_suap(self):
         """Testa validação can_send_to_local_suap (OK)."""
-        ambiente = Ambiente(AMBIENTE_GOOD)
+        ambiente = Ambiente(**AMBIENTE_GOOD)
         self.assertFalse(ambiente.can_send_to_local_suap)
 
     def test_not_ok_can_send_to_local_suap(self):
