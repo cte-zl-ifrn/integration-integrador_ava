@@ -1,4 +1,4 @@
-ARG BASEIMAGE=6.0.5.26
+ARG BASEIMAGE=6.0.5.28
 
 
 #########################
@@ -6,9 +6,10 @@ ARG BASEIMAGE=6.0.5.26
 ########################################################################
 FROM ctezlifrn/avaintegrationbase:$BASEIMAGE AS development
 
-COPY requirements-dev.txt /
-RUN    pip uninstall dsgovbr \
-    && pip install -r /requirements-dev.txt
+RUN uv pip uninstall --system dsgovbr
+RUN uv pip install --system pre-commit \
+                    black ruff doc8 pytest pytest-cov python-dotenv pytest-coverage-gate pytest-django \
+                    django-sass-processor Werkzeug django-debug-toolbar
 
 USER app
 EXPOSE 8000

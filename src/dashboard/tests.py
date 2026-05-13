@@ -19,6 +19,17 @@ from dashboard.admin_views import admin_index_dashboard
 from dashboard.storage import DashboardStorage
 from integrador.models import Ambiente, Solicitacao
 
+AMBIENTE_GOOD = dict(
+    nome="Ambiente Teste",  # noqa: S106
+    url="https://test.moodle.com",
+    ordem=1,
+    expressao_seletora="campus.sigla == 'TEST'",
+    local_suap_token="local_suap_token",  # noqa: S106
+    local_suap_active=True,
+    tool_sga_token="tool_sga_token",  # noqa: S106
+    tool_sga_active=True,
+)
+
 
 class DashboardStorageTestCase(TestCase):
     """Testes para a classe DashboardStorage."""
@@ -29,13 +40,7 @@ class DashboardStorageTestCase(TestCase):
         self.storage = DashboardStorage()
 
         # Cria dados de teste
-        self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",  # noqa: S106
-            url="https://test.moodle.com",
-            token="test_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         self.role = Role.objects.create(shortname="ROLE01", name="Test Role", active=True)
 
@@ -106,13 +111,7 @@ class DashboardStorageTestCase(TestCase):
     def test_load_ambientes_with_invalid_expressao(self):
         """Testa carregamento de ambientes com expressão inválida."""
         # Cria um ambiente com expressão inválida
-        Ambiente.objects.create(
-            nome="Bad Ambiente",  # noqa: S106
-            url="https://bad.moodle.com",
-            token="bad_token",  # noqa: S106
-            expressao_seletora="invalid {{expression",
-            active=True,
-        )
+        Ambiente.objects.create(**(AMBIENTE_GOOD | {"expressao_seletora": "invalid 8expression"}))
 
         storage = DashboardStorage()
         context = storage.get_context()

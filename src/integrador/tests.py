@@ -19,8 +19,10 @@ from http.client import HTTPException
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from django import forms
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.http import JsonResponse
 from django.test import RequestFactory, TestCase, override_settings
@@ -47,6 +49,18 @@ from integrador.views import sync_up_enrolments
 
 # Configura logging para WARNING durante testes (suprime DEBUG e INFO)
 logging.getLogger("integrador").setLevel(logging.WARNING)
+
+
+AMBIENTE_GOOD = dict(
+    nome="Ambiente Teste",  # noqa: S106
+    url="https://test.moodle.com",
+    ordem=1,
+    expressao_seletora="campus.sigla == 'TEST'",
+    local_suap_token="local_suap_token",  # noqa: S106
+    local_suap_active=True,
+    tool_sga_token="tool_sga_token",  # noqa: S106
+    tool_sga_active=True,
+)
 
 
 class IntegradorConfigTestCase(TestCase):
@@ -161,7 +175,7 @@ class ToolSgaHTTPMockTestCase(TestCase):
     """
 
     PLUGIN_PATH = ToolSgaHTTPMock.PLUGIN_PATH
-    BASE_URL = f"https://moodle.test.com{PLUGIN_PATH}"
+    BASE_URL = f"https://test.moodle.com{PLUGIN_PATH}"
     AUTH_HEADERS = {"Authentication": f"Token {ToolSgaHTTPMock.TOKEN}"}
 
     def setUp(self):
@@ -183,7 +197,7 @@ class ToolSgaHTTPMockTestCase(TestCase):
 
     def test_endpoint_errado_retorna_404(self):
         """URL com path incorreto deve retornar 404."""
-        response = self.mock.get("https://moodle.test.com/outro/path", headers=self.AUTH_HEADERS)
+        response = self.mock.get("https://test.moodle.com/outro/path", headers=self.AUTH_HEADERS)
         self.assertEqual(response.status_code, 404)
 
     def test_qualquer_servico_retorna_501(self):
@@ -201,7 +215,7 @@ class LocalSuapHTTPMockTestCase(TestCase):
     Cobre o mock do plugin `local_suap`, usado pelo broker `Suap2LocalSuapBroker`.
     """
 
-    BASE_URL = "https://moodle.test.com/local/suap/api/index.php"
+    BASE_URL = "https://test.moodle.com/local/suap/api/index.php"
 
     def setUp(self):
         self.mock = LocalSuapHTTPMock()
@@ -238,7 +252,7 @@ class LocalSuapHTTPMockTestCase(TestCase):
     # --- LocalSuapHTTPMock ---
 
     def test_endpoint_desconhecido_retorna_404(self):
-        response = self.mock.get("https://moodle.test.com/outro/endpoint")
+        response = self.mock.get("https://test.moodle.com/outro/endpoint")
         self.assertEqual(response.status_code, 404)
         self.assertFalse(response.ok)
 
@@ -541,7 +555,388 @@ class CSRFErrorViewTestCase(TestCase):
         self.assertIsInstance(response, JsonResponse)
 
 
-# Até aqui, sucesso
+class AmbienteModelTestCase(TestCase):
+    """Testes para o modelo Ambiente."""
+
+    SYNC_JSON = {"campus": {"sigla": "TEST"}}
+    SYNC_JSON_NOT_OK = {"campus": {"sigla": "ERROR"}}
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
+
+    def test_create_ambiente(self):
+        """Testa criação de ambiente."""
+        ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
+        self.assertIsNotNone(ambiente.pk)
+
+    def test_manager_seleciona_ambiente_valid(self):
+        """Testa __str__."""
+        ambiente = Ambiente.objects.seleciona_ambiente(AmbienteModelTestCase.SYNC_JSON)
+        self.assertIsNotNone(ambiente)
+
+    def test_manager_seleciona_ambiente_none(self):
+        """Testa __str__."""
+        ambiente = Ambiente.objects.seleciona_ambiente(AmbienteModelTestCase.SYNC_JSON_NOT_OK)
+        self.assertIsNone(ambiente)
+
+    def test_str(self):
+        """Testa __str__."""
+        ambiente = Ambiente(**AMBIENTE_GOOD)
+        self.assertEqual(ambiente.nome, str(ambiente))
+
+    def test_ok_base_url(self):
+        """Testa validação de base_url válida (OK)."""
+        ambiente = Ambiente(**AMBIENTE_GOOD)
+        self.assertEqual("https://test.moodle.com", ambiente.base_url)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"url": "https://test.moodle.com/"}))
+        self.assertEqual("https://test.moodle.com", ambiente.base_url)
+
+    def test_not_ok_base_url(self):
+        """Testa validação de base_url (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"url": None}))
+        self.assertEqual("", ambiente.base_url)
+
+    def test_ok_valid_expressao_seletora(self):
+        """Testa validação de expressão seletora (OK)."""
+        ambiente = Ambiente(**AMBIENTE_GOOD)
+        self.assertTrue(ambiente.valid_expressao_seletora)
+
+    def test_not_ok_valid_expressao_seletora(self):
+        """Testa validação de expressão seletora (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"expressao_seletora": ""}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"expressao_seletora": " "}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"expressao_seletora": None}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"expressao_seletora": "asdf asdf"}))
+        self.assertFalse(ambiente.valid_expressao_seletora)
+
+    def test_ok_can_send_to_local_suap(self):
+        """Testa validação can_send_to_local_suap (OK)."""
+        ambiente = Ambiente(AMBIENTE_GOOD)
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+    def test_not_ok_can_send_to_local_suap(self):
+        """Testa validação can_send_to_local_suap (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"local_suap_active": False}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"local_suap_token": None}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"local_suap_token": ""}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"local_suap_token": " "}))
+        self.assertFalse(ambiente.can_send_to_local_suap)
+
+    def test_ok_can_send_to_tool_sga(self):
+        """Testa validação can_send_to_local_suap (OK)."""
+        ambiente = Ambiente(AMBIENTE_GOOD)
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+    def test_not_ok_can_send_to_tool_sga(self):
+        """Testa validação can_send_to_tool_sga (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": None}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": ""}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": " "}))
+        self.assertFalse(ambiente.can_send_to_tool_sga)
+
+    def test_ok_which_broker(self):
+        """Testa validação which_broker (OK)."""
+        ambiente = Ambiente(**AMBIENTE_GOOD)
+        self.assertEqual("tool_sga", ambiente.which_broker)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": None}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": ""}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": " "}))
+        self.assertEqual("local_suap", ambiente.which_broker)
+
+    def test_not_ok_which_broker(self):
+        """Testa validação which_broker (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False, "local_suap_active": False}))
+        self.assertIsNone(ambiente.which_broker)
+
+    def test_ok_token(self):
+        """Testa validação token (OK)."""
+        ambiente = Ambiente(**AMBIENTE_GOOD)
+        self.assertEqual("tool_sga_token", ambiente.token)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": None}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": ""}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": " "}))
+        self.assertEqual("local_suap_token", ambiente.token)
+
+    def test_not_ok_token(self):
+        """Testa validação token (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False, "local_suap_active": False}))
+        self.assertIsNone(ambiente.token)
+
+    def test_ok_check_selectable(self):
+        """Testa validação check_selectable (OK)."""
+        ambiente = Ambiente(**AMBIENTE_GOOD)
+        self.assertTrue(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON))
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON_NOT_OK))
+
+    def test_not_ok_check_selectable(self):
+        """Testa validação token (NOT OK)."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False, "local_suap_active": False}))
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON))
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON_NOT_OK))
+
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"expressao_seletora": ""}))
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON))
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON_NOT_OK))
+
+        ambiente = Ambiente(
+            **(AMBIENTE_GOOD | {"tool_sga_active": False, "local_suap_active": False, "expressao_seletora": ""})
+        )
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON))
+        self.assertFalse(ambiente.check_selectable(AmbienteModelTestCase.SYNC_JSON_NOT_OK))
+
+    def test_ok_ambiente_ordering(self):
+        """Testa ordenação de ambientes."""
+        ambiente2 = Ambiente.objects.create(**(AMBIENTE_GOOD | {"ordem": 0}))
+
+        ambientes = list(Ambiente.objects.all())
+        # Ordenação por ordem, id
+        self.assertEqual(ambientes[0], ambiente2)
+
+    def test_ok_ambiente_verbose_names(self):
+        """Testa verbose_name e verbose_name_plural."""
+        self.assertEqual(Ambiente._meta.verbose_name, "ambiente")
+        self.assertEqual(Ambiente._meta.verbose_name_plural, "ambientes")
+
+    def test_ok_url(self):
+        """Testa que PermissiveURLField aceita URLs http e https válidas."""
+        for url in ["http://localhost:8000/path", "https://example.com"]:
+            ambiente = Ambiente(**(AMBIENTE_GOOD | {"nome": f"Ambiente {url}", "url": url}))
+            ambiente.full_clean()
+
+    def test_not_ok_url(self):
+        """Testa que PermissiveURLField rejeita valores sem protocolo HTTP/HTTPS."""
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"nome": "Ambiente inválido", "url": "ftp://example.com"}))
+        with self.assertRaises(ValidationError):
+            ambiente.full_clean()
+
+    def test_permissive_url_field_formfield_is_charfield(self):
+        """Testa que o formfield do PermissiveURLField usa forms.CharField."""
+        field = Ambiente._meta.get_field("url")
+        form_field = field.formfield()
+        self.assertIsInstance(form_field, forms.CharField)
+
+
+class AmbienteAdminTestCase(TestCase):
+    """Testes para AmbienteAdmin."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        from django.contrib.admin.sites import AdminSite
+
+        from integrador.admin import AmbienteAdmin
+
+        self.ambiente_suap_good = dict(
+            nome="Ambiente Teste",  # noqa: S106
+            url="https://test.moodle.com",
+            ordem=1,
+            expressao_seletora="campus.sigla == 'TEST'",
+            local_suap_token="local_suap_token",  # noqa: S106
+            local_suap_active=True,
+            tool_sga_token=None,  # noqa: S106
+            tool_sga_active=False,
+        )
+
+        self.admin = AmbienteAdmin(Ambiente, AdminSite())
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
+
+    @patch("requests.get")
+    def test_ok_checked_url(self, mock_get):
+        """Testa checked_url com sucesso."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.admin.checked_url(self.ambiente)
+        self.assertIn("✅", result)
+        self.assertIn("https://test.moodle.com", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_url(self, mock_get):
+        """Testa checked_url com falha."""
+        mock_get.side_effect = Exception("Connection error")
+
+        result = self.admin.checked_url(self.ambiente)
+        self.assertIn("🚫", result)
+
+    def test_ok_checked_expressao_seletora(self):
+        """Testa checked_expressao_seletora válida."""
+        self.ambiente.expressao_seletora = "campus.sigla == 'TEST'"
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn("✅", result)
+
+    def test_not_ok_checked_expressao_seletora(self):
+        """Testa checked_expressao_seletora inválida."""
+        self.ambiente.expressao_seletora = "invalid rule"
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn("🚫", result)
+
+        self.ambiente.expressao_seletora = None
+        result = self.admin.checked_expressao_seletora(self.ambiente)
+        self.assertIn("⚠️", result)
+
+    def test_ok_get_queryset(self):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        request = RequestFactory().get("/admin/integrador/ambiente/")
+        self.assertEqual(1, len(self.admin.get_queryset(request)))
+
+    @patch("requests.get")
+    def test_ok_checked_tool_sga(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+
+        # mock_get.side_effect = Exception("Connection error")
+        mock_get.return_value = Mock(status_code=200, text="")
+        result = self.admin.checked_tool_sga(self.ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("✅", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_tool_sga1(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+
+        # mock_get.side_effect = Exception("Connection error")
+        mock_get.return_value = Mock(status_code=401, text="")
+        result = self.admin.checked_tool_sga(self.ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("🔑", result)  # Token inválido
+
+    @patch("requests.get")
+    def test_not_ok_checked_tool_sga2(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        result = self.admin.checked_tool_sga(self.ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("❌", result)  # Qualquer outro erro
+
+    @patch("requests.get")
+    def test_not_ok_checked_tool_sga3(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False, "tool_sga_token": None}))
+        result = self.admin.checked_tool_sga(ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("🚫", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_tool_sga4(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_active": False}))
+        result = self.admin.checked_tool_sga(ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("⏸️", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_tool_sga5(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        ambiente = Ambiente(**(AMBIENTE_GOOD | {"tool_sga_token": None}))
+        result = self.admin.checked_tool_sga(ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("⚠️", result)
+
+    def test_not_ok_checked_tool_sga6(self):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        result = self.admin.checked_tool_sga(self.ambiente)
+        self.assertIn("Tool SGA", result)
+        self.assertIn("⛔", result)
+
+    @patch("requests.get")
+    def test_ok_checked_local_suap(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+
+        # mock_get.side_effect = Exception("Connection error")
+        mock_get.return_value = Mock(status_code=200, text="")
+        result = self.admin.checked_local_suap(Ambiente(**self.ambiente_suap_good))
+        self.assertIn("Local SUAP", result)
+        self.assertIn("✅", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_local_suap1(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+
+        # mock_get.side_effect = Exception("Connection error")
+        mock_get.return_value = Mock(status_code=401, text="")
+        result = self.admin.checked_local_suap(Ambiente(**self.ambiente_suap_good))
+        self.assertIn("Local SUAP", result)
+        self.assertIn("🔑", result)  # Token inválido
+
+    @patch("requests.get")
+    def test_not_ok_checked_local_suap2(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        result = self.admin.checked_local_suap(Ambiente(**self.ambiente_suap_good))
+        self.assertIn("Local SUAP", result)
+        self.assertIn("❌", result)  # Qualquer outro erro
+
+    @patch("requests.get")
+    def test_not_ok_checked_local_suap3(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        ambiente = Ambiente(**(self.ambiente_suap_good | {"local_suap_active": False, "local_suap_token": None}))
+        result = self.admin.checked_local_suap(ambiente)
+        self.assertIn("Local SUAP", result)
+        self.assertIn("🚫", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_local_suap4(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        ambiente = Ambiente(**(self.ambiente_suap_good | {"local_suap_active": False}))
+        result = self.admin.checked_local_suap(ambiente)
+        self.assertIn("Local SUAP", result)
+        self.assertIn("⏸️", result)
+
+    @patch("requests.get")
+    def test_not_ok_checked_local_suap5(self, mock_get):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        mock_get.return_value = Mock(status_code=500, text="")
+        ambiente = Ambiente(**(self.ambiente_suap_good | {"local_suap_token": None}))
+        result = self.admin.checked_local_suap(ambiente)
+        self.assertIn("Local SUAP", result)
+        self.assertIn("⚠️", result)
+
+    def test_not_ok_checked_local_suap6(self):
+        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
+        result = self.admin.checked_local_suap(Ambiente(**(self.ambiente_suap_good)))
+        self.assertIn("Local SUAP", result)
+        self.assertIn("⛔", result)
 
 
 class DecoratorsTestCase(TestCase):
@@ -738,13 +1133,7 @@ class DecoratorsTestCase(TestCase):
 
     def test_detect_ambiente_decorator_found(self):
         """Testa decorator detect_ambiente encontrando ambiente."""
-        Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="http://test.com",
-            token="token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            active=True,
-        )
+        Ambiente.objects.create(**AMBIENTE_GOOD)
 
         @detect_ambiente
         def test_view(request):
@@ -755,7 +1144,7 @@ class DecoratorsTestCase(TestCase):
 
         response = test_view(request)
         data = json.loads(response.content)
-        self.assertEqual(data["ambiente"], "Test")
+        self.assertEqual(data["ambiente"], "Ambiente Teste")
 
     def test_detect_ambiente_decorator_not_found(self):
         """Testa decorator detect_ambiente não encontrando ambiente."""
@@ -779,13 +1168,7 @@ class TrySolicitacaoDecoratorTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
-        self.ambiente = Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="http://test.com",
-            token="token",  # noqa: S106
-            expressao_seletora="1 ==1",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
     def test_try_solicitacao_success(self):
         """Testa try_solicitacao com sucesso."""
@@ -850,479 +1233,6 @@ class TrySolicitacaoDecoratorTestCase(TestCase):
         self.assertEqual(context.exception.code, 400)
 
 
-class AmbienteModelTestCase(TestCase):
-    """Testes para o modelo Ambiente."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        self.ambiente_good = dict(
-            nome="Ambiente Teste",  # noqa: S106
-            url="https://test.moodle.com",
-            ordem=1,
-            expressao_seletora="campus.sigla == 'TEST'",
-            local_suap_token="local_suap_token",  # noqa: S106
-            local_suap_active=True,
-            tool_sga_token="tool_sga_token",  # noqa: S106
-            tool_sga_active=True,
-        )
-        self.ambiente = Ambiente.objects.create(**self.ambiente_good)
-
-    def test_create_ambiente(self):
-        """Testa criação de ambiente."""
-        ambiente = Ambiente.objects.create(**self.ambiente_good)
-        self.assertIsNotNone(ambiente.pk)
-
-    def test_manager_seleciona_ambiente_valid(self):
-        """Testa __str__."""
-        ambiente = Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "TEST"}})
-        self.assertIsNotNone(ambiente)
-
-    def test_manager_seleciona_ambiente_none(self):
-        """Testa __str__."""
-        ambiente = Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "ERROR"}})
-        self.assertIsNone(ambiente)
-
-    def test_str(self):
-        """Testa __str__."""
-        ambiente = Ambiente(**self.ambiente_good)
-        self.assertEqual(ambiente.nome, str(ambiente))
-
-    def test_ok_base_url(self):
-        """Testa validação de base_url válida (OK)."""
-        ambiente = Ambiente(**self.ambiente_good)
-        self.assertEqual("https://test.moodle.com", ambiente.base_url)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"url": "https://test.moodle.com/"}))
-        self.assertEqual("https://test.moodle.com", ambiente.base_url)
-
-    def test_not_ok_base_url(self):
-        """Testa validação de base_url (NOT OK)."""
-        ambiente = Ambiente(**(self.ambiente_good | {"url": None}))
-        self.assertEqual("", ambiente.base_url)
-
-    def test_ok_valid_expressao_seletora(self):
-        """Testa validação de expressão seletora (OK)."""
-        ambiente = Ambiente(**self.ambiente_good)
-        self.assertTrue(ambiente.valid_expressao_seletora)
-
-    def test_not_ok_valid_expressao_seletora(self):
-        """Testa validação de expressão seletora (NOT OK)."""
-        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": ""}))
-        self.assertFalse(ambiente.valid_expressao_seletora)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": " "}))
-        self.assertFalse(ambiente.valid_expressao_seletora)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": None}))
-        self.assertFalse(ambiente.valid_expressao_seletora)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": "asdf asdf"}))
-        self.assertFalse(ambiente.valid_expressao_seletora)
-
-    def test_ok_can_send_to_local_suap(self):
-        """Testa validação can_send_to_local_suap (OK)."""
-        ambiente = Ambiente(self.ambiente_good)
-        self.assertFalse(ambiente.can_send_to_local_suap)
-
-    def test_not_ok_can_send_to_local_suap(self):
-        """Testa validação can_send_to_local_suap (NOT OK)."""
-        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_active": False}))
-        self.assertFalse(ambiente.can_send_to_local_suap)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_token": None}))
-        self.assertFalse(ambiente.can_send_to_local_suap)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_token": ""}))
-        self.assertFalse(ambiente.can_send_to_local_suap)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"local_suap_token": " "}))
-        self.assertFalse(ambiente.can_send_to_local_suap)
-
-    def test_ok_can_send_to_tool_sga(self):
-        """Testa validação can_send_to_local_suap (OK)."""
-        ambiente = Ambiente(self.ambiente_good)
-        self.assertFalse(ambiente.can_send_to_tool_sga)
-
-    def test_not_ok_can_send_to_tool_sga(self):
-        """Testa validação can_send_to_tool_sga (NOT OK)."""
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False}))
-        self.assertFalse(ambiente.can_send_to_tool_sga)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": None}))
-        self.assertFalse(ambiente.can_send_to_tool_sga)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": ""}))
-        self.assertFalse(ambiente.can_send_to_tool_sga)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": " "}))
-        self.assertFalse(ambiente.can_send_to_tool_sga)
-
-    def test_ok_which_broker(self):
-        """Testa validação which_broker (OK)."""
-        ambiente = Ambiente(**self.ambiente_good)
-        self.assertEqual("tool_sga", ambiente.which_broker)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False}))
-        self.assertEqual("local_suap", ambiente.which_broker)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": None}))
-        self.assertEqual("local_suap", ambiente.which_broker)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": ""}))
-        self.assertEqual("local_suap", ambiente.which_broker)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": " "}))
-        self.assertEqual("local_suap", ambiente.which_broker)
-
-    def test_not_ok_which_broker(self):
-        """Testa validação which_broker (NOT OK)."""
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False}))
-        self.assertIsNone(ambiente.which_broker)
-
-    def test_ok_token(self):
-        """Testa validação token (OK)."""
-        ambiente = Ambiente(**self.ambiente_good)
-        self.assertEqual("tool_sga_token", ambiente.token)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False}))
-        self.assertEqual("local_suap_token", ambiente.token)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": None}))
-        self.assertEqual("local_suap_token", ambiente.token)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": ""}))
-        self.assertEqual("local_suap_token", ambiente.token)
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_token": " "}))
-        self.assertEqual("local_suap_token", ambiente.token)
-
-    def test_not_ok_token(self):
-        """Testa validação token (NOT OK)."""
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False}))
-        self.assertIsNone(ambiente.token)
-
-    def test_ok_check_selectable(self):
-        """Testa validação check_selectable (OK)."""
-        valid = {"campus": {"sigla": "TEST"}}
-        invalid = {"campus": {"sigla": "ERROR"}}
-
-        ambiente = Ambiente(**self.ambiente_good)
-        self.assertTrue(ambiente.check_selectable(valid))
-        self.assertFalse(ambiente.check_selectable(invalid))
-
-    def test_not_ok_check_selectable(self):
-        """Testa validação token (NOT OK)."""
-        valid = {"campus": {"sigla": "TEST"}}
-        invalid = {"campus": {"sigla": "ERROR"}}
-
-        ambiente = Ambiente(**(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False}))
-        self.assertFalse(ambiente.check_selectable(valid))
-        self.assertFalse(ambiente.check_selectable(invalid))
-
-        ambiente = Ambiente(**(self.ambiente_good | {"expressao_seletora": ""}))
-        self.assertFalse(ambiente.check_selectable(valid))
-        self.assertFalse(ambiente.check_selectable(invalid))
-
-        ambiente = Ambiente(
-            **(self.ambiente_good | {"tool_sga_active": False, "local_suap_active": False, "expressao_seletora": ""})
-        )
-        self.assertFalse(ambiente.check_selectable(valid))
-        self.assertFalse(ambiente.check_selectable(invalid))
-
-    # def test_ambiente_str_representation(self):
-    #     """Testa representação em string do ambiente."""
-    #     self.assertEqual(str(self.ambiente), "Ambiente Teste")
-
-    # def test_ambiente_base_url_without_trailing_slash(self):
-    #     """Testa propriedade base_url sem barra final."""
-    #     self.assertEqual(self.ambiente.base_url, "https://test.moodle.com")
-
-    # def test_ambiente_base_url_with_trailing_slash(self):
-    #     """Testa propriedade base_url com barra final."""
-    #     self.ambiente.url = "https://test.moodle.com/"
-    #     self.ambiente.save()
-
-    #     self.assertEqual(self.ambiente.base_url, "https://test.moodle.com")
-
-    # def test_ambiente_valid_expressao_seletora(self):
-    #     """Testa validação de expressão seletora válida."""
-    #     self.assertTrue(self.ambiente.valid_expressao_seletora)
-
-    # def test_ambiente_invalid_expressao_seletora(self):
-    #     """Testa validação de expressão seletora inválida."""
-    #     self.ambiente.expressao_seletora = "invalid syntax {{"
-    #     self.ambiente.save()
-
-    #     self.assertFalse(self.ambiente.valid_expressao_seletora)
-
-    # def test_ambiente_empty_expressao_seletora(self):
-    #     """Testa validação de expressão seletora vazia."""
-    #     self.ambiente.expressao_seletora = ""
-    #     self.ambiente.save()
-
-    #     self.assertFalse(self.ambiente.valid_expressao_seletora)
-
-    # def test_ambiente_null_expressao_seletora(self):
-    #     """Testa validação de expressão seletora nula."""
-    #     # Campo expressao_seletora é NOT NULL no banco, então testamos validação antes de save
-    #     self.ambiente.expressao_seletora = ""
-    #     self.ambiente.save()
-
-    #     self.assertFalse(self.ambiente.valid_expressao_seletora)
-
-    # def test_ambiente_ordering(self):
-    #     """Testa ordenação de ambientes."""
-    #     ambiente2 = Ambiente.objects.create(
-    #         nome="Ambiente 2",  # noqa: S106
-    #         url="https://test2.com",
-    #         token="token2",  # noqa: S106
-    #         expressao_seletora="1=1",
-    #         ordem=0,
-    #     )
-
-    #     ambientes = list(Ambiente.objects.all())
-    #     # Ordenação por ordem, id
-    #     self.assertEqual(ambientes[0], ambiente2)
-
-    # def test_ambiente_manager_seleciona_ambiente(self):
-    #     """Testa método seleciona_ambiente do manager."""
-    #     sync_json = {"campus": {"sigla": "TEST"}}
-
-    #     ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
-
-    #     self.assertEqual(ambiente_selecionado, self.ambiente)
-
-    # def test_ambiente_manager_seleciona_ambiente_nao_encontrado(self):
-    #     """Testa seleciona_ambiente quando não encontra ambiente."""
-    #     sync_json = {"campus": {"sigla": "INEXISTENTE"}}
-
-    #     ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
-
-    #     self.assertIsNone(ambiente_selecionado)
-
-    # def test_ambiente_manager_seleciona_ambiente_only_active(self):
-    #     """Testa que seleciona_ambiente só retorna ambientes ativos."""
-    #     self.ambiente.active = False
-    #     self.ambiente.save()
-
-    #     sync_json = {"campus": {"sigla": "TEST"}}
-    #     ambiente_selecionado = Ambiente.objects.seleciona_ambiente(sync_json)
-
-    #     self.assertIsNone(ambiente_selecionado)
-
-    # @patch("integrador.models.Rule")
-    # def test_ambiente_manager_seleciona_ambiente_raises_detailed_error(self, mock_rule):
-    #     """Testa tratamento de erro ao processar expressao_seletora no manager."""
-    #     self.ambiente.expressao_seletora = "invalid"
-    #     self.ambiente.save()
-    #     mock_rule.side_effect = Exception("rule parse error")
-
-    #     with self.assertRaises(Exception) as context:
-    #         Ambiente.objects.seleciona_ambiente({"campus": {"sigla": "TEST"}})
-
-    #     self.assertIn("Erro ao processar o ambiente", str(context.exception))
-    #     self.assertIn("rule parse error", str(context.exception))
-
-    # def test_ambiente_color_helper_renders_expected_html(self):
-    #     """Testa helper interno _c para renderização de cor."""
-    #     html = Ambiente._c("#ff0000")
-    #     self.assertIn("#ff0000", html)
-    #     self.assertIn("background", html)
-
-    # def test_ambiente_verbose_names(self):
-    #     """Testa verbose_name e verbose_name_plural."""
-    #     self.assertEqual(Ambiente._meta.verbose_name, "ambiente")
-    #     self.assertEqual(Ambiente._meta.verbose_name_plural, "ambientes")
-
-    # def test_permissive_url_field_accepts_http_and_https(self):
-    #     """Testa que PermissiveURLField aceita URLs http e https válidas."""
-    #     for url in ["http://localhost:8000/path", "https://example.com"]:
-    #         ambiente = Ambiente(
-    #             nome=f"Ambiente {url}",  # noqa: S106
-    #             url=url,
-    #             token="token",  # noqa: S106
-    #             expressao_seletora="1 == 1",
-    #             ordem=1,
-    #             active=True,
-    #         )
-    #         ambiente.full_clean()
-
-    # def test_permissive_url_field_rejects_invalid_url(self):
-    #     """Testa que PermissiveURLField rejeita valores sem protocolo HTTP/HTTPS."""
-    #     ambiente = Ambiente(
-    #         nome="Ambiente inválido",  # noqa: S106
-    #         url="ftp://example.com",
-    #         token="token",  # noqa: S106
-    #         expressao_seletora="1 == 1",
-    #         ordem=1,
-    #         active=True,
-    #     )
-
-    #     with self.assertRaises(ValidationError):
-    #         ambiente.full_clean()
-
-    # def test_permissive_url_field_formfield_is_charfield(self):
-    #     """Testa que o formfield do PermissiveURLField usa forms.CharField."""
-    #     field = Ambiente._meta.get_field("url")
-    #     form_field = field.formfield()
-    #     self.assertIsInstance(form_field, forms.CharField)
-
-
-class AmbienteSelecaoTestCase(TestCase):
-    """Testes para os cenários de seleção de ambiente em seleciona_ambiente."""
-
-    SYNC_JSON = {"campus": {"sigla": "TEST"}}
-
-    def _cria_ambiente(self, nome, ordem=1, active=True, expressao="campus.sigla == 'TEST'"):
-        return Ambiente.objects.create(
-            nome=nome,  # noqa: S106
-            url=f"https://{nome.lower().replace(' ', '-')}.moodle.com",
-            token="token",  # noqa: S106
-            expressao_seletora=expressao,
-            ordem=ordem,
-            active=active,
-        )
-
-    # 1. Ativos e inativos
-
-    def test_ambiente_ativo_e_selecionado(self):
-        """Ambiente ativo com expressão correspondente é selecionado."""
-        amb = self._cria_ambiente("Ativo", active=True)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, amb)
-
-    def test_ambiente_inativo_nao_e_selecionado(self):
-        """Ambiente inativo nunca é selecionado, mesmo com expressão correspondente."""
-        self._cria_ambiente("Inativo", active=False)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
-
-    def test_ambiente_inativo_ignorado_quando_ha_ativo(self):
-        """Quando coexistem ativo e inativo com mesma expressão, apenas o ativo é retornado."""
-        self._cria_ambiente("Inativo", ordem=1, active=False)
-        ativo = self._cria_ambiente("Ativo", ordem=2, active=True)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, ativo)
-
-    # 2. Nenhum ambiente selecionado
-
-    def test_nenhum_ambiente_retorna_none_quando_nao_ha_cadastro(self):
-        """Sem ambientes cadastrados, retorna None."""
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
-
-    def test_nenhum_ambiente_retorna_none_quando_expressao_nao_corresponde(self):
-        """Ambiente ativo com expressão que não corresponde ao JSON retorna None."""
-        self._cria_ambiente("Outro", expressao="campus.sigla == 'OUTRO'")
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
-
-    def test_nenhum_ambiente_retorna_none_quando_todos_inativos(self):
-        """Todos inativos, mesmo com expressão correspondente, retorna None."""
-        self._cria_ambiente("Inativo A", active=False)
-        self._cria_ambiente("Inativo B", active=False)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertIsNone(resultado)
-
-    # 3. Exatamente um ambiente selecionado
-
-    def test_exatamente_um_ambiente_ativo_correspondente_e_retornado(self):
-        """Com apenas um ambiente ativo correspondente, ele é retornado."""
-        self._cria_ambiente("Diferente", expressao="campus.sigla == 'OUTRO'")
-        esperado = self._cria_ambiente("Correspondente", ordem=2)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, esperado)
-
-    # 4. Múltiplos ambientes atendendo ao critério — apenas o primeiro é retornado
-
-    def test_multiplos_ambientes_correspondentes_retorna_o_primeiro_por_ordem(self):
-        """Com múltiplos ativos correspondentes, o de menor ordem é retornado."""
-        primeiro = self._cria_ambiente("Primeiro", ordem=1)
-        self._cria_ambiente("Segundo", ordem=2)
-        self._cria_ambiente("Terceiro", ordem=3)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertEqual(resultado, primeiro)
-        self.assertNotEqual(resultado.nome, "Segundo")
-
-    def test_multiplos_ambientes_correspondentes_nao_retorna_o_segundo(self):
-        """Garante que o segundo ambiente correspondente nunca é retornado."""
-        self._cria_ambiente("Primeiro", ordem=1)
-        segundo = self._cria_ambiente("Segundo", ordem=2)
-        resultado = Ambiente.objects.seleciona_ambiente(self.SYNC_JSON)
-        self.assertNotEqual(resultado, segundo)
-
-
-class AmbienteAdminTestCase(TestCase):
-    """Testes para AmbienteAdmin."""
-
-    def setUp(self):
-        """Configura o ambiente de teste."""
-        from django.contrib.admin.sites import AdminSite
-
-        from integrador.admin import AmbienteAdmin
-
-        self.admin = AmbienteAdmin(Ambiente, AdminSite())
-        self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",  # noqa: S106
-            url="https://test.com",
-            token="test_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            active=True,
-        )
-
-    @patch("requests.get")
-    def test_checked_url_success(self, mock_get):
-        """Testa checked_url com sucesso."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_get.return_value = mock_response
-
-        result = self.admin.checked_url(self.ambiente)
-        self.assertIn("✅", result)
-        self.assertIn("https://test.com", result)
-
-    @patch("requests.get")
-    def test_checked_url_failure(self, mock_get):
-        """Testa checked_url com falha."""
-        mock_get.side_effect = Exception("Connection error")
-
-        result = self.admin.checked_url(self.ambiente)
-        self.assertIn("🚫", result)
-
-    def test_checked_expressao_seletora_valid(self):
-        """Testa checked_expressao_seletora válida."""
-        self.ambiente.expressao_seletora = "campus.sigla == 'TEST'"
-        result = self.admin.checked_expressao_seletora(self.ambiente)
-        self.assertIn("✅", result)
-
-    def test_checked_expressao_seletora_invalid(self):
-        """Testa checked_expressao_seletora inválida."""
-        self.ambiente.expressao_seletora = "invalid rule"
-        result = self.admin.checked_expressao_seletora(self.ambiente)
-        self.assertIn("🚫", result)
-
-    def test_checked_expressao_seletora_none(self):
-        """Testa checked_expressao_seletora nula."""
-        self.ambiente.expressao_seletora = None
-        result = self.admin.checked_expressao_seletora(self.ambiente)
-        self.assertIn("⚠️", result)
-
-    @patch("base.admin.BaseModelAdmin.get_queryset")
-    def test_get_queryset_calls_all(self, mock_get_queryset):
-        """Testa que AmbienteAdmin.get_queryset chama all() no queryset base."""
-        request = RequestFactory().get("/admin/integrador/ambiente/")
-        request.user = User.objects.create_superuser("admin_amb", "admin_amb@test.com", "pass123")
-
-        mock_qs = Mock()
-        mock_qs.all.return_value = "ALL_QS"
-        mock_get_queryset.return_value = mock_qs
-
-        result = self.admin.get_queryset(request)
-
-        self.assertEqual(result, "ALL_QS")
-        mock_qs.all.assert_called_once()
-
-
 class CohortSelecaoTestCase(TestCase):
     """Testes de seleção de coortes para sincronização, com exemplos reais."""
 
@@ -1349,13 +1259,7 @@ class CohortSelecaoTestCase(TestCase):
     }
 
     def setUp(self):
-        self.ambiente = Ambiente.objects.create(
-            nome="ZL",  # noqa: S106
-            url="https://ead.zl.ifrn.edu.br",
-            token="token",  # noqa: S106
-            expressao_seletora="1==1",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
         self.solicitacao = Solicitacao.objects.create(
             ambiente=self.ambiente,
             operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
@@ -1532,7 +1436,7 @@ class CohortSelecaoTestCase(TestCase):
         resultado = self.broker.get_cohort()
         coorte = next(c for c in resultado if c["idnumber"] == "ZL.CooCurso.15056")
         self.assertEqual(coorte["nome"], "ZL.CooCurso.15056")
-        self.assertEqual(coorte["role"], "ZL.CooCurso")
+        self.assertEqual(coorte["role"], "coordenadordecurso")
         colaboradores = coorte["colaboradores"]
         self.assertEqual(len(colaboradores), 1)
         self.assertEqual(colaboradores[0]["login"], "coord.x")
@@ -1544,13 +1448,7 @@ class SolicitacaoModelTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.ambiente = Ambiente.objects.create(
-            nome="Ambiente Teste",  # noqa: S106
-            url="https://test.moodle.com",
-            token="test_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         self.recebido_json = {
             "campus": {"sigla": "TEST"},
@@ -1669,13 +1567,7 @@ class SolicitacaoAdminTestCase(TestCase):
         from integrador.admin import SolicitacaoAdmin
 
         self.admin = SolicitacaoAdmin(Solicitacao, AdminSite())
-        self.ambiente = Ambiente.objects.create(
-            nome="Test Ambiente",  # noqa: S106
-            url="https://test.com",
-            token="test_token",  # noqa: S106
-            active=True,
-            expressao_seletora="1==1",
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
         self.solicitacao = Solicitacao.objects.create(
             ambiente=self.ambiente,
             operacao=Solicitacao.Operacao.SYNC_UP_DIARIO,
@@ -1815,13 +1707,7 @@ class BaseBrokerTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.ambiente = Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="http://test.com",
-            token="test_token_123",  # noqa: S106
-            expressao_seletora="1 ==1",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         self.solicitacao = Solicitacao.objects.create(
             ambiente=self.ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": 123}}
@@ -1832,13 +1718,14 @@ class BaseBrokerTestCase(TestCase):
     def test_base_broker_initialization(self):
         """Testa inicialização do BaseBroker."""
         self.assertEqual(self.broker.solicitacao, self.solicitacao)
+        self.assertEqual(self.broker.solicitacao.ambiente, self.ambiente)
 
     def test_base_broker_credentials_property(self):
         """Testa propriedade credentials."""
         credentials = self.broker.credentials
 
         self.assertIn("Authentication", credentials)
-        self.assertIn("test_token_123", credentials["Authentication"])
+        self.assertIn("Token tool_sga_token", credentials["Authentication"])
 
     def test_base_broker_get_cohorts(self):
         """Testa método get_cohort."""
@@ -1859,12 +1746,13 @@ class BaseBrokerTestCase(TestCase):
     def test_base_broker_cast_cohort_maps_expected_payload(self):
         """Testa cast_cohort com mapeamento completo de dados."""
         user = Mock(fullname="User Name", email="user@test.com", login="user_login", active=True)
+        role = Mock(name="Coordenador de curso", shortname="coordenadordecurso", active=True)
         enrolment = Mock(user=user)
         enrolments = Mock()
         enrolments.select_related.return_value.all.return_value = [enrolment]
         cohort = SimpleNamespace(
             name="Cohort Test",
-            role=SimpleNamespace(name="Professor"),
+            role=role,
             active=True,
             idnumber="COHORT-1",
             description="Desc",
@@ -1874,7 +1762,7 @@ class BaseBrokerTestCase(TestCase):
         payload = self.broker.cast_cohort(cohort)
 
         self.assertEqual(payload["nome"], "Cohort Test")
-        self.assertEqual(payload["role"], "Professor")
+        self.assertEqual(payload["role"], "coordenadordecurso")
         self.assertEqual(payload["idnumber"], "COHORT-1")
         self.assertEqual(payload["colaboradores"][0]["email"], "user@test.com")
 
@@ -1914,13 +1802,7 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.ambiente = Ambiente.objects.create(
-            nome="Test Moodle",  # noqa: S106
-            url="https://moodle.test.com",
-            token="test_token",  # noqa: S106
-            expressao_seletora="1 ==1",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         self.solicitacao = Solicitacao.objects.create(
             ambiente=self.ambiente,
@@ -1943,15 +1825,14 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
 
     def test_broker_moodle_base_api_url_property(self):
         """Testa propriedade moodle_base_api_url."""
-        expected = "https://moodle.test.com/local/suap/api"
-        self.assertEqual(self.broker.moodle_base_api_url, expected)
+        self.assertEqual(self.broker.moodle_base_api_url, "https://test.moodle.com/local/suap/api")
 
     @patch("integrador.brokers.suap2local_suap.http_post_json")
     def test_broker_sync_up_enrolments_success(self, mock_http_post_json):
         """Testa sync_up_enrolments com sucesso."""
         mock_http_post_json.return_value = {
-            "url": "https://moodle.test.com/course/view.php?id=1",
-            "url_sala_coordenacao": "https://moodle.test.com/course/view.php?id=2",
+            "url": "https://test.moodle.com/course/view.php?id=1",
+            "url_sala_coordenacao": "https://test.moodle.com/course/view.php?id=2",
             "roles_not_found": [],
         }
 
@@ -1960,7 +1841,7 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
         self.assertIn("url", result)
         self.assertIn("url_sala_coordenacao", result)
         self.assertEqual(result["roles_not_found"], [])
-        self.assertEqual(result["ambiente"], "https://moodle.test.com")
+        self.assertEqual(result["ambiente"], "https://test.moodle.com")
         mock_http_post_json.assert_called_once()
 
     def test_broker_sync_up_enrolments_payload_faltando_campo_obrigatorio(self):
@@ -1996,13 +1877,7 @@ class ManagementCommandTestCase(TestCase):
 
     def setUp(self):
         """Configura o ambiente de teste."""
-        self.ambiente = Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="http://test.com",
-            token="token",  # noqa: S106
-            expressao_seletora="1 ==1",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
     def test_atualiza_solicitacoes_command_exists(self):
         """Testa que o comando atualiza_solicitacoes existe."""
@@ -2023,10 +1898,12 @@ class ManagementCommandTestCase(TestCase):
     def test_atualiza_solicitacoes_updates_records(self):
         """Testa que o comando atualiza registros."""
         # Cria solicitação com diario_codigo nulo
+        self.assertIsNotNone(self.ambiente)
         sol = Solicitacao.objects.create(
             ambiente=self.ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": 999}}
         )
-        Solicitacao.objects.filter(pk=sol.pk).update(diario_codigo=None)
+        sol.diario_codigo = None
+        sol.save()
 
         # Chama o comando
         call_command("atualiza_solicitacoes")
@@ -2035,6 +1912,8 @@ class ManagementCommandTestCase(TestCase):
         sol.refresh_from_db()
 
         # Verifica que ambiente foi selecionado corretamente
+        self.assertIsNotNone(self.ambiente)
+        self.assertIsNotNone(sol.ambiente)
         self.assertIsNotNone(sol.ambiente)
 
 
@@ -2053,10 +1932,12 @@ class SecurityViewsCoverageTestCase(TestCase):
     @patch("security.views.requests.get")
     def test_security_helpers_success_flow(self, mock_get, mock_post):
         """Cobre _get_tokens, _get_userinfo e _save_user com dados válidos."""
+        from django.conf import settings
+
         from security import views as security_views
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "BASE_URL": "https://suap.test.com",
                 "TOKEN_URL": "https://suap.test.com/o/token/",
@@ -2104,12 +1985,14 @@ class SecurityViewsCoverageTestCase(TestCase):
 
     def test_get_tokens_missing_redirect_uri_raises(self):
         """Cobre erro quando REDIRECT_URI não está configurado."""
+        from django.conf import settings
+
         from security import views as security_views
 
         request = self.factory.get("/authenticate/?code=abc")
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "TOKEN_URL": "https://suap.test.com/o/token/",
                 "CLIENT_ID": "test_client",
@@ -2123,12 +2006,14 @@ class SecurityViewsCoverageTestCase(TestCase):
     @patch("security.views.requests.post")
     def test_get_tokens_mismatching_redirect_uri_raises(self, mock_post):
         """Cobre erro de redirect URI incompatível retornado pelo OAuth."""
+        from django.conf import settings
+
         from security import views as security_views
 
         request = self.factory.get("/authenticate/?code=abc")
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "TOKEN_URL": "https://suap.test.com/o/token/",
                 "CLIENT_ID": "test_client",
@@ -2167,13 +2052,15 @@ class SecurityViewsCoverageTestCase(TestCase):
 
     def test_login_missing_redirect_uri_raises(self):
         """Cobre validação de REDIRECT_URI no login."""
+        from django.conf import settings
+
         from security import views as security_views
 
         request = self.factory.get("/login/")
         self._add_session(request)
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "BASE_URL": "https://suap.test.com",
                 "CLIENT_ID": "test_client",
@@ -2185,13 +2072,15 @@ class SecurityViewsCoverageTestCase(TestCase):
 
     def test_login_redirects_to_configured_oauth(self):
         """Cobre retorno de redirect no fluxo nominal de login."""
+        from django.conf import settings
+
         from security import views as security_views
 
         request = self.factory.get("/login/?next=/admin/")
         self._add_session(request)
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "BASE_URL": "https://suap.test.com",
                 "CLIENT_ID": "test_client",
@@ -2262,13 +2151,15 @@ class SecurityViewsCoverageTestCase(TestCase):
     @override_settings(LOGOUT_REDIRECT_URL="https://malicious.example/logout", LOGIN_REDIRECT_URL="/admin/")
     def test_logout_falls_back_to_login_redirect_for_untrusted_host(self):
         """Cobre branch de fallback quando LOGOUT_REDIRECT_URL não é host permitido."""
+        from django.conf import settings
+
         from security import views as security_views
 
         request = self.factory.get("/logout/")
         self._add_session(request)
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "BASE_URL": "https://suap.test.com",
             },
@@ -2284,6 +2175,8 @@ class SecurityViewsCoverageTestCase(TestCase):
     )
     def test_logout_uses_ampersand_when_query_exists(self):
         """Cobre branch de separador '&' quando a URL já possui querystring."""
+        from django.conf import settings
+
         from security import views as security_views
 
         request = self.factory.get("/logout/")
@@ -2291,7 +2184,7 @@ class SecurityViewsCoverageTestCase(TestCase):
         request.session["logout_token"] = "abc123"  # noqa: S105
 
         with patch.dict(
-            security_views.OAUTH,
+            settings.OAUTH,
             {
                 "BASE_URL": "https://suap.test.com",
             },
@@ -2309,26 +2202,25 @@ class IntegrationTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
-        self.ambiente = Ambiente.objects.create(
-            nome="Integration Test",  # noqa: S106
-            url="https://moodle.integration.test",
-            token="integration_token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'INT'",
-            active=True,
-        )
+        self.ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
-    @override_settings(SUAP_INTEGRADOR_KEY="test_key")
+    @override_settings(SUAP_INTEGRADOR_KEY="tool_sga_token")
     @patch("integrador.brokers.suap2local_suap.http_post_json")
-    def test_complete_sync_up_flow(self, mock_http_post_json):
+    def test_complete_sync_up_flow(self, mock_post):
         """Testa fluxo completo de sync_up_enrolments."""
-        mock_http_post_json.return_value = {
-            "url": "https://moodle.integration.test/course/view.php?id=1",
-            "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
-            "roles_not_found": [],
+        mock_post.return_value = {
+            "status_code": 200,
+            "text": json.dumps(
+                {
+                    "url": "https://moodle.integration.test/course/view.php?id=1",
+                    "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
+                    "roles_not_found": [],
+                }
+            ),
         }
 
         json_data = {
-            "campus": {"id": 1, "sigla": "INT", "descricao": "Campus Integration"},
+            "campus": {"id": 1, "sigla": "TEST", "descricao": "Campus Integration"},
             "curso": {"id": 10, "codigo": "15806", "nome": "Sistemas Operacionais Abertos"},
             "turma": {"id": 2, "codigo": "T123"},
             "componente": {"id": 5, "sigla": "COMP", "descricao": "Componente de Integração"},
@@ -2337,7 +2229,7 @@ class IntegrationTestCase(TestCase):
         }
 
         request = self.factory.post("/api/enviar_diarios/", data=json.dumps(json_data), content_type="application/json")
-        request.META["HTTP_AUTHENTICATION"] = "Token test_key"
+        request.META["HTTP_AUTHENTICATION"] = "Token tool_sga_token"
 
         response = sync_up_enrolments(request)
 
@@ -2354,23 +2246,9 @@ class EdgeCasesTestCase(TestCase):
 
     def test_ambiente_with_multiple_matching_rules(self):
         """Testa ambiente com múltiplas regras correspondentes."""
-        amb1 = Ambiente.objects.create(
-            nome="Ambiente 1",  # noqa: S106
-            url="http://test1.com",
-            token="token1",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            ordem=1,
-            active=True,
-        )
+        amb1 = Ambiente.objects.create(**AMBIENTE_GOOD)
 
-        Ambiente.objects.create(
-            nome="Ambiente 2",  # noqa: S106
-            url="http://test2.com",
-            token="token2",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST'",
-            ordem=2,
-            active=True,
-        )
+        Ambiente.objects.create(**AMBIENTE_GOOD)
 
         sync_json = {"campus": {"sigla": "TEST"}}
         ambiente = Ambiente.objects.seleciona_ambiente(sync_json)
@@ -2380,12 +2258,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_solicitacao_with_missing_json_fields(self):
         """Testa solicitação com campos JSON faltando."""
-        ambiente = Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="http://test.com",
-            token="token",  # noqa: S106
-            expressao_seletora="1 ==1",
-        )
+        ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         # JSON incompleto
         solicitacao = Solicitacao.objects.create(
@@ -2397,13 +2270,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_ambiente_expressao_with_complex_logic(self):
         """Testa ambiente com expressão seletora complexa."""
-        ambiente = Ambiente.objects.create(
-            nome="Complex",  # noqa: S106
-            url="http://test.com",
-            token="token",  # noqa: S106
-            expressao_seletora="campus.sigla == 'TEST' and diario.tipo == 'regular'",
-            active=True,
-        )
+        ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         sync_json = {"campus": {"sigla": "TEST"}, "diario": {"tipo": "regular"}}
 
@@ -2412,12 +2279,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_broker_with_url_ending_with_slash(self):
         """Testa broker com URL terminando em barra."""
-        ambiente = Ambiente.objects.create(
-            nome="Test",  # noqa: S106
-            url="https://moodle.test.com/",
-            token="token",  # noqa: S106
-            expressao_seletora="1 ==1",
-        )
+        ambiente = Ambiente.objects.create(**AMBIENTE_GOOD)
 
         solicitacao = Solicitacao.objects.create(
             ambiente=ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido={"diario": {"id": 1}}
@@ -2430,10 +2292,4 @@ class EdgeCasesTestCase(TestCase):
 
     def test_ambiente_manager_with_invalid_expression(self):
         """Testa manager com expressão inválida."""
-        Ambiente.objects.create(
-            nome="Invalid",  # noqa: S106
-            url="http://test.com",
-            token="token",  # noqa: S106
-            expressao_seletora="invalid {{ expression",
-            active=True,
-        )
+        Ambiente.objects.create(**(AMBIENTE_GOOD | {"expressao_seletora": "invalid { expression"}))

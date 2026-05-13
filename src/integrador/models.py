@@ -157,8 +157,7 @@ class Solicitacao(Model):
             diario = self.recebido.get("diario", {})
             componente = diario.get("sigla", "")
             turma = self.recebido.get("turma", {}).get("codigo", "")
-
-            self.ambiente = Ambiente.objects.seleciona_ambiente(self.recebido)
+            self.ambiente = self.ambiente or Ambiente.objects.seleciona_ambiente(self.recebido)
             self.campus_sigla = self.recebido.get("campus", {}).get("sigla", None)
             self.diario_id = diario.get("id", "")
             self.diario_codigo = f"{turma}.{componente}#{self.diario_id}"

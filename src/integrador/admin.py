@@ -122,10 +122,8 @@ class AmbienteAdmin(BaseModelAdmin):
                 headers={"Authentication": f"Token {token}"},
                 timeout=3,
             )
-            print(f"{obj.base_url}{api_path}", response.status_code, response.text)
             if response.status_code == 200:
                 data = response.json()
-                print(data)
                 title = (
                     f"{label}: OK — plugin {data.get('plugin_release', '?')} / Moodle {data.get('moodle_release', '?')}"
                 )
@@ -133,12 +131,11 @@ class AmbienteAdmin(BaseModelAdmin):
             elif response.status_code == 401:
                 return format_html('<span title="{}">🔑</span>', f"{label}: token inválido (401).")
             else:
-                print(response.text)
                 return format_html(
-                    '<span title="{}">⚠️</span>', f"{label}: resposta inesperada ({response.status_code})."
+                    '<span title="{}">❌</span>', f"{label}: resposta inesperada ({response.status_code})."
                 )
         except Exception as e:
-            return format_html('<span title="{}">🚫</span>', f"{label}: erro ao contactar o plugin — {e}.")
+            return format_html('<span title="{}">⛔</span>', f"{label}: erro ao contactar o plugin — {e}.")
 
     @display(description="Local SUAP")
     def checked_local_suap(self, obj):
