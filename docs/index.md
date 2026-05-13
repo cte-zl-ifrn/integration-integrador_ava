@@ -144,4 +144,3 @@ Para exemplos completos de payload, consulte `requests.http` na raiz do projeto.
 ## Links rápidos
 
 - [Repositório](https://github.com/cte-zl-ifrn/integration-integrador_ava/)
-- [README do projeto](https://github.com/cte-zl-ifrn/integration-integrador_ava/)
