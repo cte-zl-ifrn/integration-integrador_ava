@@ -91,7 +91,13 @@ def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
     redirect_uri = OAUTH.get("REDIRECT_URI")
-    params = f"response_type=code&client_id={OAUTH['CLIENT_ID']}&redirect_uri={redirect_uri}"
+    params = urllib.parse.urlencode(
+        {
+            "response_type": "code",
+            "client_id": OAUTH["CLIENT_ID"],
+            "redirect_uri": redirect_uri,
+        }
+    )
     if not redirect_uri:
         raise ValueError("Configure OAUTH['REDIRECT_URI'] para autenticação OAuth.")
     suap_url = f"{OAUTH['BASE_URL']}/o/authorize/?{params}"
