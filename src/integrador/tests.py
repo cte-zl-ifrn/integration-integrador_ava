@@ -15,6 +15,7 @@ detect_ambiente
 import io
 import json
 import logging
+import uuid
 from http.client import HTTPException
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -445,10 +446,11 @@ class CSRFErrorViewTestCase(TestCase):
     @patch("integrador.views_errors.sentry_sdk")
     def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
         """Testa que erro CSRF inclui informações do usuário autenticado."""
+        test_password = f"test-{uuid.uuid4().hex}"
         user = User.objects.create_user(
-            username="testuser",  # noqa: S106
+            username="testuser",
             email="test@example.com",
-            password="testpass123",  # noqa: S106
+            password=test_password,
         )
 
         request = self.factory.post("/api/test/")
@@ -619,7 +621,7 @@ class AmbienteModelTestCase(TestCase):
 
     def test_ok_can_send_to_local_suap(self):
         """Testa validação can_send_to_local_suap (OK)."""
-        ambiente = Ambiente(AMBIENTE_GOOD)
+        ambiente = Ambiente(**AMBIENTE_GOOD)
         self.assertFalse(ambiente.can_send_to_local_suap)
 
     def test_not_ok_can_send_to_local_suap(self):
@@ -1340,8 +1342,8 @@ class CohortSelecaoTestCase(TestCase):
     def test_coorte_polo_mossoro_nao_corresponde_sem_aluno_desse_polo(self):
         """Coorte de Mossoró não é selecionada quando não há aluno desse polo."""
         self._cria_cohort(
-            name="ZL.CooPolo.Mossor (RN)",
-            idnumber="ZL.CooPolo.Mossor (RN)",
+            name="ZL.CooPolo.Mossoró (RN)",
+            idnumber="ZL.CooPolo.Mossoró (RN)",
             role=self.role_coo_polo,
             rule_diario='$any([aluno.polo.descricao == "Mossoró (RN)" for aluno in alunos])',
             rule_coordenacao='$any([aluno.polo.descricao == "Mossoró (RN)" for aluno in alunos])',
