@@ -109,6 +109,8 @@ def login(request: HttpRequest) -> HttpResponse:
     request.session["next"] = request.GET.get("next", "/")
 
     redirect_uri = OAUTH.get("REDIRECT_URI")
+    if not redirect_uri:
+        raise ValueError("Configure OAUTH['REDIRECT_URI'] para autenticação OAuth.")
     params = urllib.parse.urlencode(
         {
             "response_type": "code",
@@ -116,8 +118,6 @@ def login(request: HttpRequest) -> HttpResponse:
             "redirect_uri": redirect_uri,
         }
     )
-    if not redirect_uri:
-        raise ValueError("Configure OAUTH['REDIRECT_URI'] para autenticação OAuth.")
     suap_url = f"{OAUTH['BASE_URL']}/o/authorize/?{params}"
     return redirect(suap_url)  # nosemgrep: python.django.security.injection.open-redirect.open-redirect
 
