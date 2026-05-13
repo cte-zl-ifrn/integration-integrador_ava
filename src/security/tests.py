@@ -19,7 +19,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from security.apps import SecurityConfig
 from security.views import authenticate, login, logout
 
-TEST_LOGOUT_TOKEN = "test_token_123"  # noqa S105
+TEST_TOKEN_VALUE = "test_token_123"
 
 
 class SecurityAppConfigTestCase(TestCase):
@@ -404,7 +404,9 @@ class LogoutViewTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="testuser", password="password123")  # noqa S106
+        self.user = User.objects.create_user(username="testuser")
+        self.user.set_unusable_password()
+        self.user.save()
 
     def add_session_to_request(self, request):
         """Adiciona sessão à requisição."""
@@ -614,6 +616,7 @@ class EdgeCasesTestCase(TestCase):
 
         response = authenticate(request)
         self.assertEqual(response.status_code, 200)
+        self.assertIn(b"username", response.content.lower())
         self.assertFalse(User.objects.filter(username=long_username).exists())
 
     def test_login_with_special_characters_in_next(self):
