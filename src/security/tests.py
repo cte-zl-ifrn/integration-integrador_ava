@@ -848,7 +848,7 @@ class SaveUserTestCase(TestCase):
             "email_preferencial": "updated@example.com",
         }
 
-        user = _save_user(userinfo)
+        _save_user(userinfo)
 
         # Recarrega do banco
         user = User.objects.get(username="existinguser")
