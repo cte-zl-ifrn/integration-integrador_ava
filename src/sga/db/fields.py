@@ -1,15 +1,16 @@
-import re
-
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import models
 
 from sga.db.obfuscators import mask_all
 
 
 def permissive_url_validator(value):
-    pattern = r"^https?://[\w.-]+(:\d+)?(/.*)?$"
-    if not re.match(pattern, value):
+    validator = URLValidator(schemes=["http", "https"])
+    try:
+        validator(value)
+    except ValidationError:
         raise ValidationError("Informe uma URL válida.")
 
 
