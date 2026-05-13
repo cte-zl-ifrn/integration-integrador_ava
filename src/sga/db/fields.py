@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from sga.db.obfuscators import mask_all
 
@@ -13,7 +14,7 @@ def permissive_url_validator(value):
     try:
         validator(value)
     except ValidationError:
-        raise ValidationError("Informe uma URL válida.")
+        raise ValidationError(_("Informe uma URL válida."))
 
 
 class PermissiveURLField(models.URLField):
@@ -36,10 +37,7 @@ class ObfuscatedCharField(models.CharField):
         return OBFUSCATION_MASK + value[-4:] if len(value) >= 4 else OBFUSCATION_MASK
 
     def from_db_value(self, value, expression, connection):
-        return self.get_obfuscated_value(value)
-
-    def to_python(self, value):
-        return super().to_python(value)
+        return value
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
