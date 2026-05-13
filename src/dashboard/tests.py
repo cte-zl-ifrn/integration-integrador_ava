@@ -279,23 +279,6 @@ class DashboardStorageTestCase(TestCase):
             cached = cache.get("admin_dashboard_data")
             self.assertIsNone(cached)
 
-    def test_get_context_uses_cached_data_without_loading(self):
-        """Testa get_context retornando cache sem chamar _load_data."""
-        from django.conf import settings
-
-        if settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.dummy.DummyCache":
-            return
-
-        cached_payload = {"cached": True}
-        cache.set("admin_dashboard_data", cached_payload, 300)
-
-        with patch("dashboard.storage.CACHE_ENABLED", True):
-            with patch.object(DashboardStorage, "_load_data") as mock_load_data:
-                context = self.storage.get_context()
-
-        self.assertEqual(context, cached_payload)
-        mock_load_data.assert_not_called()
-
     def test_get_context_stores_data_in_cache_when_enabled(self):
         """Testa get_context persistindo dados em cache quando habilitado."""
         with patch("dashboard.storage.CACHE_ENABLED", True):

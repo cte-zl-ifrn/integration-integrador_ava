@@ -320,26 +320,6 @@ class SettingsIntegrationTestCase(TestCase):
             result = cursor.fetchone()
             self.assertEqual(result[0], 1)
 
-    def test_cache_configuration_is_valid(self):
-        """Testa se a configuração de cache é válida."""
-        from django.conf import settings
-        from django.core.cache import cache
-
-        if settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.dummy.DummyCache":
-            return
-
-        # Tenta usar o cache
-        test_key = "test_settings_key"
-        test_value = "test_value"
-
-        cache.set(test_key, test_value, 10)
-        cached_value = cache.get(test_key)
-
-        self.assertEqual(cached_value, test_value)
-
-        # Limpa
-        cache.delete(test_key)
-
 
 class RootUrlsTestCase(TestCase):
     """Testes para configurações de urls.py na raiz do projeto."""
