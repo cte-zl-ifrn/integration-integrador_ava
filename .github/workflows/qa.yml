@@ -52,6 +52,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: quality
+    env:
+      POSTGRES_ENGINE: django.db.backends.postgresql
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DATABASE: integrador
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     permissions:
       contents: read
       id-token: write
