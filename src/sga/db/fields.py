@@ -36,7 +36,7 @@ class ObfuscatedCharField(models.CharField):
         return OBFUSCATION_MASK + value[-4:] if len(value) >= 4 else OBFUSCATION_MASK
 
     def from_db_value(self, value, expression, connection):
-        return self.get_obfuscated_value(value)
+        return value
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
