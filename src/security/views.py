@@ -41,9 +41,7 @@ def _get_tokens(request):
     )
     logger.info("OAuth endpoint response status %s", response.status_code)
     if not response.ok:
-        raise ValueError(
-            f"Falha ao obter token no OAuth (status {response.status_code}): {response.text[:200]}"
-        )
+        raise ValueError(f"Falha ao obter token no OAuth (status {response.status_code}): {response.text[:200]}")
     try:
         data = json.loads(response.text)
     except json.JSONDecodeError as exc:

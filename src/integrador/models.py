@@ -33,10 +33,6 @@ class Ambiente(Model):
                     return a
             return None
 
-    # def _c(color: str):
-    #     fix = "color: #fff; padding: 1px 5px; font-size: 95%; border-radius: 4px;"
-    #     return f"""<span style='background: {color}; {fix}'>{color}</span>"""
-
     nome = CharField(_("nome do ambiente"), max_length=255)
     url = PermissiveURLField(_("URL"), max_length=255)
     expressao_seletora = TextField(_("expressão seletora"), max_length=2550, null=True, blank=True)
