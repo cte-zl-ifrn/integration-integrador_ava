@@ -281,6 +281,11 @@ class DashboardStorageTestCase(TestCase):
 
     def test_get_context_uses_cached_data_without_loading(self):
         """Testa get_context retornando cache sem chamar _load_data."""
+        from django.conf import settings
+
+        if settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.dummy.DummyCache":
+            return
+
         cached_payload = {"cached": True}
         cache.set("admin_dashboard_data", cached_payload, 300)
 
