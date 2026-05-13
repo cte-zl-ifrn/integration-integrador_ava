@@ -5,6 +5,8 @@ from django.db import models
 
 from sga.db.obfuscators import mask_all
 
+OBFUSCATION_MASK = "****"
+
 
 def permissive_url_validator(value):
     validator = URLValidator(schemes=["http", "https"])
@@ -31,7 +33,7 @@ class ObfuscatedCharField(models.CharField):
             return None
         if self.obfuscator is not None:
             return self.obfuscator(value)
-        return "****" + value[-4:] if len(value) >= 4 else "****"
+        return OBFUSCATION_MASK + value[-4:] if len(value) >= 4 else OBFUSCATION_MASK
 
     def from_db_value(self, value, expression, connection):
         return self.get_obfuscated_value(value)
@@ -41,6 +43,6 @@ class ObfuscatedCharField(models.CharField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        if self.obfuscator is not None:
+        if self.obfuscator != mask_all:
             kwargs["obfuscator"] = self.obfuscator
         return name, path, args, kwargs
