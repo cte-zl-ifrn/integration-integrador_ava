@@ -611,8 +611,7 @@ class EdgeCasesTestCase(TestCase):
 
         response = authenticate(request)
         self.assertEqual(response.status_code, 200)
-
-        self.assertIn(b"value too long for type character varying(150)", response.content)
+        self.assertFalse(User.objects.filter(username=long_username).exists())
 
     def test_login_with_special_characters_in_next(self):
         """Testa login com caracteres especiais em next."""
