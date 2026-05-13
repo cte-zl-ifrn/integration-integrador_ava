@@ -404,7 +404,9 @@ class LogoutViewTestCase(TestCase):
     def setUp(self):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="testuser", password="password123")  # noqa S106
+        self.user = User.objects.create_user(username="testuser")
+        self.user.set_unusable_password()
+        self.user.save()
 
     def add_session_to_request(self, request):
         """Adiciona sessão à requisição."""
