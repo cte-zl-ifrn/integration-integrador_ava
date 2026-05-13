@@ -77,6 +77,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Debug files
+        run: |
+          pwd
+          ls -la
+          find . -maxdepth 3 -name manage.py
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
