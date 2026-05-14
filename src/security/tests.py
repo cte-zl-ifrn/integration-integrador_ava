@@ -465,7 +465,7 @@ class IntegrationTestCase(TestCase):
         self.assertIn("authorize", response.url)
 
         # 2. Mock de retorno do OAuth
-        mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
+        mock_post.return_value = Mock(text=json.dumps({"access_token": TEST_OAUTH_OK, "scope": "test_scope"}))
 
         mock_get.return_value = Mock(
             text=json.dumps(
@@ -483,7 +483,7 @@ class IntegrationTestCase(TestCase):
         session["next"] = "/admin/"
         session.save()
 
-        response = self.client.get("/authenticate/?code=test_code")
+        response = self.client.get(f"/authenticate/?code={TEST_OAUTH_OK}")
 
         # Deve criar usuário e redirecionar
         self.assertEqual(response.status_code, 302)
@@ -520,7 +520,7 @@ class EdgeCasesTestCase(TestCase):
             json=Mock(return_value=token_error_payload),
         )
 
-        request = self.factory.get("/authenticate/?code=test_code")
+        request = self.factory.get(f"/authenticate/?code={TEST_OAUTH_OK}")
         self.add_session_to_request(request)
 
         response = authenticate(request)
@@ -533,13 +533,13 @@ class EdgeCasesTestCase(TestCase):
     @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_with_username_at_max_length(self, mock_get, mock_post):
         """Testa autenticação com username no limite exato de tamanho."""
-        mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
+        mock_post.return_value = Mock(text=json.dumps({"access_token": TEST_OAUTH_OK, "scope": "test_scope"}))
         username_max_length = User._meta.get_field("username").max_length
         exact_username = "a" * username_max_length
         mock_get.return_value = Mock(
             text=json.dumps({"identificacao": exact_username, "primeiro_nome": "Edge", "ultimo_nome": "User"})
         )
-        request = self.factory.get("/authenticate/?code=test_code")
+        request = self.factory.get(f"/authenticate/?code={TEST_OAUTH_OK}")
         self.add_session_to_request(request)
         request.session["next"] = "/"
         response = authenticate(request)
@@ -590,20 +590,20 @@ class GetTokensTestCase(TestCase):
         mock_post.return_value = Mock(
             text=json.dumps(
                 {
-                    "access_token": "test_access_token",
-                    "refresh_token": "test_refresh_token",
+                    "access_token": TEST_OAUTH_OK,
+                    "refresh_token": TEST_OAUTH_OK,
                     "token_type": "Bearer",
                     "scope": "read write",
                 }
             )
         )
 
-        request = self.factory.get("/authenticate/?code=authorization_code_123")
+        request = self.factory.get(f"/authenticate/?code={TEST_OAUTH_OK}")
         request.META["HTTP_HOST"] = "localhost:8000"
 
         tokens = _get_tokens(request)
 
-        self.assertEqual(tokens["access_token"], "test_access_token")
+        self.assertEqual(tokens["access_token"], TEST_OAUTH_OK)
         self.assertEqual(tokens["token_type"], "Bearer")
         mock_post.assert_called_once()
 
