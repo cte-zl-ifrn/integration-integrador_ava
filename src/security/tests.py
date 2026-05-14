@@ -117,18 +117,12 @@ class LoginViewTestCase(SessionRequestTestCase):
         self.assertIn("redirect_uri=http", response.url)
 
 
-class AuthenticateViewTestCase(TestCase):
+class AuthenticateViewTestCase(SessionRequestTestCase):
     """Testes para a view de autenticação."""
 
     def setUp(self):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
-
-    def add_session_to_request(self, request):
-        """Adiciona sessão à requisição."""
-        middleware = SessionMiddleware(lambda x: None)
-        middleware.process_request(request)
-        request.session.save()
 
     def test_authenticate_handles_access_denied(self):
         """Testa tratamento de erro access_denied."""
@@ -205,17 +199,9 @@ class AuthenticateViewTestCase(TestCase):
         # Mock das respostas
         mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
 
-        mock_get.return_value = Mock(
-            text=json.dumps(
-                {
-                    "identificacao": "firstuser",
-                    "primeiro_nome": "First",
-                    "ultimo_nome": "User",
-                    "email_preferencial": "first@example.com",
-                }
-            )
+        mock_post.return_value = Mock(
+            status_code=200, text=json.dumps({"access_token": "test_token", "scope": "test_scope"})
         )
-
         # Garante que não há usuários
         User.objects.all().delete()
 
@@ -248,7 +234,9 @@ class AuthenticateViewTestCase(TestCase):
         User.objects.create_user(username="existinguser", first_name="Old", last_name="Name", email="old@example.com")
 
         # Mock das respostas
-        mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
+        mock_post.return_value = Mock(
+            status_code=200, text=json.dumps({"access_token": "test_token", "scope": "test_scope"})
+        )
 
         mock_get.return_value = Mock(
             text=json.dumps(
@@ -322,8 +310,9 @@ class AuthenticateViewTestCase(TestCase):
     )
     def test_authenticate_uses_default_email_when_not_provided(self, mock_get, mock_post):
         """Testa uso de email padrão quando não fornecido."""
-        mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
-
+        mock_post.return_value = Mock(
+            status_code=200, text=json.dumps({"access_token": "test_token", "scope": "test_scope"})
+        )
         # Userinfo sem email_preferencial
         mock_get.return_value = Mock(
             text=json.dumps({"identificacao": "noemail", "primeiro_nome": "No", "ultimo_nome": "Email"})

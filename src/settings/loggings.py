@@ -25,7 +25,7 @@ class Color:
 logging.config.dictConfig(
     {
         "version": 1,
-        "disable_existing_loggers": True,
+        "disable_existing_loggers": False,
         "datefmt": "[%X]",
         "formatters": {
             "longformat": {
