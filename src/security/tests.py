@@ -21,6 +21,14 @@ from security.apps import SecurityConfig
 from security.views import authenticate, login, logout
 
 TEST_TOKEN_VALUE = f"test-{uuid.uuid4().hex}"
+TEST_OAUTH_OK = {
+    "BASE_URL": "https://suap.test.com",
+    "TOKEN_URL": "https://suap.test.com/o/token/",
+    "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
+    "CLIENT_ID": TEST_TOKEN_VALUE,
+    "CLIENT_SECRET": TEST_TOKEN_VALUE,
+    "REDIRECT_URI": "http://suap.test.com/authenticate/",
+}
 
 
 class SecurityAppConfigTestCase(TestCase):
@@ -60,13 +68,7 @@ class LoginViewTestCase(SessionRequestTestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
 
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "CLIENT_ID": "test_client_id",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_login_redirects_to_oauth(self):
         """Testa se login redireciona para OAuth."""
         request = self.factory.get("/login/")
@@ -80,8 +82,9 @@ class LoginViewTestCase(SessionRequestTestCase):
         # Verifica URL de redirecionamento
         self.assertIn("suap.test.com", response.url)
         self.assertIn("authorize", response.url)
-        self.assertIn("test_client_id", response.url)
+        self.assertIn(TEST_TOKEN_VALUE, response.url)
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_login_saves_next_parameter_in_session(self):
         """Testa se login salva parâmetro next na sessão."""
         request = self.factory.get("/login/?next=/admin/")
@@ -92,6 +95,7 @@ class LoginViewTestCase(SessionRequestTestCase):
         # Verifica se 'next' foi salvo na sessão
         self.assertEqual(request.session["next"], "/admin/")
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_login_default_next_when_not_provided(self):
         """Testa valor padrão de next quando não fornecido."""
         request = self.factory.get("/login/")
@@ -102,13 +106,7 @@ class LoginViewTestCase(SessionRequestTestCase):
         # Deve usar "/" como padrão
         self.assertEqual(request.session["next"], "/")
 
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "CLIENT_ID": "my_client",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_login_constructs_correct_redirect_uri(self):
         """Testa se a URI de redirecionamento está correta."""
         request = self.factory.get("/login/")
@@ -124,6 +122,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
         """Configura o ambiente de teste."""
         self.factory = RequestFactory()
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_handles_access_denied(self):
         """Testa tratamento de erro access_denied."""
         request = self.factory.get("/authenticate/?error=access_denied")
@@ -137,16 +136,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_successful_flow(self, mock_get, mock_post):
         """Testa fluxo de autenticação bem-sucedido."""
         # Mock do token response
@@ -184,16 +174,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_creates_first_user_as_superuser(self, mock_get, mock_post):
         """Testa se o primeiro usuário é criado como superuser."""
         # Mock das respostas
@@ -227,16 +208,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_updates_existing_user(self, mock_get, mock_post):
         """Testa atualização de usuário existente."""
         # Cria usuário existente
@@ -269,6 +241,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
         self.assertEqual(user.first_name, "New")
         self.assertEqual(user.email, "new@example.com")
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_without_code_parameter(self):
         """Testa authenticate sem parâmetro code."""
         request = self.factory.get("/authenticate/")
@@ -281,16 +254,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
         self.assertIn(b"authorization_error", response.content)
 
     @patch("security.views.requests.post")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_handles_token_error(self, mock_post):
         """Testa tratamento de erro ao obter token."""
         # Mock de erro no token
@@ -307,16 +271,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_uses_default_email_when_not_provided(self, mock_get, mock_post):
         """Testa uso de email padrão quando não fornecido."""
         mock_post.return_value = Mock(
@@ -341,16 +296,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
     @patch("security.views.capture_exception")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_handles_generic_exception(self, mock_capture, mock_get, mock_post):
         """Testa tratamento de exceção genérica."""
         mock_post.side_effect = Exception("Network error")
@@ -367,16 +313,7 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_with_email_preferencial(self, mock_get, mock_post):
         """Testa que email_preferencial tem prioridade."""
         mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
@@ -423,7 +360,7 @@ class LogoutViewTestCase(TestCase):
     @override_settings(
         LOGOUT_REDIRECT_URL="https://suap.test.com/logout",
         LOGIN_REDIRECT_URL="/admin/",
-        OAUTH={"BASE_URL": "https://suap.test.com"},
+        OAUTH=TEST_OAUTH_OK,
     )
     def test_logout_redirects_to_suap(self):
         """Testa se logout redireciona para SUAP."""
@@ -440,6 +377,7 @@ class LogoutViewTestCase(TestCase):
     @override_settings(
         LOGOUT_REDIRECT_URL="https://suap.test.com/logout",
         LOGIN_REDIRECT_URL="/admin/",
+        OAUTH=TEST_OAUTH_OK,
     )
     def test_logout_includes_next_parameter(self):
         """Testa se logout inclui parâmetro next."""
@@ -456,7 +394,7 @@ class LogoutViewTestCase(TestCase):
     @override_settings(
         LOGOUT_REDIRECT_URL="https://suap.test.com/logout",
         LOGIN_REDIRECT_URL="/admin/",
-        OAUTH={"BASE_URL": "https://suap.test.com"},
+        OAUTH=TEST_OAUTH_OK,
     )
     def test_logout_with_logout_token_still_redirects(self):
         """Testa se logout com token em sessão mantém redirecionamento esperado."""
@@ -471,6 +409,7 @@ class LogoutViewTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("next=", response.url)
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_logout_with_empty_logout_token(self):
         """Testa logout sem logout_token na sessão."""
         request = self.factory.get("/logout/")
@@ -487,6 +426,7 @@ class LogoutViewTestCase(TestCase):
 class SecurityURLsTestCase(TestCase):
     """Testes para URLs da app security."""
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_login_url_is_accessible(self):
         """Testa se a URL /login/ é acessível."""
         response = self.client.get("/login/")
@@ -494,6 +434,7 @@ class SecurityURLsTestCase(TestCase):
         # Deve redirecionar para OAuth
         self.assertEqual(response.status_code, 302)
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_url_is_accessible(self):
         """Testa se a URL /authenticate/ é acessível."""
         response = self.client.get("/authenticate/")
@@ -501,6 +442,7 @@ class SecurityURLsTestCase(TestCase):
         # Deve retornar resposta (erro ou página)
         self.assertIn(response.status_code, [200, 302])
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_logout_url_is_accessible(self):
         """Testa se a URL /logout/ é acessível."""
         response = self.client.get("/logout/")
@@ -514,16 +456,7 @@ class IntegrationTestCase(TestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_complete_authentication_flow(self, mock_get, mock_post):
         """Testa fluxo completo de autenticação."""
         # 1. Login - redireciona para OAuth
@@ -574,15 +507,7 @@ class EdgeCasesTestCase(TestCase):
         request.session.save()
 
     @patch("security.views.requests.post")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_with_mismatching_redirect_uri_error(self, mock_post):
         """Testa erro de redirect URI não correspondente."""
         token_error_payload = {
@@ -605,16 +530,7 @@ class EdgeCasesTestCase(TestCase):
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "BASE_URL": "https://suap.test.com",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "USERINFO_URL": "https://suap.test.com/api/rh/eu/",
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_with_username_at_max_length(self, mock_get, mock_post):
         """Testa autenticação com username no limite exato de tamanho."""
         mock_post.return_value = Mock(text=json.dumps({"access_token": "test_token", "scope": "test_scope"}))
@@ -630,6 +546,7 @@ class EdgeCasesTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(User.objects.filter(username=exact_username).exists())
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_login_with_special_characters_in_next(self):
         """Testa login com caracteres especiais em next."""
         request = self.factory.get("/login/?next=/admin/test?id=123&name=test")
@@ -643,7 +560,7 @@ class EdgeCasesTestCase(TestCase):
     @override_settings(
         LOGOUT_REDIRECT_URL="https://suap.test.com/logout",
         LOGIN_REDIRECT_URL="/admin/",
-        OAUTH={"BASE_URL": "https://suap.test.com"},
+        OAUTH=TEST_OAUTH_OK,
     )
     def test_logout_without_authenticated_user(self):
         """Testa logout sem usuário autenticado."""
@@ -665,14 +582,7 @@ class GetTokensTestCase(TestCase):
         self.factory = RequestFactory()
 
     @patch("security.views.requests.post")
-    @override_settings(
-        OAUTH={
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_get_tokens_success(self, mock_post):
         """Testa obtenção bem-sucedida de tokens."""
         from security.views import _get_tokens
@@ -697,14 +607,7 @@ class GetTokensTestCase(TestCase):
         self.assertEqual(tokens["token_type"], "Bearer")
         mock_post.assert_called_once()
 
-    @override_settings(
-        OAUTH={
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_get_tokens_missing_code_raises(self):
         """Cobre erro quando o código OAuth não é enviado."""
         from security import views as security_views
@@ -715,14 +618,7 @@ class GetTokensTestCase(TestCase):
             security_views._get_tokens(request)
 
     @patch("security.views.requests.post")
-    @override_settings(
-        OAUTH={
-            "CLIENT_ID": "test_client",
-            "CLIENT_SECRET": "test_secret",
-            "TOKEN_URL": "https://suap.test.com/o/token/",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_get_tokens_mismatching_redirect_uri(self, mock_post):
         """Testa erro quando redirect URI não corresponde."""
         from security.views import _get_tokens
@@ -742,13 +638,7 @@ class GetUserinfoTestCase(TestCase):
     """Testes para a função _get_userinfo."""
 
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "CLIENT_SECRET": "test_secret",
-            "USERINFO_URL": "https://suap.test.com/api/v1/user",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_get_userinfo_success(self, mock_get):
         """Testa obtenção bem-sucedida de informações do usuário."""
         from security.views import _get_userinfo
@@ -773,13 +663,7 @@ class GetUserinfoTestCase(TestCase):
         mock_get.assert_called_once()
 
     @patch("security.views.requests.get")
-    @override_settings(
-        OAUTH={
-            "CLIENT_SECRET": "test_secret",
-            "USERINFO_URL": "https://suap.test.com/api/v1/user",
-            "REDIRECT_URI": "http://suap.test.com/authenticate/",
-        }
-    )
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_get_userinfo_with_all_fields(self, mock_get):
         """Testa obtenção de userinfo com todos os campos."""
         from security.views import _get_userinfo
@@ -807,6 +691,7 @@ class GetUserinfoTestCase(TestCase):
 class SaveUserTestCase(TestCase):
     """Testes para a função _save_user."""
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_save_user_creates_new_user(self):
         """Testa criação de novo usuário."""
         from security.views import _save_user
@@ -830,6 +715,7 @@ class SaveUserTestCase(TestCase):
         self.assertEqual(user.email, "new@example.com")
         self.assertFalse(user.is_superuser)
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_save_user_first_user_is_superuser(self):
         """Testa se primeiro usuário é superuser."""
         from security.views import _save_user
@@ -849,6 +735,7 @@ class SaveUserTestCase(TestCase):
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_save_user_updates_existing_user(self):
         """Testa atualização de usuário existente."""
         from security.views import _save_user
@@ -871,6 +758,7 @@ class SaveUserTestCase(TestCase):
         self.assertEqual(user.last_name, "NewName")
         self.assertEqual(user.email, "updated@example.com")
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_save_user_uses_default_email(self):
         """Testa uso de email padrão quando preferencial não existe."""
         from security.views import _save_user
@@ -883,6 +771,7 @@ class SaveUserTestCase(TestCase):
 
         self.assertEqual(user.email, "noemailuser@ifrn.edu.br")
 
+    @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_save_user_with_empty_email_preferencial(self):
         """Testa quando email_preferencial está vazio."""
         from security.views import _save_user
