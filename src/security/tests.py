@@ -451,7 +451,7 @@ class SecurityURLsTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class IntegrationTestCase(TestCase):
+class IntegrationTestCase(SessionRequestTestCase):
     """Testes de integração para fluxos de autenticação."""
 
     @patch("security.views.requests.post")
