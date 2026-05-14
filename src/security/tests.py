@@ -626,7 +626,9 @@ class EdgeCasesTestCase(TestCase):
 
         response = authenticate(request)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"username", response.content.lower())
+        response_text = response.content.decode("utf-8", errors="ignore").lower()
+        self.assertIn("username", response_text)
+        self.assertTrue(any(keyword in response_text for keyword in ("max_length", "maximum", "length", "caracteres")))
         self.assertFalse(User.objects.filter(username=long_username).exists())
 
     @patch("security.views.requests.post")
