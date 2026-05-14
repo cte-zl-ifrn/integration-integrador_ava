@@ -16,7 +16,7 @@ class Color:
     YELLOW = "\033[93m"
     BLUE = "\033[94m"
     MAGENTA = "\033[95m"
-    CYANO = "\033[96m"
+    CYAN = "\033[96m"
     STRONG = "\033[1m"
     UNDERLINE = "\033[4m"
     NONE = "\033[0m"
@@ -25,7 +25,7 @@ class Color:
 logging.config.dictConfig(
     {
         "version": 1,
-        "disable_existing_loggers": True,
+        "disable_existing_loggers": False,
         "datefmt": "[%X]",
         "formatters": {
             "longformat": {"format": "%(message)s"},
