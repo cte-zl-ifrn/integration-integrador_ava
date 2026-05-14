@@ -465,7 +465,7 @@ class IntegrationTestCase(SessionRequestTestCase):
         self.assertIn("authorize", response.url)
 
         # 2. Mock de retorno do OAuth
-        mock_post.return_value = Mock(text=json.dumps({"access_token": TEST_OAUTH_OK, "scope": "test_scope"}))
+        mock_post.return_value = Mock(text=json.dumps({"access_token": TEST_TOKEN_VALUE, "scope": "test_scope"}))
 
         mock_get.return_value = Mock(
             text=json.dumps(
@@ -483,7 +483,7 @@ class IntegrationTestCase(SessionRequestTestCase):
         session["next"] = "/admin/"
         session.save()
 
-        response = self.client.get(f"/authenticate/?code={TEST_OAUTH_OK}")
+        response = self.client.get(f"/authenticate/?code={TEST_TOKEN_VALUE}")
 
         # Deve criar usuário e redirecionar
         self.assertEqual(response.status_code, 302)
@@ -533,13 +533,13 @@ class EdgeCasesTestCase(TestCase):
     @override_settings(OAUTH=TEST_OAUTH_OK)
     def test_authenticate_with_username_at_max_length(self, mock_get, mock_post):
         """Testa autenticação com username no limite exato de tamanho."""
-        mock_post.return_value = Mock(text=json.dumps({"access_token": TEST_OAUTH_OK, "scope": "test_scope"}))
+        mock_post.return_value = Mock(text=json.dumps({"access_token": TEST_TOKEN_VALUE, "scope": "test_scope"}))
         username_max_length = User._meta.get_field("username").max_length
         exact_username = "a" * username_max_length
         mock_get.return_value = Mock(
             text=json.dumps({"identificacao": exact_username, "primeiro_nome": "Edge", "ultimo_nome": "User"})
         )
-        request = self.factory.get(f"/authenticate/?code={TEST_OAUTH_OK}")
+        request = self.factory.get(f"/authenticate/?code={TEST_TOKEN_VALUE}")
         self.add_session_to_request(request)
         request.session["next"] = "/"
         response = authenticate(request)
