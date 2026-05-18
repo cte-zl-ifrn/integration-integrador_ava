@@ -19,16 +19,19 @@ repos:
   - id: check-yaml
   - id: debug-statements
   - id: destroyed-symlinks
-  - id: detect-private-key
-    exclude: ^tests_integration/fixtures/060\.moodle\.sql$
-  - id: end-of-file-fixer
   - id: fix-byte-order-marker
   - id: mixed-line-ending
   - id: name-tests-test
     args: [--pytest-test-first]
   - id: requirements-txt-fixer
+  - id: end-of-file-fixer
+    exclude: ^tests_integration/fixtures/060\.moodle\.sql$
   - id: trailing-whitespace
     args: [--markdown-linebreak-ext=md]
+    exclude: ^tests_integration/fixtures/060\.moodle\.sql$
+  - id: detect-private-key
+    exclude: ^tests_integration/fixtures/060\.moodle\.sql$
+
 
 - repo: https://github.com/psf/black
   rev: 26.3.1
