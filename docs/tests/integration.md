@@ -1,6 +1,7 @@
 # Testes de Integração Reais (Docker)
 
-Além dos testes unitários com mocks, este projeto possui uma suíte de **testes de integração reais** que validam o contrato entre o Integrador AVA e o plugin `local_suap` do Moodle.
+Além dos testes unitários com mocks, este projeto possui uma suíte de **testes de integração reais** que validam o
+contrato entre o Integrador AVA e o plugin `local_suap` do Moodle.
 
 Esses testes utilizam contêineres Docker para subir um ambiente completo, incluindo um Moodle real com dados sintéticos.
 
@@ -8,7 +9,8 @@ Esses testes utilizam contêineres Docker para subir um ambiente completo, inclu
 
 - `docker-compose.integration.yml`: Orquestra o Integrador, o Moodle e seus bancos de dados.
 - `tests_integration/`: Contém os arquivos de teste (`test_*.py`) e configurações (`conftest.py`).
-- `tests_integration/scripts/seed_moodle.php`: Script PHP que popula o Moodle com dados de teste (cursos, usuários, notas) usando a API interna do Moodle.
+- `tests_integration/scripts/seed_moodle.php`: Script PHP que popula o Moodle com dados de teste
+  (cursos, usuários, notas) usando a API interna do Moodle.
 
 ## Como Executar
 
@@ -57,9 +59,7 @@ Estes testes são executados automaticamente:
 
 ### Moodle não fica pronto
 
-O Moodle pode demorar alguns minutos para inicializar na primeira vez (instalação do banco). O `docker-compose` está configurado com healthchecks para aguardar, mas se o timeout do pytest (em `conftest.py`) for atingido, você pode aumentá-lo ou verificar os logs:
+O Moodle pode demorar alguns minutos para inicializar na primeira vez (instalação do banco).
+O `docker-compose` está configurado com healthchecks para aguardar, mas se o timeout do
+pytest (em `conftest.py`) for atingido, você pode aumentá-lo ou verificar os logs:
 `docker compose -f docker-compose.integration.yml logs moodle`
-
-### Erros de Permissão
-
-Os scripts de seed precisam escrever um arquivo temporário `seed_data.json`. Se houver erro de "Permission denied", certifique-se de que a pasta `tests_integration/scripts` tem permissão de escrita para o usuário do Docker (root).
