@@ -29,7 +29,7 @@ services:
     ports:
       - "8080:80"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/local/suap/api/index.php?sync_up_enrolments"]
+      test: ["CMD", "curl", "-f", "http://moodle/local/suap/healthcheck.php"]
       interval: 10s
       timeout: 5s
       retries: 30
