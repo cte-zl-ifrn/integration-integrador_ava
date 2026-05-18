@@ -51,7 +51,7 @@ services:
 
   integrador-integration:
     build:
-      context: .
+      context: ../.
       target: development
     user: root
     environment:
