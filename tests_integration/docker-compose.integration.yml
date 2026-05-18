@@ -59,7 +59,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       DJANGO_CACHES_DEFAULT_BACKEND: django.core.cache.backends.dummy.DummyCache
-      DJANGO_ALLOWED_HOSTS: localhost:8000,integrador:8000
+      DJANGO_ALLOWED_HOSTS: localhost:8000,integrador:8000,localhost,integrador
       SUAP_INTEGRADOR_KEY: changeme
     volumes:
       - ../.:/app
@@ -88,4 +88,4 @@ services:
     depends_on:
       integrador:
         condition: service_healthy
-    command: ["pytest", "tests_integration", "--ds=settings", "-v", "-s"]
+    command: ["pytest", "tests_integration", '-v', '-s']

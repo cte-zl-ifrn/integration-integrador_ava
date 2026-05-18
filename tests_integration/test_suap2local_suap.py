@@ -1,17 +1,13 @@
 from unittest import TestCase
 
-import pytest
-import requests
+from sc4net import get_json
 
 DEFAULT_HEADERS = {"Authentication": "Token changeme"}
 
 
-@pytest.mark.django_db
-@pytest.mark.usefixtures("integration_ambiente")
 class Suap2LocalSuapIntegrationTestCase(TestCase):
     """Testes de integração para o broker Suap2LocalSuap com Moodle real."""
 
-    @pytest.fixture(autouse=True)
     def setup_fixtures(self, integration_ambiente):
         self.integration_ambiente = integration_ambiente
 
@@ -60,36 +56,44 @@ class Suap2LocalSuapIntegrationTestCase(TestCase):
 
     def test_sync_down_grades_real(self):
         """Testa a baixa de notas com um Moodle real."""
-        print(
-            requests.get(
-                "http://integrador:8000/api/baixar_notas/?campus_sigla=ZL&diario_id=4",
-                headers=DEFAULT_HEADERS,
-                timeout=2,
-            )
-        )
+        url_prefix = "http://integrador:8000/api/baixar_notas/?campus_sigla=ZL&diario_id"
 
-        # diario_id = self.moodle_seed_data["diario_id"]
-        # student_username = self.moodle_seed_data["student_username"]
+        notas1 = get_json(f"{url_prefix}=1", headers=DEFAULT_HEADERS, timeout=2)
+        self.assertIsInstance(notas1, list, f"Esperava uma lista de notas, recebeu: {type(notas1)}")
+        self.assertEqual(len(notas1), 0)
 
-        # solicitacao = Solicitacao.objects.create(
-        #     ambiente=self.integration_ambiente, operacao=Solicitacao.Operacao.SYNC_DOWN_NOTAS, diario_id=diario_id
-        # )
+        # Todas as notas e completudes do curso 2 estão vazias pois só tem as matrículas
+        # sem grade configurado
+        notas2 = get_json(f"{url_prefix}=2", headers=DEFAULT_HEADERS, timeout=2)
+        self.assertIsInstance(notas2, list, f"Esperava uma lista de notas, recebeu: {type(notas2)}")
+        self.assertEqual(len(notas2), 3)
+        for nota in notas2:
+            self.assertIsNone(nota.get("notas"))
+            self.assertIsNone(nota.get("completude"))
+            self.assertEqual(f"{nota.get('matricula')} {nota.get('matricula')}", nota.get("nome_completo"))
 
-        # broker = Suap2LocalSuapBroker(solicitacao)
-        # result = broker.sync_down_grades()
+        # Todas as notas e completudes do curso 3 estão vazias pois só tem as matrículas e atividades
+        # sem grade configurado
+        notas3 = get_json(f"{url_prefix}=3", headers=DEFAULT_HEADERS, timeout=2)
+        self.assertIsInstance(notas3, list, f"Esperava uma lista de notas, recebeu: {type(notas3)}")
+        self.assertEqual(len(notas3), 3)
+        for nota in notas3:
+            self.assertIsNone(nota.get("notas"))
+            self.assertIsNone(nota.get("completude"))
+            self.assertEqual(f"{nota.get('matricula')} {nota.get('matricula')}", nota.get("nome_completo"))
 
-        # # O local_suap retorna uma lista de dicionários de notas
-        # self.assertIsInstance(result, list, f"Esperava uma lista de notas, recebeu: {type(result)}")
-
-        # # Busca a nota do aluno que inserimos no seed
-        # aluno_nota = next((item for item in result if item.get("matricula") == student_username), None)
-
-        # self.assertIsNotNone(aluno_nota, f"Nota do aluno {student_username} não encontrada no retorno: {result}")
-
-        # # No real local_suap as notas vêm no objeto 'notas' indexado pelo idnumber do item
-        # self.assertIn("notas", aluno_nota)
-        # self.assertIsNotNone(
-        #     aluno_nota["notas"], f"Notas vieram como None para o aluno {student_username}. Retorno: {result}"
-        # )
-        # self.assertIn("N1", aluno_nota["notas"])
-        # self.assertEqual(float(aluno_nota["notas"]["N1"]), 85.0)
+        # Todas as notas e completudes do curso 4 estão vazias pois só tem as matrículas e atividades
+        # grade configurada, notas atribuídas e completude realizada
+        notas4 = get_json(f"{url_prefix}=4", headers=DEFAULT_HEADERS, timeout=2)
+        self.assertIsInstance(notas4, list, f"Esperava uma lista de notas, recebeu: {type(notas3)}")
+        self.assertEqual(len(notas4), 3)
+        esperados = {
+            "aluno001": {"notas": {"N1": 1}, "completude": None},
+            "aluno002": {"notas": {"N1": 70}, "completude": None},
+            "aluno003": {"notas": {"N1": 100}, "completude": 100},
+        }
+        for nota in notas4:
+            esperado = esperados.get(nota.get("matricula"), {"notas": {}, "completude": None})
+            self.assertEqual(f"{nota.get('matricula')} {nota.get('matricula')}", nota.get("nome_completo"))
+            self.assertEqual(nota.get("completude", "UNDEFINED"), esperado.get("completude"))
+            self.assertEqual((nota.get("notas") or {}).get("N1", "UNDEFINED"), esperado["notas"]["N1"])
