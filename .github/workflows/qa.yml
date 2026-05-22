@@ -226,7 +226,7 @@ jobs:
             helm upgrade --install integrador /tmp/integrador-chart \
               --namespace ava \
               --set image.tag=${{ github.sha }} \
-              --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.ref_name }}"
+              --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.ref_name }}
           "
 
   deploy-to-prod:
