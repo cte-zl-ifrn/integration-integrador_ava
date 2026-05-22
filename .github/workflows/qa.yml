@@ -160,7 +160,7 @@ jobs:
 
       - name: Run Integration Tests
         run: |
-          pytest tests_integration --ds=settings -v
+          docker compose -f tests_integration/docker-compose.integration.yml up --build test-integration --exit-code-from test-integration
 
   build-and-push:
     if: startsWith(github.ref, 'refs/tags/')
