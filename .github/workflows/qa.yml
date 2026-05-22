@@ -168,7 +168,7 @@ jobs:
     needs: integration-tests
     if: |
       always() && needs.build-main.result == 'success' &&
-      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-dev')
+      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-test')
 
     steps:
       - name: Checkout source code
@@ -202,7 +202,7 @@ jobs:
     needs: build-and-push
     if: |
       always() && needs.publish-to-test.result == 'success' &&
-      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-dev')
+      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-test')
     environment:
       name: production
 
