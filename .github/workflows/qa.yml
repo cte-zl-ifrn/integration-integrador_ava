@@ -143,6 +143,7 @@ jobs:
       POSTGRES_PASSWORD: postgres
       DJANGO_CACHES_DEFAULT_BACKEND: django.core.cache.backends.dummy.DummyCache
       SUAP_INTEGRADOR_KEY: test
+
     steps:
       - uses: actions/checkout@v6
 
@@ -162,6 +163,8 @@ jobs:
 
   build-and-push:
     runs-on: ubuntu-latest
+    needs: test
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -190,8 +193,8 @@ jobs:
             ${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.sha }}
 
   deploy:
-    needs: build-and-push
     runs-on: [self-hosted, runner-dead]
+    needs: build-and-push
     environment:
       name: production
 
