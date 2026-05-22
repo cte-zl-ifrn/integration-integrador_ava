@@ -1,4 +1,5 @@
 services:
+
   db-moodle:
     image: postgres:17
     environment:
