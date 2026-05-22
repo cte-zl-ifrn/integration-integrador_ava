@@ -8,9 +8,9 @@ FROM ctezlifrn/avaintegrationbase:$BASEIMAGE AS development
 
 RUN uv pip uninstall --system dsgovbr
 RUN uv pip install --system \
-                    django-safedelete django-sass-processor libsass django-compressor \
-                    black ruff doc8 pytest pytest-cov python-dotenv pytest-coverage-gate pytest-django \
-                    django-sass-processor Werkzeug django-debug-toolbar
+                    black ruff doc8 pytest pytest-django pytest-cov python-dotenv \
+                    pytest-coverage-gate \
+                    Werkzeug django-debug-toolbar
 
 COPY src /app/src
 WORKDIR /app/src
