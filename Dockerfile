@@ -1,4 +1,4 @@
-ARG BASEIMAGE=6.0.5.31
+ARG BASEIMAGE=6.0.5.32
 
 
 #########################
@@ -23,7 +23,8 @@ RUN mkdir -p /app/static \
 USER app
 EXPOSE 8000
 WORKDIR /app/src
-CMD  ["python", "manage.py", "runserver_plus", "0.0.0.0:8000"]
+# CMD  ["python", "manage.py", "runserver_plus", "0.0.0.0:8000"]
+CMD  ["uvicorn" ]
 
 
 #########################
