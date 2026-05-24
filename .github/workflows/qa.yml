@@ -219,14 +219,14 @@ jobs:
         run: |
           ssh root@${{ secrets.K8S_HOST }} "rm -rf /tmp/integrador-chart"
           scp -r ./helm root@${{ secrets.K8S_HOST }}:/tmp/integrador-chart
-
+      
       - name: Executar Upgrade no Helm
         run: |
           ssh root@${{ secrets.K8S_HOST }} "
             helm upgrade --install integrador /tmp/integrador-chart \
               --namespace ava \
-              --set image.tag=${{ github.sha }} \
-              --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.ref_name }}
+              --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }} \
+              --set image.tag=${{ github.ref_name }}
           "
 
   deploy-to-prod:
