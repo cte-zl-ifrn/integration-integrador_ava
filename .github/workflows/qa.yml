@@ -3,7 +3,7 @@ name: Full cicle
 on:
   push:
     branches:
-      - main  # <-- Adicione isso para rodar automaticamente a cada push na main
+      - main 
   release:
     types: [published]
   workflow_dispatch:
@@ -113,8 +113,6 @@ jobs:
           coverage xml -o coverage.xml
           coverage html
           coverage report --fail-under=95
-          # ./check_coverage_gate.py --coverage-xml /app/src/coverage.xml --baseline-file /app/src/.coverage-baseline --min 98 --ideal 100 --write-baseline
-          # pytest-coverage-gate --coverage-xml=coverage.xml --baseline=.coverage-baseline
 
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v7
@@ -168,7 +166,7 @@ jobs:
     needs: integration-tests
     if: |
       always() && needs.integration-tests.result == 'success' &&
-      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-test')
+      (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/'))
 
     steps:
       - name: Checkout source code
@@ -187,6 +185,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Generate Image Tag
+        id: meta
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
@@ -195,14 +202,14 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.ref_name }}
+            ${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ steps.meta.outputs.tag }}
 
   deploy-to-test:
     runs-on: [self-hosted, runner-dead]
     needs: publish-to-dockerhub
     if: |
       always() && needs.publish-to-dockerhub.result == 'success' &&
-      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-test')
+      (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     environment:
       name: test
 
@@ -225,8 +232,8 @@ jobs:
           ssh root@${{ secrets.K8S_HOST }} "
             helm upgrade --install integrador /tmp/integrador-chart \
               --namespace ava \
-              --set image.tag=${{ github.sha }} \
-              --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.ref_name }}
+              --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }} \
+              --set image.tag=${{ github.sha }}
           "
 
   deploy-to-prod:
