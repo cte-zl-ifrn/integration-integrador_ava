@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main 
+    tags:
+      - '*'  # Ativa a esteira quando qualquer tag for criada (necessário para hmg e prod)
   release:
     types: [published]
   workflow_dispatch:
@@ -164,9 +166,10 @@ jobs:
   publish-to-dockerhub:
     runs-on: ubuntu-latest
     needs: integration-tests
+    # Só builda a imagem se os testes passarem E se o gatilho for uma tag do git
     if: |
       always() && needs.integration-tests.result == 'success' &&
-      (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/'))
+      startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout source code
@@ -185,15 +188,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Generate Image Tag
-        id: meta
-        run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build and push Docker image
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
@@ -202,14 +196,15 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }}:${{ github.ref_name }}
 
   deploy-to-test:
     runs-on: [self-hosted, runner-dead]
     needs: publish-to-dockerhub
+    # Filtra estritamente para rodar apenas se a tag terminar com '-test'
     if: |
       always() && needs.publish-to-dockerhub.result == 'success' &&
-      (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+      startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-test')
     environment:
       name: test
 
@@ -229,16 +224,18 @@ jobs:
 
       - name: Executar Upgrade no Helm
         run: |
+          # Correção essencial aplicada aqui: garante o pull correto separando as propriedades
           ssh root@${{ secrets.K8S_HOST }} "
             helm upgrade --install integrador /tmp/integrador-chart \
               --namespace ava \
               --set image.repository=${{ vars.DOCKERHUB_HOST }}/${{ env.MAIN_IMAGE }} \
-              --set image.tag=${{ github.sha }}
+              --set image.tag=${{ github.ref_name }}
           "
 
   deploy-to-prod:
     runs-on: [self-hosted, runner-dead]
     needs: publish-to-dockerhub
+    # Filtra estritamente para rodar se for uma tag que NÃO possui o sufixo '-test'
     if: |
       always() && needs.publish-to-dockerhub.result == 'success' &&
       startsWith(github.ref, 'refs/tags/') && !endsWith(github.ref_name, '-test')
