@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 
-from sc4py.env import env_as_bool, env_as_list
+from sc4py.env import env_as_bool
 
 from .apps import INSTALLED_APPS
 from .middlewares import MIDDLEWARE
@@ -29,10 +29,15 @@ DEBUG_TOOLBAR_CONFIG = {
     "SHOW_COLLAPSED": True,
 }
 
+extra_middleware = []
+extra_apps = []
 if DEVELOPMENT:
     try:
         if importlib.util.find_spec("debug_toolbar") is not None:
-            MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
-            INSTALLED_APPS += env_as_list("DEV_APPS", ["debug_toolbar"])
+            extra_middleware += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
+            extra_apps += ["debug_toolbar"]
     except ModuleNotFoundError:
         logger.info("Não foi possível carregar o debug_toolbar")
+
+MIDDLEWARE += extra_middleware
+INSTALLED_APPS += extra_apps
