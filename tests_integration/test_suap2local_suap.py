@@ -33,7 +33,12 @@ class Suap2LocalSuapIntegrationTestCase(TestCase):
             "sincrono": True,
         }
 
-        ambiente = Ambiente.objects.get(id=1)
+        ambiente = Ambiente.objects.first() or Ambiente.objects.create(
+            nome="Moodle Teste",
+            base_url="http://moodle",
+            local_suap_token="changeme",  # noqa S106
+            local_suap_active=True,
+        )
         solicitacao = Solicitacao.objects.create(
             ambiente=ambiente, operacao=Solicitacao.Operacao.SYNC_UP_DIARIO, recebido=payload
         )
