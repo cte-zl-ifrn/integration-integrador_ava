@@ -155,6 +155,7 @@ def try_solicitacao(operacao: str):
                     operacao=operacao,
                     tipo=request.json_recebido.get("tipo_diario", "diario"),
                 )
+                solicitacao.site_url = request.build_absolute_uri("/")
 
                 if request.ambiente is None:
                     raise SyncError("Ambiente não encontrado ou não ativo.", 404)
