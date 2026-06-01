@@ -36,7 +36,7 @@ def sync_up_enrolments(request: HttpRequest = None) -> dict:
         return Suap2ToolSgaBroker(request.solicitacao).sync_up_enrolments()
     else:
         raise Exception(
-            f"O ambiente {ambiente.ambiente} não está configurado "
+            f"O ambiente {ambiente.nome} não está configurado "
             f"para enviar dados para o Local SUAP ou Tool SGA. Contacte um administrador."
         )
 
