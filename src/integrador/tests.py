@@ -2752,8 +2752,6 @@ class MoodleMockTestCase(TestCase):
         self.assertEqual(response.status_code, 501)
 
     def test_moodle_mock_server_start_stop(self):
-        import json
-        import urllib.error
         import urllib.request
 
         from django.conf import settings
@@ -2782,10 +2780,10 @@ class MoodleMockTestCase(TestCase):
                         raise exc_to_raise
 
                     url = f"http://{host}:{port}/local/suap/api/index.php?sync_down_grades&diario_id=123"
-                    req = urllib.request.Request(  # noqa: S310
+                    req = urllib.request.Request(
                         url, headers={"Authentication": f"Token {LocalSuapHTTPMock.TEST_TOKEN}"}
                     )
-                    with urllib.request.urlopen(req, timeout=2) as resp:  # noqa: S310
+                    with urllib.request.urlopen(req, timeout=2) as resp:
                         self.assertEqual(resp.status, 200)
 
                     # POST Handler - Envia payload válido para retornar 200 e cobrir a linha do resp.status
@@ -2800,7 +2798,7 @@ class MoodleMockTestCase(TestCase):
                         }
                     ).encode("utf-8")
 
-                    req_post = urllib.request.Request(  # noqa: S310
+                    req_post = urllib.request.Request(
                         url_post,
                         data=valid_payload,
                         headers={
@@ -2809,11 +2807,11 @@ class MoodleMockTestCase(TestCase):
                         },
                         method="POST",
                     )
-                    with urllib.request.urlopen(req_post, timeout=2) as resp:  # noqa: S310
+                    with urllib.request.urlopen(req_post, timeout=2) as resp:
                         self.assertEqual(resp.status, 200)
 
                     # Envia JSON inválido para cobrir JSONDecodeError no mock
-                    req_invalid = urllib.request.Request(  # noqa: S310
+                    req_invalid = urllib.request.Request(
                         url_post,
                         data=b"invalid-json",
                         headers={
@@ -2823,7 +2821,7 @@ class MoodleMockTestCase(TestCase):
                         method="POST",
                     )
                     try:
-                        urllib.request.urlopen(req_invalid, timeout=2)  # noqa: S310
+                        urllib.request.urlopen(req_invalid, timeout=2)
                     except urllib.error.HTTPError as exc:
                         self.assertEqual(exc.code, 422)
                 except Exception as exc:

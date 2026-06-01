@@ -149,11 +149,7 @@ def authenticate(request: HttpRequest) -> HttpResponse:
         userinfo = _get_userinfo(request_data)
         user = _save_user(userinfo)
         auth.login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        next_url = request.session.pop("next", "/")
-        allowed_hosts = set(settings.ALLOWED_HOSTS) | {urllib.parse.urlsplit(settings.OAUTH["BASE_URL"]).netloc}
-        require_https = request.is_secure()
-        if not url_has_allowed_host_and_scheme(next_url, allowed_hosts=allowed_hosts, require_https=require_https):
-            next_url = "/"
+        next_url = "/"
         return redirect(next_url)
     except Exception as e:
         capture_exception(e)
