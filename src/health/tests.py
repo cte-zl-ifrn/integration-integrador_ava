@@ -16,6 +16,7 @@ from django.test import RequestFactory, TestCase, TransactionTestCase, override_
 
 from health.apps import HealthConfig
 from health.views import health
+from integrador.models import Ambiente
 
 
 class HealthViewTestCase(TestCase):
@@ -322,3 +323,100 @@ class HealthMonitoringTestCase(TransactionTestCase):
         # Debug em desenvolvimento e Database com erro
         self.assertEqual(content["Debug"], "FAIL (are active)")
         self.assertEqual(content["Database"], "FAIL")
+
+
+class HealthAmbientesTestCase(TransactionTestCase):
+    """Testes para o status de Ambientes no health check."""
+
+    def setUp(self):
+        """Configura o ambiente de teste."""
+        Ambiente.objects.all().delete()
+
+    @patch("health.views.requests.get")
+    def test_health_with_ambientes(self, mock_get):
+        """Testa health check com vários tipos de ambientes e respostas da API."""
+        mock_response_ok = type("MockResponse", (object,), {})()
+        mock_response_ok.status_code = 200
+        mock_response_ok.json = lambda: {"status": "OK"}
+
+        mock_response_fail = type("MockResponse", (object,), {})()
+        mock_response_fail.status_code = 500
+
+        def side_effect(url, **kwargs):
+            if "env1" in url:
+                return mock_response_ok
+            if "env2" in url:
+                return mock_response_fail
+            if "env3" in url:
+                raise requests.RequestException("Request timeout")
+            return mock_response_ok
+
+        mock_get.side_effect = side_effect
+
+        # 1. Ambiente Ativo e tudo OK
+        Ambiente.objects.create(
+            nome="Env1",
+            url="https://env1.moodle.com",
+            ordem=1,
+            expressao_seletora="campus.sigla == 'ENV1'",
+            local_suap_token="token_suap",  # noqa: S106
+            local_suap_active=True,
+            tool_sga_token="token_sga",  # noqa: S106
+            tool_sga_active=True,
+        )
+
+        # 2. Ambiente com token vazio e falha
+        Ambiente.objects.create(
+            nome="Env2",
+            url="https://env2.moodle.com",
+            ordem=2,
+            expressao_seletora="campus.sigla == 'ENV2'",
+            local_suap_token="",
+            local_suap_active=True,
+            tool_sga_token="token_sga_fail",  # noqa: S106
+            tool_sga_active=True,
+        )
+
+        # 3. Ambiente inativo e erro
+        Ambiente.objects.create(
+            nome="Env3",
+            url="https://env3.moodle.com",
+            ordem=3,
+            expressao_seletora="campus.sigla == 'ENV3'",
+            local_suap_token="token_suap_error",  # noqa: S106
+            local_suap_active=False,
+            tool_sga_token="token_sga_error",  # noqa: S106
+            tool_sga_active=True,
+        )
+
+        # 4. Ambiente extra para cobrir o fallback de side_effect
+        Ambiente.objects.create(
+            nome="Env4",
+            url="https://env4.moodle.com",
+            ordem=4,
+            expressao_seletora="campus.sigla == 'ENV4'",
+            local_suap_token="token_suap_ok",  # noqa: S106
+            local_suap_active=True,
+            tool_sga_token="token_sga_ok",  # noqa: S106
+            tool_sga_active=True,
+        )
+
+        import requests  # assegura que requests está disponível no escopo do teste
+
+        response = self.client.get("/health/")
+        self.assertEqual(response.status_code, 200)
+
+        content = json.loads(response.content)
+        moodles = content["Moodles"]
+
+        # Verifica Env1 (OK)
+        self.assertEqual(moodles["Env1"]["local_suap"], {"status": "OK"})
+        self.assertEqual(moodles["Env1"]["tool_sga"], {"status": "OK"})
+
+        # Verifica Env2 (NO_TOKEN para local_suap, e falha 500 para tool_sga)
+        self.assertEqual(moodles["Env2"]["local_suap"], "NO_TOKEN")
+        self.assertEqual(moodles["Env2"]["tool_sga"], "FAIL (500)")
+
+        # Verifica Env3 (INACTIVE para local_suap, e erro de exceção para tool_sga)
+        self.assertEqual(moodles["Env3"]["local_suap"], "INACTIVE")
+        self.assertIn("ERROR (Request timeout)", moodles["Env3"]["tool_sga"])

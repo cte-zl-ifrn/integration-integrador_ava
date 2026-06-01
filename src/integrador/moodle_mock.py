@@ -296,3 +296,15 @@ def start_mock_moodle_server_in_background() -> None:
         _server_thread = threading.Thread(target=_server.serve_forever, daemon=True)
         _server_thread.start()
         logger.info("Moodle mock HTTP server running on %s:%s", host, port)
+
+
+def stop_mock_moodle_server_in_background() -> None:
+    """Stop the background HTTP mock server."""
+    global _server
+    global _server_thread
+    with _server_lock:
+        if _server is not None:
+            _server.shutdown()
+            _server.server_close()
+            _server = None
+        _server_thread = None

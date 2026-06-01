@@ -90,6 +90,7 @@ def check_json(operacao: str):
         @wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
             try:
+                message = ""
                 message = request.body.decode("utf-8")
                 try:
                     request.json_recebido = json.loads(message)

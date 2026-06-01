@@ -114,6 +114,32 @@ class LoginViewTestCase(SessionRequestTestCase):
         response = login(request)
         self.assertIn("redirect_uri=http", response.url)
 
+    @override_settings(OAUTH={"BASE_URL": None, "REDIRECT_URI": "http://test.com/auth/"})
+    def test_login_missing_base_url_raises(self):
+        """Testa erro quando BASE_URL não está configurado."""
+        request = self.factory.get("/login/")
+        self.add_session_to_request(request)
+        with self.assertRaises(ValueError) as context:
+            login(request)
+        self.assertIn("BASE_URL", str(context.exception))
+
+    @override_settings(OAUTH={"BASE_URL": "http://test.com", "REDIRECT_URI": None})
+    def test_login_missing_redirect_uri_raises(self):
+        """Testa erro quando REDIRECT_URI não está configurado."""
+        request = self.factory.get("/login/")
+        self.add_session_to_request(request)
+        with self.assertRaises(ValueError) as context:
+            login(request)
+        self.assertIn("REDIRECT_URI", str(context.exception))
+
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_login_invalid_next_parameter_resets_to_slash(self):
+        """Testa que um parâmetro next com host externo malicioso é resetado para '/'."""
+        request = self.factory.get("/login/?next=http://malicious.com/hack")
+        self.add_session_to_request(request)
+        login(request)
+        self.assertEqual(request.session["next"], "/")
+
 
 class AuthenticateViewTestCase(SessionRequestTestCase):
     """Testes para a view de autenticação."""
@@ -165,12 +191,41 @@ class AuthenticateViewTestCase(SessionRequestTestCase):
 
         # Verifica redirecionamento
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/admin/")
 
         # Verifica se o usuário foi criado
         user = User.objects.get(username="testuser")
         self.assertEqual(user.first_name, "Test")
         self.assertEqual(user.last_name, "User")
         self.assertEqual(user.email, "test@example.com")
+
+    @patch("security.views.requests.post")
+    @patch("security.views.requests.get")
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_authenticate_with_invalid_next_url_resets_to_slash(self, mock_get, mock_post):
+        """Testa que se next_url for externo/malicioso, o login redireciona para '/'."""
+        mock_post.return_value = Mock(
+            status_code=200, text=json.dumps({"access_token": "test_token", "scope": "test_scope"})
+        )
+        mock_get.return_value = Mock(
+            status_code=200,
+            text=json.dumps(
+                {
+                    "identificacao": "testuser",
+                    "primeiro_nome": "Test",
+                    "ultimo_nome": "User",
+                    "email_preferencial": "test@example.com",
+                }
+            ),
+        )
+
+        request = self.factory.get("/authenticate/?code=test_code")
+        self.add_session_to_request(request)
+        request.session["next"] = "http://malicious.com/hack"
+
+        response = authenticate(request)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/")
 
     @patch("security.views.requests.post")
     @patch("security.views.requests.get")
@@ -591,6 +646,42 @@ class GetTokensTestCase(TestCase):
 
         self.assertIn("Redirect", str(context.exception))
 
+    @override_settings(
+        OAUTH={"BASE_URL": "http://test.com", "REDIRECT_URI": "http://test.com/auth/", "TOKEN_URL": None}
+    )
+    def test_get_tokens_missing_token_url_raises(self):
+        """Testa erro quando TOKEN_URL não está configurado."""
+        from security.views import _get_tokens
+
+        request = self.factory.get("/authenticate/?code=test_code")
+        with self.assertRaises(ValueError) as context:
+            _get_tokens(request)
+        self.assertIn("TOKEN_URL", str(context.exception))
+
+    @patch("security.views.requests.post")
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_get_tokens_non_ok_response_raises(self, mock_post):
+        """Testa erro quando o endpoint de token retorna erro http."""
+        from security.views import _get_tokens
+
+        mock_post.return_value = Mock(ok=False, status_code=400, text="Bad Request")
+        request = self.factory.get("/authenticate/?code=test_code")
+        with self.assertRaises(ValueError) as context:
+            _get_tokens(request)
+        self.assertIn("Falha ao obter token", str(context.exception))
+
+    @patch("security.views.requests.post")
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_get_tokens_invalid_json_raises(self, mock_post):
+        """Testa erro quando o endpoint retorna JSON inválido."""
+        from security.views import _get_tokens
+
+        mock_post.return_value = Mock(ok=True, text="not json")
+        request = self.factory.get("/authenticate/?code=test_code")
+        with self.assertRaises(ValueError) as context:
+            _get_tokens(request)
+        self.assertIn("conteúdo não é JSON válido", str(context.exception))
+
 
 class GetUserinfoTestCase(TestCase):
     """Testes para a função _get_userinfo."""
@@ -644,6 +735,48 @@ class GetUserinfoTestCase(TestCase):
         self.assertIn("identificacao", userinfo)
         self.assertIn("primeiro_nome", userinfo)
         self.assertIn("ultimo_nome", userinfo)
+
+    @override_settings(
+        OAUTH={"BASE_URL": "http://test.com", "REDIRECT_URI": "http://test.com/auth/", "USERINFO_URL": None}
+    )
+    def test_get_userinfo_missing_userinfo_url_raises(self):
+        """Testa erro quando USERINFO_URL não está configurado."""
+        from security.views import _get_userinfo
+
+        with self.assertRaises(ValueError) as context:
+            _get_userinfo({"access_token": "token"})
+        self.assertIn("USERINFO_URL", str(context.exception))
+
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_get_userinfo_missing_access_token_raises(self):
+        """Testa erro quando access_token está ausente na resposta."""
+        from security.views import _get_userinfo
+
+        with self.assertRaises(ValueError) as context:
+            _get_userinfo({})
+        self.assertIn("access_token", str(context.exception))
+
+    @patch("security.views.requests.get")
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_get_userinfo_non_ok_response_raises(self, mock_get):
+        """Testa erro quando a consulta ao endpoint de userinfo falha."""
+        from security.views import _get_userinfo
+
+        mock_get.return_value = Mock(ok=False, status_code=400, text="Bad Request")
+        with self.assertRaises(ValueError) as context:
+            _get_userinfo({"access_token": "token"})
+        self.assertIn("Falha ao consultar userinfo", str(context.exception))
+
+    @patch("security.views.requests.get")
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_get_userinfo_invalid_json_raises(self, mock_get):
+        """Testa erro quando o endpoint de userinfo retorna JSON inválido."""
+        from security.views import _get_userinfo
+
+        mock_get.return_value = Mock(ok=True, text="not json")
+        with self.assertRaises(ValueError) as context:
+            _get_userinfo({"access_token": "token"})
+        self.assertIn("conteúdo não é JSON válido", str(context.exception))
 
 
 class SaveUserTestCase(TestCase):
@@ -746,3 +879,12 @@ class SaveUserTestCase(TestCase):
         user = _save_user(userinfo)
 
         self.assertEqual(user.email, "emptyemail@ifrn.edu.br")
+
+    @override_settings(OAUTH=TEST_OAUTH_OK)
+    def test_save_user_missing_identificacao_raises(self):
+        """Testa erro quando identificacao está ausente em userinfo."""
+        from security.views import _save_user
+
+        with self.assertRaises(ValueError) as context:
+            _save_user({})
+        self.assertIn("identificacao", str(context.exception))

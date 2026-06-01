@@ -291,6 +291,15 @@ class DashboardStorageTestCase(TestCase):
         mock_load_data.assert_called_once()
         mock_cache_set.assert_called_once_with("admin_dashboard_data", self.storage.data, 123)
 
+    def test_get_context_cache_hit_covered(self):
+        """Testa get_context quando há hit no cache para cobrir as linhas de log e return."""
+        fake_data = {"ambientes_total": 99}
+        with patch("dashboard.storage.CACHE_ENABLED", True):
+            with patch("dashboard.storage.cache.get", return_value=fake_data) as mock_get:
+                context = self.storage.get_context()
+                self.assertEqual(context, fake_data)
+                mock_get.assert_called_once_with("admin_dashboard_data")
+
 
 class AdminIndexDashboardTestCase(TestCase):
     """Testes para a view admin_index_dashboard."""
