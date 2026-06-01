@@ -15,10 +15,11 @@ detect_ambiente
 import io
 import json
 import logging
+import urllib.error
 import uuid
 from http.client import HTTPException
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django import forms
 from django.contrib.auth.models import User
@@ -116,49 +117,158 @@ class SyncErrorTestCase(TestCase):
 class UtilsFunctionsTestCase(TestCase):
     """Testes para funções utilitárias."""
 
-    @patch("integrador.utils.sc4net.get")
-    def test_http_get_success(self, mock_get):
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_success(self, mock_urlopen):
         """Testa http_get com sucesso."""
-        mock_get.return_value = "Test content"
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"Test content"
+        mock_response.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_response
 
         result = http_get("http://test.com")
 
         self.assertEqual(result, "Test content")
 
-    @patch("integrador.utils.sc4net.get")
-    def test_http_get_failure(self, mock_get):
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_with_decode_false(self, mock_urlopen):
+        """Testa http_get com decode=False."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"Test content"
+        mock_response.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_response
+
+        result = http_get("http://test.com", decode=False)
+        self.assertEqual(result, b"Test content")
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_failure(self, mock_urlopen):
         """Testa http_get com falha."""
-        exc = HTTPException("404 - Not Found")
-        exc.status = 404
-        exc.reason = "Not Found"
-        exc.headers = {}
-        exc.url = "http://test.com"
-        mock_get.side_effect = exc
+        exc = urllib.error.HTTPError("http://test.com", 404, "Not Found", {}, io.BytesIO(b""))
+        mock_urlopen.side_effect = exc
 
         with self.assertRaises(HTTPException):
             http_get("http://test.com")
 
-    @patch("integrador.utils.sc4net.post")
-    def test_http_post_success(self, mock_post):
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_url_error(self, mock_urlopen):
+        """Testa http_get com URLError."""
+        mock_urlopen.side_effect = urllib.error.URLError("Connection refused")
+        with self.assertRaises(HTTPException) as ctx:
+            http_get("http://test.com")
+        self.assertEqual(ctx.exception.status, 502)
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_http_error_with_json_error(self, mock_urlopen):
+        """Testa http_get com HTTPError contendo corpo JSON."""
+        error_json = {"error": {"message": "Erro específico", "code": 527}}
+        body_bytes = json.dumps(error_json).encode("utf-8")
+        exc = urllib.error.HTTPError("http://test.com", 500, "Internal Error", {}, io.BytesIO(body_bytes))
+        mock_urlopen.side_effect = exc
+
+        with self.assertRaises(SyncError) as ctx:
+            http_get("http://test.com")
+        self.assertEqual(ctx.exception.code, 527)
+        self.assertEqual(ctx.exception.message, "Erro específico")
+        self.assertEqual(ctx.exception.retorno, error_json)
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_http_error_with_read_error(self, mock_urlopen):
+        """Testa http_get com HTTPError onde a leitura do corpo falha."""
+        mock_fp = MagicMock()
+        mock_fp.read.side_effect = Exception("Read error")
+        exc = urllib.error.HTTPError("http://test.com", 500, "Internal Server Error", {}, mock_fp)
+        mock_urlopen.side_effect = exc
+
+        with self.assertRaises(HTTPException) as ctx:
+            http_get("http://test.com")
+        self.assertEqual(ctx.exception.status, 500)
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_success(self, mock_urlopen):
         """Testa http_post com sucesso."""
-        mock_post.return_value = "Posted"
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"Posted"
+        mock_response.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_response
 
         result = http_post("http://test.com", {"data": "value"})
 
         self.assertEqual(result, "Posted")
 
-    @patch("integrador.utils.sc4net.post")
-    def test_http_post_failure(self, mock_post):
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_with_jsonbody(self, mock_urlopen):
+        """Testa http_post com corpo JSON."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"Posted"
+        mock_response.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_response
+
+        result = http_post("http://test.com", jsonbody={"key": "val"}, headers={"custom": "header"})
+        self.assertEqual(result, "Posted")
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_failure(self, mock_urlopen):
         """Testa http_post com falha."""
-        exc = HTTPException("500 - Server Error")
-        exc.status = 500
-        exc.reason = "Server Error"
-        exc.headers = {}
-        exc.url = "http://test.com"
-        mock_post.side_effect = exc
+        exc = urllib.error.HTTPError("http://test.com", 500, "Server Error", {}, io.BytesIO(b""))
+        mock_urlopen.side_effect = exc
 
         with self.assertRaises(HTTPException):
             http_post("http://test.com", {"data": "value"})
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_url_error(self, mock_urlopen):
+        """Testa http_post com URLError."""
+        mock_urlopen.side_effect = urllib.error.URLError("Timeout")
+        with self.assertRaises(HTTPException) as ctx:
+            http_post("http://test.com")
+        self.assertEqual(ctx.exception.status, 502)
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_http_error_with_json_error(self, mock_urlopen):
+        """Testa http_post com HTTPError contendo corpo JSON."""
+        error_json = {"error": {"message": "Erro do post", "code": 400}}
+        body_bytes = json.dumps(error_json).encode("utf-8")
+        exc = urllib.error.HTTPError("http://test.com", 400, "Bad Request", {}, io.BytesIO(body_bytes))
+        mock_urlopen.side_effect = exc
+
+        with self.assertRaises(SyncError) as ctx:
+            http_post("http://test.com", jsonbody={"data": 123})
+        self.assertEqual(ctx.exception.code, 400)
+        self.assertEqual(ctx.exception.message, "Erro do post")
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_http_error_with_read_error(self, mock_urlopen):
+        """Testa http_post com HTTPError onde a leitura do corpo falha."""
+        mock_fp = MagicMock()
+        mock_fp.read.side_effect = Exception("Read error")
+        exc = urllib.error.HTTPError("http://test.com", 500, "Internal Server Error", {}, mock_fp)
+        mock_urlopen.side_effect = exc
+
+        with self.assertRaises(HTTPException) as ctx:
+            http_post("http://test.com")
+        self.assertEqual(ctx.exception.status, 500)
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_get_http_error_with_non_json_body(self, mock_urlopen):
+        """Testa http_get com HTTPError contendo corpo não-JSON."""
+        body_bytes = b"not json"
+        exc = urllib.error.HTTPError("http://test.com", 500, "Internal Error", {}, io.BytesIO(body_bytes))
+        mock_urlopen.side_effect = exc
+
+        with self.assertRaises(HTTPException) as ctx:
+            http_get("http://test.com")
+        self.assertEqual(ctx.exception.status, 500)
+
+    @patch("integrador.utils.urllib.request.urlopen")
+    def test_http_post_http_error_with_non_json_body(self, mock_urlopen):
+        """Testa http_post com HTTPError contendo corpo não-JSON."""
+        body_bytes = b"not json"
+        exc = urllib.error.HTTPError("http://test.com", 500, "Internal Error", {}, io.BytesIO(body_bytes))
+        mock_urlopen.side_effect = exc
+
+        with self.assertRaises(HTTPException) as ctx:
+            http_post("http://test.com")
+        self.assertEqual(ctx.exception.status, 500)
 
     @patch("integrador.utils.http_get")
     def test_http_get_json_success(self, mock_http_get):
@@ -1011,6 +1121,25 @@ class DecoratorsTestCase(TestCase):
 
         self.assertEqual(response.status_code, 500)
 
+    def test_exception_as_json_decorator_with_sync_error_and_retorno(self):
+        """Testa decorator exception_as_json com SyncError contendo retorno (supressão de trace)."""
+        error_payload = {"error": {"message": "Erro do Moodle", "code": 527, "trace": "Traceback aqui"}}
+
+        @exception_as_json
+        def test_view(request):
+            raise SyncError("Erro do Moodle", 527, retorno=error_payload)
+
+        request = self.factory.get("/test/")
+        response = test_view(request)
+
+        self.assertEqual(response.status_code, 527)
+        data = json.loads(response.content)
+        self.assertEqual(data["error"]["code"], 527)
+        self.assertEqual(data["error"]["message"], "Erro do Moodle")
+        self.assertNotIn("trace", data["error"])
+        # Garante que o payload original (para salvamento) não foi corrompido/alterado
+        self.assertIn("trace", error_payload["error"])
+
     @override_settings(SUAP_INTEGRADOR_KEY=TEST_TOKEN)
     def test_valid_token_decorator_success(self):
         """Testa decorator valid_token com token válido."""
@@ -1234,6 +1363,41 @@ class TrySolicitacaoDecoratorTestCase(TestCase):
             test_view(request)
 
         self.assertEqual(context.exception.code, 400)
+
+    def test_try_solicitacao_preserves_trace_on_http_error(self):
+        """Testa que try_solicitacao salva o trace de erro no atributo respondido."""
+        error_payload = {
+            "error": {
+                "message": "Algum erro no Moodle",
+                "code": 527,
+                "source": "local_suap",
+                "trace": "Traceback fake do Moodle aqui...",
+            }
+        }
+
+        @try_solicitacao(Solicitacao.Operacao.SYNC_UP_DIARIO)
+        def test_view(request):
+            raise SyncError("Algum erro no Moodle", 527, retorno=error_payload)
+
+        request = self.factory.post("/test/")
+        request.ambiente = self.ambiente
+        request.json_recebido = {
+            "campus": {"sigla": "TEST"},
+            "turma": {"codigo": "T1"},
+            "componente": {"sigla": "C1"},
+            "diario": {"id": 123},
+        }
+
+        with self.assertRaises(SyncError) as context:
+            test_view(request)
+
+        self.assertEqual(context.exception.code, 527)
+        self.assertNotIn("Traceback fake do Moodle aqui...", context.exception.message)
+
+        solicitacao = Solicitacao.objects.first()
+        self.assertEqual(solicitacao.status, Solicitacao.Status.FALHA)
+        self.assertEqual(solicitacao.status_code, "527")
+        self.assertEqual(solicitacao.respondido, error_payload)
 
 
 class CohortSelecaoTestCase(TestCase):
@@ -2232,6 +2396,98 @@ class IntegrationTestCase(TestCase):
         solicitacao = Solicitacao.objects.first()
         self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
         self.assertEqual(solicitacao.ambiente, self.ambiente)
+
+    @override_settings(SUAP_INTEGRADOR_KEY=TEST_TOKEN)
+    @patch("integrador.brokers.suap2tool_sga.Suap2ToolSgaBroker.sync_up_enrolments")
+    def test_sync_up_flow_tool_sga(self, mock_sync_up):
+        """Testa sync_up_enrolments direcionando para ToolSgaBroker."""
+        mock_sync_up.return_value = {"status": "ok"}
+
+        # Crie um ambiente configurado para tool_sga apenas
+        Ambiente.objects.create(
+            nome="Ambiente SGA",
+            url="https://test.moodle.com",
+            ordem=2,
+            expressao_seletora="campus.sigla == 'SGA'",
+            tool_sga_token=TEST_TOKEN,
+            tool_sga_active=True,
+            local_suap_token=None,
+            local_suap_active=False,
+        )
+
+        json_data = {
+            "campus": {"id": 1, "sigla": "SGA", "descricao": "Campus SGA"},
+            "curso": {"id": 10, "codigo": "15806", "nome": "Curso SGA"},
+            "turma": {"id": 2, "codigo": "T123"},
+            "componente": {"id": 5, "sigla": "COMP", "descricao": "Componente"},
+            "diario": {"id": 456, "sigla": "COMP", "situacao": "Aberto"},
+            "professores": [],
+        }
+
+        request = self.factory.post("/api/enviar_diarios/", data=json.dumps(json_data), content_type="application/json")
+        request.META["HTTP_AUTHENTICATION"] = f"Token {TEST_TOKEN}"
+
+        response = sync_up_enrolments(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content), {"status": "ok"})
+
+    @override_settings(SUAP_INTEGRADOR_KEY=TEST_TOKEN)
+    @patch("integrador.models.Ambiente.check_selectable")
+    def test_sync_up_flow_no_broker(self, mock_selectable):
+        """Testa sync_up_enrolments quando o ambiente não tem broker configurado."""
+        mock_selectable.return_value = True
+        # Limpa ambientes anteriores
+        Ambiente.objects.all().delete()
+        # Crie um ambiente com ambos inativos
+        Ambiente.objects.create(
+            nome="Ambiente Inativo",
+            url="https://test.moodle.com",
+            ordem=3,
+            expressao_seletora="campus.sigla == 'INATIVO'",
+            tool_sga_token=None,
+            tool_sga_active=False,
+            local_suap_token=None,
+            local_suap_active=False,
+        )
+
+        json_data = {
+            "campus": {"id": 1, "sigla": "INATIVO", "descricao": "Campus Inativo"},
+            "curso": {"id": 10, "codigo": "15806", "nome": "Curso Inativo"},
+            "turma": {"id": 2, "codigo": "T123"},
+            "componente": {"id": 5, "sigla": "COMP", "descricao": "Componente"},
+            "diario": {"id": 456, "sigla": "COMP", "situacao": "Aberto"},
+            "professores": [],
+        }
+
+        request = self.factory.post("/api/enviar_diarios/", data=json.dumps(json_data), content_type="application/json")
+        request.META["HTTP_AUTHENTICATION"] = f"Token {TEST_TOKEN}"
+
+        response = sync_up_enrolments(request)
+        # Deve falhar e retornar erro
+        self.assertEqual(response.status_code, 500)
+        data = json.loads(response.content)
+        self.assertIn("não está configurado para enviar dados", data["error"])
+
+    @override_settings(SUAP_INTEGRADOR_KEY=TEST_TOKEN)
+    @patch("integrador.brokers.suap2local_suap.http_get_json")
+    def test_complete_sync_down_flow(self, mock_get):
+        """Testa fluxo completo de sync_down_grades."""
+        mock_get.return_value = [{"matricula": "123", "nota": 10.0}]
+
+        request = self.factory.get("/api/baixar_notas/?diario_id=456&campus_sigla=TEST")
+        request.META["HTTP_AUTHENTICATION"] = f"Token {TEST_TOKEN}"
+
+        # Import the view function
+        from integrador.views import sync_down_grades
+
+        response = sync_down_grades(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content), [{"matricula": "123", "nota": 10.0}])
+        self.assertEqual(Solicitacao.objects.count(), 1)
+
+        solicitacao = Solicitacao.objects.first()
+        self.assertEqual(solicitacao.status, Solicitacao.Status.SUCESSO)
 
 
 class EdgeCasesTestCase(TestCase):
