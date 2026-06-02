@@ -66,6 +66,8 @@ class Suap2LocalSuapBroker(BaseBroker):
             return "$any([m.estrangeiro==true for m in outras_matriculas])" if ai.get("estrangeiros") else ""
 
         def get_alunos(lista: list[dict[str:str]], filter: str) -> str:
+            if not lista or len(lista) == 0:
+                return ""
             args = [f"'{i}'" for i in lista]
             return (
                 f"$any([m.tipo == 'aluno' and m.situacao_diario == 'ativo' and m.{filter} in"
