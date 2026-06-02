@@ -15,6 +15,7 @@ _SYNC_UP_REQUIRED_FIELDS = {
 
 
 class Suap2LocalSuapBroker(BaseBroker):
+
     @property
     def moodle_base_api_url(self):
         return f"{self.solicitacao.ambiente.base_url}/local/suap/api"
@@ -69,10 +70,7 @@ class Suap2LocalSuapBroker(BaseBroker):
             if not lista or len(lista) == 0:
                 return ""
             args = [f"'{i}'" for i in lista]
-            return (
-                f"$any([m.tipo == 'aluno' and m.{filter} in"
-                + f" [{', '.join(args)}] for m in outras_matriculas])"
-            )
+            return f"$any([m.tipo == 'aluno' and m.{filter} in" + f" [{', '.join(args)}] for m in outras_matriculas])"
 
         payload = enviados or {}
         if payload.get("turma") is None:
