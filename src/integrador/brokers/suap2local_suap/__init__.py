@@ -70,7 +70,7 @@ class Suap2LocalSuapBroker(BaseBroker):
                 return ""
             args = [f"'{i}'" for i in lista]
             return (
-                f"$any([m.tipo == 'aluno' and m.situacao_diario == 'ativo' and m.{filter} in"
+                f"$any([m.tipo == 'aluno' and m.{filter} in"
                 + f" [{', '.join(args)}] for m in outras_matriculas])"
             )
 
