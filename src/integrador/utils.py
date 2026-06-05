@@ -91,5 +91,9 @@ def http_post_json(
     url, jsonbody: dict | None = None, headers: dict | None = None, encoding="utf-8", json_kwargs=None, **kwargs
 ):
     content = http_post(url, jsonbody=jsonbody, headers=headers or {}, encoding=encoding, **kwargs)
-    result = json.loads(content, **(json_kwargs or {}))
+    try:
+        result = json.loads(content, **(json_kwargs or {}))
+    except json.JSONDecodeError as exc:
+        logger.error(f"Failed to decode JSON response from {url}: {exc.msg} - Response content: \n{content}\n")
+        raise exc
     return result
