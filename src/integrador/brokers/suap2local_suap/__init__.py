@@ -1,3 +1,4 @@
+import copy
 import logging
 
 from integrador.brokers.base import BaseBroker
@@ -93,7 +94,7 @@ class Suap2LocalSuapBroker(BaseBroker):
 
     def sync_up_enrolments(self) -> dict:
         self._validate_sync_payload(self.solicitacao.recebido)
-        self.solicitacao.enviado = self.solicitacao.recebido or {}
+        self.solicitacao.enviado = copy.deepcopy(self.solicitacao.recebido) if self.solicitacao.recebido else {}
         self.solicitacao.enviado["solicitacao_url"] = (
             f"{self.solicitacao.site_url}/integrador/solicitacao/{self.solicitacao.id}/view/"
         )
@@ -119,7 +120,7 @@ class Suap2LocalSuapBroker(BaseBroker):
             )
 
         try:
-            self.solicitacao.save()
+            self.solicitacao.save(update_fields=["enviado"])
         except Exception as e:
             raise SyncError(
                 "Erro ao tentar SALVAR o payload antes mesmo de ser enviado ao Moodle."
