@@ -418,8 +418,10 @@ class LocalSuapHTTPMockTestCase(TestCase):
         response = self.mock.get(url, headers=self.AUTH_HEADERS)
         self.assertTrue(response.ok)
         data = json.loads(response.content)
-        self.assertEqual(data[0]["diario_id"], "42")
-        self.assertTrue(data[0]["mock"])
+        self.assertEqual(data["notas"][0]["diario_id"], "42")
+        self.assertTrue(data["notas"][0]["mock"])
+        self.assertIn("url", data)
+        self.assertIn("url_sala_coordenacao", data)
 
     def test_servico_desconhecido_retorna_404(self):
         url = f"{self.BASE_URL}?servico_inexistente"
@@ -1893,17 +1895,37 @@ class SolicitacaoAdminTestCase(TestCase):
         result = self.admin.professores(self.solicitacao)
         self.assertEqual(result, "-")
 
-    def test_codigo_diario(self):
-        """Testa codigo_diario."""
+    def test_links(self):
+        """Testa links."""
         self.solicitacao.respondido = {"url": "https://test.com/diario"}
-        result = self.admin.codigo_diario(self.solicitacao)
+        result = self.admin.links(self.solicitacao)
         self.assertIn("https://test.com/diario", result)
 
-    def test_codigo_diario_returns_dash_on_exception(self):
-        """Testa codigo_diario retornando '-' em erro inesperado."""
-        self.solicitacao.respondido = object()
-        result = self.admin.codigo_diario(self.solicitacao)
+    def test_links_returns_dash_on_exception(self):
+        """Testa links retornando '-' em erro inesperado."""
+        result = self.admin.links(None)
         self.assertEqual(result, "-")
+
+    def test_links_with_list_respondido(self):
+        """Testa links quando respondido é uma lista (ex: legado sync_down_grades)."""
+        self.solicitacao.respondido = [{"matricula": "123", "nota": 10.0}]
+        self.solicitacao.diario_codigo = "T123"
+        self.solicitacao.diario_id = "456"
+        result = self.admin.links(self.solicitacao)
+        self.assertNotIn("https://test.com/diario", result)
+        self.assertIn("Diário no SUAP", result)
+        self.assertIn("456", result)
+        self.assertIn("T123", result)
+
+    def test_links_with_dict_respondido(self):
+        """Testa links quando respondido é um dicionário (ex: novo padrão sync_down_grades)."""
+        self.solicitacao.respondido = {"url": "http://moodle/course", "url_sala_coordenacao": "http://moodle/sala"}
+        self.solicitacao.diario_codigo = "T123"
+        self.solicitacao.diario_id = "456"
+        result = self.admin.links(self.solicitacao)
+        self.assertIn("http://moodle/course", result)
+        self.assertIn("http://moodle/sala", result)
+        self.assertIn("T123", result)
 
     def test_get_urls_wrap_executes_admin_view_wrapper(self):
         """Testa wrapper de get_urls delegando para admin_site.admin_view."""
@@ -2143,11 +2165,11 @@ class Suap2LocalSuapBrokerTestCase(TestCase):
     @patch("integrador.brokers.suap2local_suap.http_get_json")
     def test_broker_sync_down_grades_success(self, mock_http_get_json):
         """Testa sync_down_grades com sucesso."""
-        mock_http_get_json.return_value = []
+        mock_http_get_json.return_value = {"notas": [], "url": "http://", "url_sala_coordenacao": "http://"}
 
         result = self.broker.sync_down_grades()
 
-        self.assertEqual(result, [])
+        self.assertEqual(result, {"notas": [], "url": "http://", "url_sala_coordenacao": "http://"})
 
     @patch("integrador.brokers.suap2local_suap.http_post_json")
     def test_broker_sync_up_enrolments_with_full_autoinscricao(self, mock_post):
@@ -2652,7 +2674,11 @@ class IntegrationTestCase(TestCase):
     @patch("integrador.brokers.suap2local_suap.http_get_json")
     def test_complete_sync_down_flow(self, mock_get):
         """Testa fluxo completo de sync_down_grades."""
-        mock_get.return_value = [{"matricula": "123", "nota": 10.0}]
+        mock_get.return_value = {
+            "url": "https://moodle.integration.test/course/view.php?id=1",
+            "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
+            "notas": [{"matricula": "123", "nota": 10.0}]
+        }
 
         request = self.factory.get("/api/baixar_notas/?diario_id=456&campus_sigla=TEST")
         request.META["HTTP_AUTHENTICATION"] = f"Token {TEST_TOKEN}"
@@ -2663,7 +2689,11 @@ class IntegrationTestCase(TestCase):
         response = sync_down_grades(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), [{"matricula": "123", "nota": 10.0}])
+        self.assertEqual(json.loads(response.content), {
+            "url": "https://moodle.integration.test/course/view.php?id=1",
+            "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
+            "notas": [{"matricula": "123", "nota": 10.0}]
+        })
         self.assertEqual(Solicitacao.objects.count(), 1)
 
         solicitacao = Solicitacao.objects.first()
