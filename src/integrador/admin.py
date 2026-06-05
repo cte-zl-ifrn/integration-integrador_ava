@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.admin import display, register
 from django.db import transaction
 from django.db.models import JSONField
-from django.forms import CharField, ModelForm
+from django.forms import ModelForm
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
@@ -186,7 +186,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
     @display(description="Requisição", ordering="timestamp")
     def requisicao(self, obj):
         if obj.timestamp:
-            nbspace = '\u00A0'
+            nbspace = "\u00a0"
             horalocal_dt = localtime(obj.timestamp)
             horalocal = horalocal_dt.strftime("%d/%m/%Y" + nbspace + "%H:%M:%S")
             clock_icons = ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"]
@@ -195,13 +195,13 @@ class SolicitacaoAdmin(BaseModelAdmin):
             horalocal = None
             hora = "🕛"
         return format_html(
-            "{}{}<br>{}{}<br>{}<br>📄{}", 
+            "{}{}<br>{}{}<br>{}<br>📄{}",
             hora,
-            horalocal or "-", 
-            Solicitacao.Operacao(obj.operacao).icon, 
+            horalocal or "-",
+            Solicitacao.Operacao(obj.operacao).icon,
             obj.operacao,
             obj.status_merged,
-            obj.tipo, 
+            obj.tipo,
         )
 
     @display(description="Contexto")
@@ -253,7 +253,7 @@ class SolicitacaoAdmin(BaseModelAdmin):
         respondido = obj.respondido if isinstance(obj.respondido, dict) else {}
         try:
             items = []
-            
+
             url = respondido.get("url")
             if url:
                 items.append(format_html('<li><a href="{}">{}</a></li>', url, obj.diario_codigo or "-"))
@@ -280,11 +280,19 @@ class SolicitacaoAdmin(BaseModelAdmin):
                 )
 
             if obj.diario_id:
-                items.append(format_html('<li><a href="{}/edu/meu_diario/{}/1/">Diário no SUAP</a></li>', settings.SUAP_BASE_URL, obj.diario_id))
+                items.append(
+                    format_html(
+                        '<li><a href="{}/edu/meu_diario/{}/1/">Diário no SUAP</a></li>',
+                        settings.SUAP_BASE_URL,
+                        obj.diario_id,
+                    )
+                )
 
             sincronizacao_url = respondido.get("sincronizacao_url")
             if sincronizacao_url:
-                items.append(format_html('<li><a href="{}" target="_blank">Sincronização no Moodle</a></li>', sincronizacao_url))
+                items.append(
+                    format_html('<li><a href="{}" target="_blank">Sincronização no Moodle</a></li>', sincronizacao_url)
+                )
 
             if not items:
                 return "-"
@@ -314,15 +322,15 @@ class SolicitacaoAdmin(BaseModelAdmin):
     def sync_moodle_view(self, request, object_id, form_url="", extra_context=None):
         original = get_object_or_404(Solicitacao, pk=object_id)
         solicitacao = Solicitacao.objects.create(
-            ambiente = original.ambiente,
-            campus_sigla = original.campus_sigla,
-            diario_codigo = original.diario_codigo,
-            diario_id = original.diario_id,
-            operacao = original.operacao,
-            tipo = original.tipo,
-            recebido = original.recebido
+            ambiente=original.ambiente,
+            campus_sigla=original.campus_sigla,
+            diario_codigo=original.diario_codigo,
+            diario_id=original.diario_id,
+            operacao=original.operacao,
+            tipo=original.tipo,
+            recebido=original.recebido,
         )
-        
+
         solicitacao.site_url = request.build_absolute_uri("/")
         try:
             solicitacao.respondido = Suap2LocalSuapBroker(solicitacao).sync_up_enrolments()
@@ -338,6 +346,6 @@ class SolicitacaoAdmin(BaseModelAdmin):
             return render(
                 request,
                 "security/sync_error.html",
-                context={"error_cause": str(e), 'solicitacao': original},
+                context={"error_cause": str(e), "solicitacao": original},
                 status=200,
             )

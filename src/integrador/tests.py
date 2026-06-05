@@ -2677,7 +2677,7 @@ class IntegrationTestCase(TestCase):
         mock_get.return_value = {
             "url": "https://moodle.integration.test/course/view.php?id=1",
             "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
-            "notas": [{"matricula": "123", "nota": 10.0}]
+            "notas": [{"matricula": "123", "nota": 10.0}],
         }
 
         request = self.factory.get("/api/baixar_notas/?diario_id=456&campus_sigla=TEST")
@@ -2689,11 +2689,14 @@ class IntegrationTestCase(TestCase):
         response = sync_down_grades(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), {
-            "url": "https://moodle.integration.test/course/view.php?id=1",
-            "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
-            "notas": [{"matricula": "123", "nota": 10.0}]
-        })
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                "url": "https://moodle.integration.test/course/view.php?id=1",
+                "url_sala_coordenacao": "https://moodle.integration.test/course/view.php?id=2",
+                "notas": [{"matricula": "123", "nota": 10.0}],
+            },
+        )
         self.assertEqual(Solicitacao.objects.count(), 1)
 
         solicitacao = Solicitacao.objects.first()

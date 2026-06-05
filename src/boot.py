@@ -36,7 +36,6 @@ def start_debug():
     if DEBUG:
         try:
             import debugpy
-            from django.core.management import execute_from_command_line
 
             debugpy.listen(("0.0.0.0", 12345))  # noqa: S104
         except Exception:  # pragma: no cover

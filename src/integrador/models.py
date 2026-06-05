@@ -153,10 +153,7 @@ class Solicitacao(Model):
     @property
     def status_merged(self):
         return format_html(
-            "{}{}({})",
-            Solicitacao.Status(self.status).icon,
-            self.get_status_display(),
-            self.status_code or ""
+            "{}{}({})", Solicitacao.Status(self.status).icon, self.get_status_display(), self.status_code or ""
         )
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
