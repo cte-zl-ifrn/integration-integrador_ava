@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.admin import display, register
 from django.db import transaction
 from django.db.models import JSONField
-from django.forms import ModelForm
+from django.forms import CharField, ModelForm
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
@@ -153,13 +153,9 @@ class AmbienteAdmin(BaseModelAdmin):
 @register(Solicitacao)
 class SolicitacaoAdmin(BaseModelAdmin):
     list_display = (
-        "quando",
-        "operacao",
-        "tipo",
-        "status_merged",
-        "ambiente",
-        "campus_sigla",
-        "codigo_diario",
+        "requisicao",
+        "origem",
+        "links",
         "professores",
         "acoes",
     )
@@ -187,25 +183,41 @@ class SolicitacaoAdmin(BaseModelAdmin):
     formfield_overrides = {JSONField: {"widget": JSONEditorWidget}}
     form = SolicitacaoAdminForm
 
-    @display(description="Status")
-    def status_merged(self, obj):
-        return format_html("{}<br>{}", obj.get_status_display(), obj.status_code or "")
+    @display(description="Requisição", ordering="timestamp")
+    def requisicao(self, obj):
+        if obj.timestamp:
+            nbspace = '\u00A0'
+            horalocal_dt = localtime(obj.timestamp)
+            horalocal = horalocal_dt.strftime("%d/%m/%Y" + nbspace + "%H:%M:%S")
+            clock_icons = ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"]
+            hora = clock_icons[horalocal_dt.hour % 12]
+        else:
+            horalocal = None
+            hora = "🕛"
+        return format_html(
+            "{}{}<br>{}{}<br>{}<br>📄{}", 
+            hora,
+            horalocal or "-", 
+            Solicitacao.Operacao(obj.operacao).icon, 
+            obj.operacao,
+            obj.status_merged,
+            obj.tipo, 
+        )
+
+    @display(description="Contexto")
+    def origem(self, obj):
+        return format_html("{}<br>{}", obj.ambiente, obj.campus_sigla)
 
     @display(description="Ações")
     def acoes(self, obj):
-        return format_html(
-            '<a class="export_link" href="{}">Reenviar</a>',
-            reverse("admin:integrador_solicitacao_sync", args=[obj.id]),
-        )
-
-    @display(description="Quando", ordering="timestamp")
-    def quando(self, obj):
-        if obj.timestamp:
-            local = localtime(obj.timestamp)
-            return local.strftime("%d/%m/%Y %H:%M:%S")
+        if obj.operacao == Solicitacao.Operacao.SYNC_UP_DIARIO:
+            return format_html(
+                '<a class="export_link" href="{}">Reenviar</a>',
+                reverse("admin:integrador_solicitacao_sync", args=[obj.id]),
+            )
         return "-"
 
-    @display(description="Professores", ordering="timestamp")
+    @display(description="Professores")
     def professores(self, obj):
         try:
             professores = []
@@ -236,24 +248,50 @@ class SolicitacaoAdmin(BaseModelAdmin):
         except Exception:
             return "-"
 
-    @display(description="Links", ordering="timestamp")
-    def codigo_diario(self, obj):
-        respondido = obj.respondido or {}
+    @display(description="Links")
+    def links(self, obj):
+        respondido = obj.respondido if isinstance(obj.respondido, dict) else {}
         try:
-            return format_html(
-                "<ul>"
-                '<li><a href="{}">{}</a></li>'
-                '<li><a href="{}">Sala de coordenação</a></li>'
-                '<li><a href="{}/edu/meu_diario/{}/1/">Diário no SUAP</a></li>'
-                "</ul>",
-                respondido.get("url", "#"),
-                obj.diario_codigo or "-",
-                respondido.get("url_sala_coordenacao", "#"),
-                settings.SUAP_BASE_URL,
-                obj.diario_id or "-",
-            )
-        except Exception:
-            return "-"
+            items = []
+            
+            url = respondido.get("url")
+            if url:
+                items.append(format_html('<li><a href="{}">{}</a></li>', url, obj.diario_codigo or "-"))
+            elif obj.diario_codigo:
+                items.append(
+                    format_html(
+                        '<li><a href="{}/course/management.php?search={}">{}</a></li>',
+                        obj.ambiente.base_url,
+                        obj.diario_codigo,
+                        obj.diario_codigo or "-",
+                    )
+                )
+
+            url_sala_coordenacao = respondido.get("url_sala_coordenacao")
+            if url_sala_coordenacao:
+                items.append(format_html('<li><a href="{}">Sala de coordenação</a></li>', url_sala_coordenacao))
+            elif obj.diario_codigo:
+                items.append(
+                    format_html(
+                        '<li><a href="{}/course/management.php?search={}">Sala de coordenação</a></li>',
+                        obj.ambiente.base_url,
+                        obj.diario_codigo,
+                    )
+                )
+
+            if obj.diario_id:
+                items.append(format_html('<li><a href="{}/edu/meu_diario/{}/1/">Diário no SUAP</a></li>', settings.SUAP_BASE_URL, obj.diario_id))
+
+            sincronizacao_url = respondido.get("sincronizacao_url")
+            if sincronizacao_url:
+                items.append(format_html('<li><a href="{}" target="_blank">Sincronização no Moodle</a></li>', sincronizacao_url))
+
+            if not items:
+                return "-"
+
+            return format_html("<ul>{}</ul>", format_html_join("", "{}", ((item,) for item in items)))
+        except Exception as e:
+            return f"{e}"
 
     def get_urls(self):
         def wrap(view):
@@ -274,17 +312,32 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
     @transaction.atomic
     def sync_moodle_view(self, request, object_id, form_url="", extra_context=None):
-        s = get_object_or_404(Solicitacao, pk=object_id)
+        original = get_object_or_404(Solicitacao, pk=object_id)
+        solicitacao = Solicitacao.objects.create(
+            ambiente = original.ambiente,
+            campus_sigla = original.campus_sigla,
+            diario_codigo = original.diario_codigo,
+            diario_id = original.diario_id,
+            operacao = original.operacao,
+            tipo = original.tipo,
+            recebido = original.recebido
+        )
+        
+        solicitacao.site_url = request.build_absolute_uri("/")
         try:
-            solicitacao = Suap2LocalSuapBroker(s).sync_up_enrolments()
-            if solicitacao is None:
-                raise Exception("Erro desconhecido.")
-            return HttpResponseRedirect(reverse("admin:integrador_solicitacao_change", args=[solicitacao.id]))
+            solicitacao.respondido = Suap2LocalSuapBroker(solicitacao).sync_up_enrolments()
+            solicitacao.status = Solicitacao.Status.SUCESSO
+            solicitacao.status_code = "200"
+            solicitacao.save()
+            return HttpResponseRedirect(reverse("admin:integrador_solicitacao_changelist"))
         except Exception as e:
-            logger.exception(f"Error while syncing Moodle for Solicitacao {getattr(s, 'id', '-')}. ERROR: {e}")
+            solicitacao.status = Solicitacao.Status.FALHA
+            solicitacao.status_code = getattr(e, "code", "500")
+            solicitacao.save()
+            logger.exception(f"Error while syncing Moodle for Solicitacao {getattr(original, 'id', '-')}. ERROR: {e}")
             return render(
                 request,
-                "security/authorization_error.html",
-                context={"error_cause": str(e)},
+                "security/sync_error.html",
+                context={"error_cause": str(e), 'solicitacao': original},
                 status=200,
             )

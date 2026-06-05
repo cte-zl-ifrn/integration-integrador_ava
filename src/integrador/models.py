@@ -98,20 +98,22 @@ class Ambiente(Model):
 
 class Solicitacao(Model):
     class Status(Choices):
-        NAO_DEFINIDO = Choices.Value(_("Não Definido"), value=None)
-        SUCESSO = Choices.Value(_("Sucesso"), value="S")
-        FALHA = Choices.Value(_("Falha"), value="F")
-        PROCESSANDO = Choices.Value(_("Processando"), value="P")
+        NAO_DEFINIDO = Choices.Value(_("Não Definido"), value=None, icon="❔")
+        SUCESSO = Choices.Value(_("Sucesso"), value="S", icon="✅")
+        FALHA = Choices.Value(_("Falha"), value="F", icon="❌")
+        PROCESSANDO = Choices.Value(_("Processando"), value="P", icon="🔄")
 
     class Operacao(Choices):
         SYNC_UP_DIARIO = Choices.Value(
             _("Sync UP: Diário"),
             value="SUDiario",
+            icon="🔼",
             schema=json.loads((STATIC_DIR / "SUDiario.schema.json").read_text(encoding="utf-8")),
         )
         SYNC_DOWN_NOTAS = Choices.Value(
             _("Sync DOWN: Notas"),
             value="SDNotas",
+            icon="⬇️",
             schema=json.loads((STATIC_DIR / "SDNotas.schema.json").read_text(encoding="utf-8")),
         )
 
@@ -150,7 +152,12 @@ class Solicitacao(Model):
 
     @property
     def status_merged(self):
-        return format_html("{}<br>{}", self.get_status_display(), self.status_code or "")
+        return format_html(
+            "{}{}({})",
+            Solicitacao.Status(self.status).icon,
+            self.get_status_display(),
+            self.status_code or ""
+        )
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if self.recebido:
