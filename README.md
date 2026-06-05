@@ -91,7 +91,7 @@ O projeto usa gates de qualidade locais (pre-commit/pre-push) e no CI.
 ### 1) Ativar pre-commit
 
 ```bash
-cd ~/projetos/IFRN/ava/integration/integrador_ava
+cd ~/projetos/IFRN/suap-ava-suite/integrador_ava
 pyenv install 3.14
 pyenv local 3.14
 python -m venv .venv
