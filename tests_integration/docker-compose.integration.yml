@@ -26,7 +26,7 @@ services:
       CFG_DEBUG: 'false'
       CFG_DISPLAY_ERRORS: '0'
       XDEBUG_MODE: 'off'
-      MOODLE_DOCKER_PHPUNIT_EXTERNAL_HOSTNAME: moodle
+      DOCKER_MOODLE_PHPUNIT_EXTERNAL_HOSTNAME: moodle
     healthcheck:
       test: ["CMD", "curl", "-f", "http://moodle/local/suap/healthcheck.php"]
       interval: 10s
