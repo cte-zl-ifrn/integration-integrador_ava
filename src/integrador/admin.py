@@ -250,8 +250,8 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
     @display(description="Links")
     def links(self, obj):
-        respondido = obj.respondido if isinstance(obj.respondido, dict) else {}
         try:
+            respondido = obj.respondido if obj and isinstance(obj.respondido, dict) else {}
             items = []
 
             url = respondido.get("url")
@@ -298,8 +298,8 @@ class SolicitacaoAdmin(BaseModelAdmin):
                 return "-"
 
             return format_html("<ul>{}</ul>", format_html_join("", "{}", ((item,) for item in items)))
-        except Exception as e:
-            return f"{e}"
+        except Exception:
+            return "-"
 
     def get_urls(self):
         def wrap(view):
@@ -333,7 +333,10 @@ class SolicitacaoAdmin(BaseModelAdmin):
 
         solicitacao.site_url = request.build_absolute_uri("/")
         try:
-            solicitacao.respondido = Suap2LocalSuapBroker(solicitacao).sync_up_enrolments()
+            respondido = Suap2LocalSuapBroker(solicitacao).sync_up_enrolments()
+            if not respondido:
+                raise ValueError("Erro desconhecido")
+            solicitacao.respondido = respondido
             solicitacao.status = Solicitacao.Status.SUCESSO
             solicitacao.status_code = "200"
             solicitacao.save()

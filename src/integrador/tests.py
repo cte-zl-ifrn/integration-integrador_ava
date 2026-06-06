@@ -1856,9 +1856,17 @@ class SolicitacaoAdminTestCase(TestCase):
             recebido={"diario": {"id": 123, "codigo": "TEST123"}},
         )
 
-    def test_status_merged(self):
-        """Testa status_merged."""
-        result = self.admin.status_merged(self.solicitacao)
+    def test_requisicao(self):
+        """Testa requisicao."""
+        result = self.admin.requisicao(self.solicitacao)
+        self.assertIsInstance(result, str)
+        self.assertIn("Processando", result)
+
+    def test_requisicao_without_timestamp_returns_dash(self):
+        """Testa requisicao sem timestamp."""
+        self.solicitacao.timestamp = None
+        result = self.admin.requisicao(self.solicitacao)
+        self.assertIn("-", result)
         self.assertIn("Processando", result)
 
     def test_acoes(self):
@@ -1866,16 +1874,18 @@ class SolicitacaoAdminTestCase(TestCase):
         result = self.admin.acoes(self.solicitacao)
         self.assertIn("Reenviar", result)
 
-    def test_quando(self):
-        """Testa quando."""
-        result = self.admin.quando(self.solicitacao)
-        self.assertIsInstance(result, str)
-
-    def test_quando_without_timestamp_returns_dash(self):
-        """Testa quando sem timestamp."""
-        self.solicitacao.timestamp = None
-        result = self.admin.quando(self.solicitacao)
+    def test_acoes_returns_dash(self):
+        """Testa acoes quando operacao nao eh SYNC_UP_DIARIO."""
+        self.solicitacao.operacao = Solicitacao.Operacao.SYNC_DOWN_NOTAS
+        result = self.admin.acoes(self.solicitacao)
         self.assertEqual(result, "-")
+
+    def test_origem(self):
+        """Testa origem."""
+        self.solicitacao.campus_sigla = "regular"
+        result = self.admin.origem(self.solicitacao)
+        self.assertIn(self.ambiente.nome, result)
+        self.assertIn("regular", result)
 
     def test_professores(self):
         """Testa professores."""
@@ -1904,6 +1914,21 @@ class SolicitacaoAdminTestCase(TestCase):
     def test_links_returns_dash_on_exception(self):
         """Testa links retornando '-' em erro inesperado."""
         result = self.admin.links(None)
+        self.assertEqual(result, "-")
+
+    def test_links_with_sincronizacao_url(self):
+        """Testa links com sincronizacao_url no dicionario respondido."""
+        self.solicitacao.respondido = {"sincronizacao_url": "http://moodle/sync"}
+        result = self.admin.links(self.solicitacao)
+        self.assertIn("http://moodle/sync", result)
+        self.assertIn("Sincronização no Moodle", result)
+
+    def test_links_returns_dash_when_no_items(self):
+        """Testa links retornando '-' quando nao ha nenhum link gerado."""
+        self.solicitacao.respondido = {}
+        self.solicitacao.diario_codigo = None
+        self.solicitacao.diario_id = None
+        result = self.admin.links(self.solicitacao)
         self.assertEqual(result, "-")
 
     def test_links_with_list_respondido(self):
@@ -1950,7 +1975,11 @@ class SolicitacaoAdminTestCase(TestCase):
         request = factory.get(f"/admin/integrador/solicitacao/{self.solicitacao.id}/sync_moodle/")
 
         mock_instance = Mock()
-        mock_instance.sync_up_enrolments.return_value = self.solicitacao
+        mock_instance.sync_up_enrolments.return_value = {
+            "url": "https://test.moodle.com/course/view.php?id=1",
+            "url_sala_coordenacao": "https://test.moodle.com/course/view.php?id=2",
+            "roles_not_found": [],
+        }
         mock_broker.return_value = mock_instance
 
         response = self.admin.sync_moodle_view(request, self.solicitacao.id)

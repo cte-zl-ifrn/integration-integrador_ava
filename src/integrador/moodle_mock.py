@@ -131,15 +131,20 @@ class LocalSuapHTTPMock:
     def sync_down_grades(self, url: str) -> MockHTTPResponse:
         params = self._extract_query_params(url)
         diario_id = params.get("diario_id", "")
+        base = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
         return MockHTTPResponse(
-            [
-                {
-                    "matricula": "20260001",
-                    "nota": 8.5,
-                    "diario_id": diario_id,
-                    "mock": True,
-                }
-            ]
+            {
+                "notas": [
+                    {
+                        "matricula": "20260001",
+                        "nota": 8.5,
+                        "diario_id": diario_id,
+                        "mock": True,
+                    }
+                ],
+                "url": f"{base}/course/view.php?id=1",
+                "url_sala_coordenacao": f"{base}/course/view.php?id=2",
+            }
         )
 
     def request(
