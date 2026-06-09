@@ -476,17 +476,9 @@ class MiddlewareTestCase(TestCase):
         self.factory = RequestFactory()
         self.middleware = DisableCSRFForAPIMiddleware(lambda x: None)
 
-    def test_csrf_middleware_exempts_api_urls(self):
-        """Testa que middleware isenta URLs da API de CSRF."""
-        request = self.factory.post("/api/enviar_diarios/")
-
-        self.middleware.process_request(request)
-
-        self.assertTrue(getattr(request, "_dont_enforce_csrf_checks", False))
-
-    def test_csrf_middleware_exempts_baixar_notas(self):
-        """Testa que middleware isenta baixar_notas de CSRF."""
-        request = self.factory.post("/api/baixar_notas/")
+    def test_csrf_middleware_exempts_debug_toolbar(self):
+        """Testa que middleware isenta URL do Debug Toolbar de CSRF."""
+        request = self.factory.post("/__debug__/")
 
         self.middleware.process_request(request)
 
@@ -499,6 +491,14 @@ class MiddlewareTestCase(TestCase):
         self.middleware.process_request(request)
 
         self.assertFalse(getattr(request, "_dont_enforce_csrf_checks", False))
+
+    def test_api_urls_are_csrf_exempt(self):
+        """Testa que as URLs da API são resolvidas para views isentas de CSRF."""
+        from django.urls import resolve
+
+        for url in ["/api/enviar_diarios/", "/api/baixar_notas/"]:
+            match = resolve(url)
+            self.assertTrue(getattr(match.func, "csrf_exempt", False))
 
 
 class CSRFErrorViewTestCase(TestCase):
