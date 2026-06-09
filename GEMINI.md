@@ -1,4 +1,4 @@
-## Project Overview
+# Project Overview
 
 - **Backend:** Django
 - **Frontend:** Django Templates with vanilla JavaScript
@@ -21,4 +21,3 @@ sas test integrador
 ## How to use Docker Compose
 
 In this project we use `sas` as short to `docker compose`.
-

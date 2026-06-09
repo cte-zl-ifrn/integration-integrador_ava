@@ -65,13 +65,20 @@ class Suap2LocalSuapBroker(BaseBroker):
             return f"tipo_usuario in [{', '.join(tipos_usuarios)}]" if tipos_usuarios else ""
 
         def get_nacionalidades(ai: dict) -> str:
-            return "$any([m['estrangeiro'] == true and m['detalhamento']['ativo'] == true for m in outras_matriculas])" if ai.get("estrangeiros") else ""
+            return (
+                "$any([m['estrangeiro'] == true and m['detalhamento']['ativo'] == true for m in outras_matriculas])"
+                if ai.get("estrangeiros")
+                else ""
+            )
 
         def get_alunos(lista: list[dict[str:str]], filter: str) -> str:
             if not lista or len(lista) == 0:
                 return ""
             args = [f"'{i}'" for i in lista]
-            return f"$any([m['tipo'] == 'aluno' and m['detalhamento']['ativo'] == true and {filter} in" + f" [{', '.join(args)}] for m in outras_matriculas])"
+            return (
+                f"$any([m['tipo'] == 'aluno' and m['detalhamento']['ativo'] == true and {filter} in"
+                + f" [{', '.join(args)}] for m in outras_matriculas])"
+            )
 
         payload = enviados or {}
         if payload.get("turma") is None:
