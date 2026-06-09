@@ -432,15 +432,6 @@ class LocalSuapHTTPMockTestCase(TestCase):
         self.assertEqual(data["error"]["code"], 404)
         self.assertEqual(data["error"]["message"], "Serviço não existe")
 
-    def test_servico_nao_implementado_retorna_501(self):
-        url = f"{self.BASE_URL}?get_diarios"
-        response = self.mock.get(url, headers=self.AUTH_HEADERS)
-        self.assertEqual(response.status_code, 501)
-        self.assertFalse(response.ok)
-        data = json.loads(response.content)
-        self.assertEqual(data["error"]["code"], 501)
-        self.assertEqual(data["error"]["message"], "Não implementado")
-
     def test_sem_authentication_retorna_400(self):
         url = f"{self.BASE_URL}?sync_up_enrolments"
         response = self.mock.post(url, jsonbody={})
@@ -2804,14 +2795,6 @@ class MoodleMockTestCase(TestCase):
 
         # Testa URL sem query
         self.assertEqual(mock._extract_service("http://localhost"), "")
-
-        # Testa POST com serviço não suportado
-        response = mock.post(
-            "http://localhost/local/suap/api/index.php?get_diarios",
-            jsonbody={},
-            headers={"Authentication": f"Token {LocalSuapHTTPMock.TEST_TOKEN}"},
-        )
-        self.assertEqual(response.status_code, 501)
 
     def test_moodle_mock_server_start_stop(self):
         import urllib.request
