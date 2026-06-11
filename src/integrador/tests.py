@@ -593,6 +593,22 @@ class CSRFErrorViewTestCase(TestCase):
         self.assertEqual(mock_render.call_count, 2)
         self.assertEqual(response.content, b"Fallback HTML")
 
+    @patch("integrador.views_errors.render")
+    @patch("integrador.views_errors.sentry_sdk")
+    def test_csrf_failure_fallback_html_when_all_renders_fail(self, mock_sentry, mock_render):
+        """Testa fallback de erro CSRF para HttpResponse puro quando todos os templates falham."""
+        mock_render.side_effect = [Exception("Template error 1"), Exception("Template error 2")]
+
+        request = self.factory.post("/admin/login/")
+        request.META["HTTP_ACCEPT"] = "text/html"
+        request.user = Mock()
+        request.user.is_authenticated = False
+
+        response = self.csrf_failure_view(request, reason="All templates fail")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(mock_render.call_count, 2)
+        self.assertIn(b"Forbidden (403)", response.content)
+
     @patch("integrador.views_errors.sentry_sdk")
     def test_csrf_failure_includes_user_info_when_authenticated(self, mock_sentry):
         """Testa que erro CSRF inclui informações do usuário autenticado."""
@@ -645,16 +661,18 @@ class CSRFErrorViewTestCase(TestCase):
 
         # Verifica que o contexto csrf_failure incluiu o content_type
         scope_mock = mock_sentry.push_scope.return_value.__enter__.return_value
-        scope_mock.set_context.assert_any_call(
-            "csrf_failure",
-            {
-                "reason": "CSRF cookie not set",
-                "path": "/api/sensitive-endpoint/",
-                "method": "POST",
-                "referer": "https://malicious-site.com",
-                "content_type": "application/json",
-            },
-        )
+        self.assertTrue(scope_mock.set_context.called)
+        called_with_csrf = False
+        for args, kwargs in scope_mock.set_context.call_args_list:
+            if len(args) >= 2 and args[0] == "csrf_failure":
+                called_with_csrf = True
+                captured = args[1]
+                self.assertEqual(captured["reason"], "CSRF cookie not set")
+                self.assertEqual(captured["path"], "/api/sensitive-endpoint/")
+                self.assertEqual(captured["method"], "POST")
+                self.assertEqual(captured["referer"], "https://malicious-site.com")
+                self.assertEqual(captured["content_type"], "application/json")
+        self.assertTrue(called_with_csrf, "set_context não foi chamado com csrf_failure")
 
     @patch("integrador.views_errors.sentry_sdk")
     def test_csrf_failure_with_empty_reason(self, mock_sentry):

@@ -139,7 +139,7 @@ class Suap2LocalSuapBroker(BaseBroker):
         result = self.__post_json("sync_up_enrolments", self.solicitacao.enviado)
         result["ambiente"] = self.solicitacao.ambiente.base_url
 
-        for key in ["logMessages", "sala_tipo", "sincronizacao_url", "ambiente", "restricoes", "ids_suspensos"]:
+        for key in ["logMessages", "sala_tipo", "sincronizacao_url", "restricoes", "ids_suspensos"]:
             result.pop(key, None)
         return result
 

@@ -31,10 +31,12 @@ def csrf_failure(request, reason=""):
     """
     content_type = request.META.get("CONTENT_TYPE", "unknown").lower()
     accept_header = request.META.get("HTTP_ACCEPT", "unknown").lower()
-    is_json_request = request.path.startswith("/api/") or "application/json" in [content_type, accept_header]
+    is_json_request = (
+        request.path.startswith("/api/") or "application/json" in content_type or "application/json" in accept_header
+    )
 
     context = {
-        "error": "A verificação CSRF falhou. Certifique-se de incluir um token CSRF válido.",
+        "error": "CSRF verification failed",
         "reason": reason,
         "path": request.path,
         "method": request.method,
@@ -45,8 +47,8 @@ def csrf_failure(request, reason=""):
         "user_agent": request.META.get("HTTP_USER_AGENT", "Unknown"),
     }
 
-    # Log local para debug
-    logger.debug(f"CSRF verification failed: {reason}", extra={"context": context})
+    # Log local para warning
+    logger.warning(f"CSRF verification failed: {reason}", extra={"context": context})
 
     # Envia o erro para o Sentry com contexto adicional
     with sentry_sdk.push_scope() as scope:
@@ -61,4 +63,12 @@ def csrf_failure(request, reason=""):
     if is_json_request:
         return JsonResponse(context, status=403)
 
-    return render(request, "403_csrf.html", {"reason": reason}, status=403)
+    try:
+        return render(request, "403_csrf.html", {"reason": reason}, status=403)
+    except Exception:
+        try:
+            return render(request, "403.html", {"reason": reason}, status=403)
+        except Exception:
+            from django.http import HttpResponse
+
+            return HttpResponse("<h1>Forbidden (403)</h1><p>CSRF verification failed.</p>", status=403)
