@@ -110,8 +110,8 @@ class Suap2LocalSuapBroker(BaseBroker):
             self.solicitacao.enviado["coortes"] = self.get_cohort()
         except Exception as e:
             raise SyncError(
-                "Erro ao tentar obter as COORTES"
-                + " antes mesmo de iniciar a integração com o Moodle."
+                "Erro ao tentar obter as COORTES "
+                + "antes mesmo de iniciar a integração com o Moodle."
                 + f" Contacte um administrador. Erro: {e}.",
                 getattr(e, "code", 525),
             )
@@ -130,13 +130,17 @@ class Suap2LocalSuapBroker(BaseBroker):
             self.solicitacao.save(update_fields=["enviado"])
         except Exception as e:
             raise SyncError(
-                "Erro ao tentar SALVAR o payload antes mesmo de ser enviado ao Moodle."
+                "Erro ao tentar SALVAR o payload "
+                + "antes mesmo de ser enviado ao Moodle."
                 + f" Contacte um administrador. Erro: {e}.",
                 getattr(e, "code", 527),
             )
 
         result = self.__post_json("sync_up_enrolments", self.solicitacao.enviado)
         result["ambiente"] = self.solicitacao.ambiente.base_url
+
+        for key in ["logMessages", "sala_tipo", "sincronizacao_url", "ambiente", "restricoes", "ids_suspensos"]:
+            result.pop(key, None)
         return result
 
     def sync_down_grades(self) -> dict:
