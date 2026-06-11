@@ -5,6 +5,8 @@ from sc4py.env import env, env_as_bool, env_as_int
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
+from settings.project import PROJECT_VERSION
+
 if env("SENTRY_DNS", None):
     sentry_sdk.init(
         dsn=env("SENTRY_DNS"),
@@ -25,7 +27,7 @@ if env("SENTRY_DNS", None):
         max_breadcrumbs=env_as_int("SENTRY_MAX_BREADCRUMBS", 100),
         ignore_errors=[DisallowedHost],
         profiles_sample_rate=env_as_int("SENTRY_PROFILES_SAMPLE_RATE", 100) / 100.0,
-        # release=env('SENTRY_RELEASE', '1.0.0'),
+        release=env("SENTRY_RELEASE", PROJECT_VERSION),
         # attach_stacktrace=env('SENTRY_ATTACH_STACKTRACE', 'off'),
         # server_name=env('SENTRY_SERVER_NAME', 'off'),
         # in_app_include=env_as_list('SENTRY_IN_APP_INCLUDE', []),
