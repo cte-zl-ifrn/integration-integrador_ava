@@ -29,22 +29,21 @@ def csrf_failure(request, reason=""):
     Returns:
         JsonResponse ou HttpResponse com status 403
     """
-    content_type = request.META.get("CONTENT_TYPE", "unknown").lower()
-    accept_header = request.META.get("HTTP_ACCEPT", "unknown").lower()
-    is_json_request = (
-        request.path.startswith("/api/") or "application/json" in content_type or "application/json" in accept_header
-    )
+    meta = request.META
+    content_type = meta.get("CONTENT_TYPE", "unknown").lower()
+    accept_header = meta.get("HTTP_ACCEPT", "unknown").lower()
+    is_json_request = request.path.startswith("/api/") or "application/json" in [content_type, accept_header]
 
     context = {
         "error": "CSRF verification failed",
         "reason": reason,
         "path": request.path,
         "method": request.method,
-        "referer": request.META.get("HTTP_REFERER", "Unknown"),
+        "referer": meta.get("HTTP_REFERER", "Unknown"),
         "content_type": content_type,
         "accept_header": accept_header,
         "is_json_request": is_json_request,
-        "user_agent": request.META.get("HTTP_USER_AGENT", "Unknown"),
+        "user_agent": meta.get("HTTP_USER_AGENT", "Unknown"),
     }
 
     # Log local para warning
@@ -63,12 +62,4 @@ def csrf_failure(request, reason=""):
     if is_json_request:
         return JsonResponse(context, status=403)
 
-    try:
-        return render(request, "403_csrf.html", {"reason": reason}, status=403)
-    except Exception:
-        try:
-            return render(request, "403.html", {"reason": reason}, status=403)
-        except Exception:
-            from django.http import HttpResponse
-
-            return HttpResponse("<h1>Forbidden (403)</h1><p>CSRF verification failed.</p>", status=403)
+    return render(request, "403_csrf.html", context, status=403)
