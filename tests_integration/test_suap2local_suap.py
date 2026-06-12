@@ -1,5 +1,4 @@
-from unittest import TestCase
-
+from django.test import TestCase
 from sc4net import get_json
 
 from integrador.brokers.suap2local_suap import Suap2LocalSuapBroker
@@ -35,7 +34,7 @@ class Suap2LocalSuapIntegrationTestCase(TestCase):
 
         ambiente = Ambiente.objects.first() or Ambiente.objects.create(
             nome="Moodle Teste",
-            base_url="http://moodle",
+            url="http://moodle",
             local_suap_token="changeme",  # noqa S106
             local_suap_active=True,
         )
