@@ -26,6 +26,7 @@ class Suap2LocalSuapIntegrationTestCase(TestCase):
                     "email": "aluno7@example.com",
                     "matricula": "aluno7",
                     "situacao": "ativo",
+                    "tipo_usuario": "Aluno",
                 }
             ],
             "professores": [{"id": 157706, "nome": "João Maria", "email": "joaomaria@ifrn.edu.br", "login": "123456"}],
