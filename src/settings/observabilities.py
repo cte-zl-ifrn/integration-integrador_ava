@@ -7,9 +7,10 @@ from sentry_sdk.integrations.redis import RedisIntegration
 
 from settings.project import PROJECT_VERSION
 
-if env("SENTRY_DNS", None):
+sentry_dsn = env("SENTRY_DSN", env("SENTRY_DNS", None))
+if sentry_dsn:
     sentry_sdk.init(
-        dsn=env("SENTRY_DNS"),
+        dsn=sentry_dsn,
         integrations=[DjangoIntegration(), RedisIntegration()],
         default_integrations=env_as_bool("SENTRY_DEFAULT_INTEGRATIONS", True),
         # Informe em porcentual, ou seja, 50 significa que 100% de erros serão reportados.
