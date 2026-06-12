@@ -51,9 +51,6 @@ def csrf_failure(request, reason=""):
 
     # Envia o erro para o Sentry com contexto adicional
     with sentry_sdk.push_scope() as scope:
-        if request.user.is_authenticated:
-            user = request.user
-            scope.set_user({"id": user.id, "username": user.username, "email": getattr(user, "email", "")})
         scope.set_tag("error_type", "csrf_failure")
         scope.set_tag("csrf_reason", reason)
         scope.set_context("csrf_failure", context)
